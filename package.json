@@ -1,0 +1,33 @@
+{
+  "name": "ta-appointment-system",
+  "version": "1.0.0",
+  "description": "A full-stack application for managing Teaching Assistant appointments.",
+  "main": "index.js",
+  "scripts": {
+    "client-install": "npm install --prefix client",
+    "server-install": "npm install --prefix server",
+    "install-all": "npm run client-install && npm run server-install",
+    "client": "npm run dev --prefix client",
+    "server": "npm start --prefix server",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "start": "npm run server",
+    "build": "npm run build --prefix client"
+  },
+  "keywords": [
+    "TA",
+    "Teaching Assistant",
+    "Appointment System",
+    "React",
+    "Node.js",
+    "Vite",
+    "Monorepo"
+  ],
+  "author": "Group 4 - Dasun W.A.T., Dasunika M.D., De Silva A.D.D.T.",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
