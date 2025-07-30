@@ -1,3 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --color-primary: 59 130 246;
+  --color-primary-light: 96 165 250;
+  --color-primary-dark:19 62 135;
+
+  --color-secondary: 34 197 94;
+  --color-accent: 255 193 7;
+
+  /* --- Bg Colors --- */
+  --color-bg-page:219, 227, 237;
+  --color-bg-card: 255 255 255;
+  --color-bg-header: 255 255 255;
+
+  --color-text-primary: 55 65 81;
+  --color-text-secondary: 107 114 128;
+  --color-text-inverted: 255 255 255;
+
+  --color-border-default: 229 231 235;
+  --color-border-strong: 156 163 175;
+
+  /* --- Semantic State Colors --- */
+  --color-success: 76 175 80; /* Standard Green */
+  --color-warning: 255 193 7; /* Standard Yellow */
+  --color-error: 244 67 54; /* Standard Red */
+  --color-info: 33 150 243; /* Standard Blue */
+}
