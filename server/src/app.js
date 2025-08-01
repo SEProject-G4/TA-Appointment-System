@@ -1,11 +1,32 @@
 const express = require('express')
+const session = require('express-session')
+const cors = require('cors')
+const authRoutes = require('./routes/authRoutes')
+const config = require('./config')
+
 const app = express()
-const port = 3000
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+app.use(session({
+  secret: config.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    httpOnly: true,
+    secure: false }
+}));
 
+app.use(cors({
+  origin: config.FRONTEND_URL,
+  credentials: true
+}));
+app.use(express.json());
+
+
+app.use('api/auth', authRoutes);
+
+
+const port = config.PORT || 5000;
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+  console.log(`TA Appointment system's backend is listening on port ${port}`)
 })
