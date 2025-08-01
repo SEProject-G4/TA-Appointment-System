@@ -2,7 +2,7 @@ const User = require('../models/User');
 
 const findUser = async (profile) => {
     try {
-        const user = await User.findOne({ googleId: profile.id });
+        const user = await User.findById(profile.id);
         return user;
     } catch (error) {
         console.error('Error finding user:', error);
