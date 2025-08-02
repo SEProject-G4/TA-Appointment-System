@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { Schems } = mongoose;
+const { Schema } = mongoose;
 
 const userSchema = new mongoose.Schema({
     googleId: {
@@ -32,4 +32,4 @@ const userSchema = new mongoose.Schema({
     },
 });
 
-module.exxports = mongoose.model('User', userSchema);
+module.exports = mongoose.model('User', userSchema);
