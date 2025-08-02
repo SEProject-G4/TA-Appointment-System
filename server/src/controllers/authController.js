@@ -16,7 +16,7 @@ const googleLogin = (req, res) => {
         prompt: 'consent'
     }).toString();
 
-    res.redirect(`${GOOGLE_OAUTH_URL}?${queryParams}`);
+    return res.redirect(`${GOOGLE_OAUTH_URL}?${queryParams}`);
 };
 
 const googleCallback = async (req, res) => {
@@ -50,6 +50,7 @@ const googleCallback = async (req, res) => {
         });
 
         const googleProfile = userInfoResponse.data;
+        //console.log('Google Profile:', googleProfile);
         const userEmail = googleProfile.email;
         
 
@@ -68,7 +69,7 @@ const googleCallback = async (req, res) => {
         req.session.userId = user._id;
         req.session.role = user.role;
 
-        return res.redirect(`${config.FRONTEND_URL}/dashboard`);
+        return res.redirect(`${config.FRONTEND_URL}/admin-dashboard`);
     }catch(error){
         console.error('Google authentication error:', error.message);
         return res.redirect(`${config.FRONTEND_URL}/login?error=auth_failed`);
@@ -81,7 +82,7 @@ const getCurrentUser = async (req, res) => {
     }
 
     try {
-        const user = await authService.findUser({id: req.session.userId});
+        const user = await authService.findUserById(req.session.userId);
         if (!user) {
             req.session.destroy();
             return res.status(404).json({error: 'User not found'});
@@ -92,7 +93,7 @@ const getCurrentUser = async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
-            googleId: user.googleId
+            profilePicture: user.profilePicture
         }
 
         return res.status(200).json(userProfile);

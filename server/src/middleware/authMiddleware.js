@@ -7,7 +7,7 @@ exports.protected = async (req, res, next) => {
     }
 
     try{
-        const user = await authService.findUser({ id: req.session.userId });
+        const user = await authService.findUserById(req.session.userId);
         if (!user) {
             req.session.destroy();
             return res.status(404).json({ error: 'Not authorised, user not found' });
