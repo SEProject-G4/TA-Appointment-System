@@ -11,12 +11,12 @@ export interface User {
 
 //Redirect to Google for authentication
 export const loginWithGoogle = () => {
-    window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/auth/google`;
+    window.location.href = `http://localhost:5000/api/auth/google`;
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    const response = await axiosInstance.get<User>('/auth/current_user');
+    const response = await axiosInstance.get<User>('/auth/current-user');
     return response.data;
   } catch (error) {
     // A 401 response from the backend means the user is not authenticated.

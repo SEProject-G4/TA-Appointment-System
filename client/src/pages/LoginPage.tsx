@@ -34,13 +34,13 @@ const LoginPage: React.FC = () => {
     }
   }, [location.search]);
 
-  if (loading || isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-page text-text-primary">
-        Loading...
-      </div>
-    );
-  }
+//   if (loading || isAuthenticated) {
+//     return (
+//       <div className="min-h-screen flex items-center justify-center bg-bg-page text-text-primary">
+//         Loading...
+//       </div>
+//     );
+//   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg-page text-text-primary p-4">
