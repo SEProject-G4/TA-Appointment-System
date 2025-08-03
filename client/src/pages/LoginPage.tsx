@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import GoogleLoginButton from "../components/GoogleLoginButton";
@@ -9,13 +9,25 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user, loading } = useAuth();
 
+  // Helper function to get default route based on user role
+  const getDefaultRouteForRole = (role: string): string => {
+    switch (role) {
+      case 'admin':
+        return '/admin-dashboard';
+      case 'lecturer':
+        return '/lecturer-dashboard';
+      default:
+        return '/login'; // fallback to login if role is not recognized
+    }
+  };
+
   useEffect(() => {
-    // Redirect to home if already authenticated
-    if (isAuthenticated) {
-      const redirectPath = location.state?.from || "/";
+    // Redirect based on user role if already authenticated
+    if (isAuthenticated && !loading && user) {
+      const redirectPath = location.state?.from || getDefaultRouteForRole(user.role);
       navigate(redirectPath, { replace: true });
     }
-  }, [isAuthenticated, user, navigate, location.state]);
+  }, [isAuthenticated, loading, user, navigate, location.state]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -34,13 +46,13 @@ const LoginPage: React.FC = () => {
     }
   }, [location.search]);
 
-//   if (loading || isAuthenticated) {
-//     return (
-//       <div className="min-h-screen flex items-center justify-center bg-bg-page text-text-primary">
-//         Loading...
-//       </div>
-//     );
-//   }
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-page text-text-primary">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg-page text-text-primary p-4">
