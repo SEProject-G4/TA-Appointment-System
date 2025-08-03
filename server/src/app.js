@@ -1,33 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const session = require('express-session');
-const config = require('./config');
-
-const app = express();
-
-app.use(express.json());
-app.use(cors({
-  origin: config.FRONTEND_URL,
-  credentials: true,
-}));
-
-app.use(session({
-  secret: config.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: true,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 1000 * 60 * 60 * 24
-  },
-}));
-
-// ... mount your other routes here
-app.use('/api/auth', require('./routes/authRoutes'));
+const express = require('express')
+const app = express()
+const port = 3000
 
 app.get('/', (req, res) => {
-  res.send('TA Appointment System Backend is running!');
-});
+  res.send('Hello World!')
+})
 
-module.exports = app;
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`)
+})
