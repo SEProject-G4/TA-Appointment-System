@@ -42,9 +42,7 @@ const LecturerDashboard: React.FC = () => {
     <div className="min-h-screen bg-bg-page">
       <Navbar />
       <div className="p-4 pt-8">
-        <div className="w-full">
-          <h1 className="text-3xl font-bold text-center mb-8 text-text-primary">Lecturer Dashboard</h1>
-          
+        <div className="w-full">          
           {/* Tab Navigation */}
           <div className="flex space-x-1 bg-bg-card rounded-lg p-1 mb-6 border border-border-default max-w-4xl mx-auto">
             {tabs.map((tab) => (
