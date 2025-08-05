@@ -38,7 +38,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="w-full">
+    <nav className="w-full fixed top-0 z-50 shaddow-lg">
       <div className="navbar flex flex-row bg-bg-card text-text-primary shadow-lg w-full">
         
         <div className="flex flex-1 flex-row items-center justify-start space-x-32">
@@ -50,14 +50,14 @@ const Navbar = () => {
           </div>
           {/* Nav Links */}
           <ul className="flex space-x-4">
-            <li className={`font-semibold hover:text-text-primary border-b-2 hover:border-primary-dark transition duration-300 ease-in-out ${location.pathname === '/' ? 'border-primary-dark text-text-primary' : 'border-transparent text-text-secondary'}`}>
+            <li className={`hover:text-text-primary transition duration-300 ease-in-out ${location.pathname === '/' ? 'font-semibold text-text-primary' : 'text-text-secondary'}`}>
               <Link to="/">Home</Link>
             </li>
 
             {navLinks.map((nav) => {
               if (user && user.role === nav.role) {
                 return nav.links.map((link) => (
-                  <li key={link.to} className={`font-semibold hover:text-text-primary border-b-2 hover:border-primary-dark transition duration-300 ease-in-out ${isPathActive(link.to) ? 'border-primary-dark text-text-primary' : 'border-transparent text-text-secondary'}`}>
+                  <li key={link.to} className={`hover:text-text-primary transition duration-300 ease-in-out ${isPathActive(link.to) ? 'font-semibold text-text-primary' : 'text-text-secondary'}`}>
                     <Link to={link.to}>{link.label}</Link>
                   </li>
                 ));
