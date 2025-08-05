@@ -6,7 +6,7 @@ const ProtectedRoute: React.FC<{
   roles?: string[] | string ;
   children: React.ReactNode;
 }> = ({ roles , children }) => {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -16,7 +16,7 @@ const ProtectedRoute: React.FC<{
     );
   }
 
-  if (!isAuthenticated || !user) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 

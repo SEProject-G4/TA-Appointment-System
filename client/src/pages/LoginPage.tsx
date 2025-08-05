@@ -2,20 +2,21 @@ import React, { useState, useEffect, use } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import GoogleLoginButton from "../components/GoogleLoginButton";
+import LoginBgImage from "../assets/images/sumanadasa.jpg";
 
 const LoginPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user, loading } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     // Redirect to home if already authenticated
-    if (isAuthenticated) {
+    if (user) {
       const redirectPath = location.state?.from || "/";
       navigate(redirectPath, { replace: true });
     }
-  }, [isAuthenticated, user, navigate, location.state]);
+  }, [user, navigate, location.state]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -43,9 +44,14 @@ const LoginPage: React.FC = () => {
 //   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg-page text-text-primary p-4">
+    <div
+      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center"
+      style={{
+        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${LoginBgImage})`,
+      }}
+    >
       <div className="w-full max-w-md p-8 rounded-2xl shadow-xl bg-bg-card border border-border-default">
-        <h1 className="text-3xl font-bold text-center mb-2">Welcome</h1>
+        <h1 className="text-3xl font-bold text-center text-text-primary mb-2">Welcome</h1>
         <p className="text-center text-text-secondary mb-8">
           Sign in to the TA Appointment System with your Google account.
         </p>

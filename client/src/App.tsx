@@ -1,17 +1,19 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import LecturerDashboard from './pages/LecturerDashboard';
-// ... import other dashboards
+import Navbar from './components/Navbar';
 
 function App() {
+
   return (
-    <Router>
       <AuthProvider>
+        <Navbar />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* <Route path="/" element={<LoginPage />} /> */}
           
           <Route path="/admin-dashboard" element={
             <ProtectedRoute roles="admin">
@@ -31,7 +33,6 @@ function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </AuthProvider>
-    </Router>
   );
 }
 

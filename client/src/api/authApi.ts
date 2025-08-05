@@ -31,7 +31,9 @@ export const getCurrentUser = async (): Promise<User | null> => {
 
 export const logout = async (): Promise<void> => {
     try {
-        await axiosInstance.get('/auth/logout');
+        await axiosInstance.get('/auth/logout').then(() => {
+          window.location.href = '/login';
+        });
     } catch (error) {
         console.error('Error during logout:', error);
     }

@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@plugin "daisyui";
 
 :root {
   --color-primary: 59 130 246;
@@ -9,13 +10,14 @@
 
   --color-secondary: 34 197 94;
   --color-accent: 255 193 7;
+  --color-accent-light: 151 222 255;
 
   /* --- Bg Colors --- */
   --color-bg-page:219, 227, 237;
   --color-bg-card: 255 255 255;
   --color-bg-header: 255 255 255;
 
-  --color-text-primary: 55 65 81;
+  --color-text-primary: 33 33 33;
   --color-text-secondary: 107 114 128;
   --color-text-inverted: 255 255 255;
 
