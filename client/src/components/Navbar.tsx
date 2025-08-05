@@ -50,14 +50,14 @@ const Navbar = () => {
           </div>
           {/* Nav Links */}
           <ul className="flex space-x-4">
-            <li className={`font-semibold hover:text-text-primary border-b-2 border-transparent hover:border-primary-dark transition duration-300 ease-in-out ${location.pathname === '/' ? 'border-primary-dark text-text-primary' : 'text-text-secondary'}`}>
+            <li className={`font-semibold hover:text-text-primary border-b-2 hover:border-primary-dark transition duration-300 ease-in-out ${location.pathname === '/' ? 'border-primary-dark text-text-primary' : 'border-transparent text-text-secondary'}`}>
               <Link to="/">Home</Link>
             </li>
 
             {navLinks.map((nav) => {
               if (user && user.role === nav.role) {
                 return nav.links.map((link) => (
-                  <li key={link.to} className={`font-semibold hover:text-text-primary border-b-2 border-transparent hover:border-primary-dark transition duration-300 ease-in-out ${isPathActive(link.to) ? 'border-primary-dark text-text-primary' : 'text-text-secondary'}`}>
+                  <li key={link.to} className={`font-semibold hover:text-text-primary border-b-2 hover:border-primary-dark transition duration-300 ease-in-out ${isPathActive(link.to) ? 'border-primary-dark text-text-primary' : 'border-transparent text-text-secondary'}`}>
                     <Link to={link.to}>{link.label}</Link>
                   </li>
                 ));
