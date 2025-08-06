@@ -5,8 +5,8 @@ import type { User } from "../api/authApi";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  isAuthenticated: boolean;
-  logout: () => Promise<void>;
+  isLoggingOut: boolean;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,6 +16,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Check for an existing session on initial load
   useEffect(() => {
@@ -27,21 +28,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchUser();
   }, []);
 
-  const logout = async () => {
-    await apiLogout();
-    setUser(null);
+  const logout = () => {
+    setIsLoggingOut(true);
+    apiLogout()
+      .then(() => {
+        setUser(null);
+      })
+      .catch((error) => {
+        console.error("Logout failed:", error);
+      })
+      .finally(() => {
+        setIsLoggingOut(false);
+      });
   };
-
-  const isAuthenticated = !!user;
 
   const memoizedValue = React.useMemo(
     () => ({
       user,
       loading,
-      isAuthenticated,
+      isLoggingOut,
       logout,
     }),
-    [user, loading, isAuthenticated]
+    [user, loading, isLoggingOut]
   );
 
   return (

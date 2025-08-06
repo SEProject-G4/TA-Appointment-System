@@ -14,6 +14,7 @@ export default {
         
         'secondary': 'rgb(var(--color-secondary) / <alpha-value>)',     //Secondary color
         'accent': 'rgb(var(--color-accent) / <alpha-value>)',         //Highlight/CTA color
+        'accent-light': 'rgb(var(--color-accent-light) / <alpha-value>)', //Lighter version of accent
 
         // --- Background Colors ---
         'bg-page': 'rgb(var(--color-bg-page) / <alpha-value>)',       // Main page background
@@ -32,9 +33,20 @@ export default {
         'warning': 'rgb(var(--color-warning) / <alpha-value>)',
         'error': 'rgb(var(--color-error) / <alpha-value>)',
         'info': 'rgb(var(--color-info) / <alpha-value>)',
-      }
+      },
+      fontFamily: {
+        'sans': ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+        
+        // Add specific utility classes for each font
+        'inter': ['Inter', 'sans-serif'],
+        'montserrat': ['Montserrat', 'sans-serif'],
+        'roboto': ['Roboto', 'sans-serif'],
+        'raleway': ['Raleway', 'sans-serif'],
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    require('daisyui'),
+  ],
 }
 
