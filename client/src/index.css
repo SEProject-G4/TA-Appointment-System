@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -31,4 +32,8 @@
   --color-warning: 255 193 7; /* Standard Yellow */
   --color-error: 244 67 54; /* Standard Red */
   --color-info: 33 150 243; /* Standard Blue */
+
+  /* --- Font Families --- */
+  --font-raleway: "Raleway", sans-serif;
+
 }

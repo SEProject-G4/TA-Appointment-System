@@ -33,7 +33,16 @@ export default {
         'warning': 'rgb(var(--color-warning) / <alpha-value>)',
         'error': 'rgb(var(--color-error) / <alpha-value>)',
         'info': 'rgb(var(--color-info) / <alpha-value>)',
-      }
+      },
+      fontFamily: {
+        'sans': ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+        
+        // Add specific utility classes for each font
+        'inter': ['Inter', 'sans-serif'],
+        'montserrat': ['Montserrat', 'sans-serif'],
+        'roboto': ['Roboto', 'sans-serif'],
+        'raleway': ['Raleway', 'sans-serif'],
+      },
     },
   },
   plugins: [

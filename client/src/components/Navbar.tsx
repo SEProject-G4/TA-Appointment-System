@@ -44,20 +44,20 @@ const Navbar = () => {
         <div className="flex flex-1 flex-row items-center justify-start space-x-32">
           <div className="flex items-center">
             <img src={CSELogo} alt="CSE Logo" className="w-14 h-8 mr-2" />
-            <Link to="/" className="text-xl text-text-primary">
+            <Link to="/" className="text-xl text-text-primary font-marcellus">
               TA Appointment System
             </Link>
           </div>
           {/* Nav Links */}
           <ul className="flex space-x-4">
-            <li className={`hover:text-text-primary transition duration-300 ease-in-out ${location.pathname === '/' ? 'font-semibold text-text-primary' : 'text-text-secondary'}`}>
+            <li className={`font-raleway hover:text-primary transition duration-300 ease-in-out ${location.pathname === '/' ? 'font-semibold text-primary-dark' : 'text-text-secondary'}`}>
               <Link to="/">Home</Link>
             </li>
 
             {navLinks.map((nav) => {
               if (user && user.role === nav.role) {
                 return nav.links.map((link) => (
-                  <li key={link.to} className={`hover:text-text-primary transition duration-300 ease-in-out ${isPathActive(link.to) ? 'font-semibold text-text-primary' : 'text-text-secondary'}`}>
+                  <li key={link.to} className={`font-raleway hover:text-primary transition duration-300 ease-in-out ${isPathActive(link.to) ? 'font-semibold text-primary-dark' : 'text-text-secondary'}`}>
                     <Link to={link.to}>{link.label}</Link>
                   </li>
                 ));
@@ -75,7 +75,6 @@ const Navbar = () => {
           ) : user ? (
             <>
               {" "}
-              {/* Use a fragment to wrap multiple elements */}
               <div className="flex flex-col items-end">
                 <p className="text-md text-text-primary font-semibold">
                   {user.name}
