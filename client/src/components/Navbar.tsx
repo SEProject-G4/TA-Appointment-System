@@ -44,8 +44,9 @@ const Navbar = () => {
         <div className="flex flex-1 flex-row items-center justify-start space-x-32">
           <div className="flex items-center">
             <img src={CSELogo} alt="CSE Logo" className="w-14 h-8 mr-2" />
-            <Link to="/" className="text-xl text-text-primary font-marcellus">
-              TA Appointment System
+            <Link to="/" className="text-xl text-text-primary font-mercellus">
+              <p className="lg:flex hidden">TA Appointment System</p>
+              <p className="lg:hidden">TAAS</p>
             </Link>
           </div>
           {/* Nav Links */}
