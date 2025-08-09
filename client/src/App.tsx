@@ -6,6 +6,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import LecturerDashboard from "./pages/LecturerDashboard";
 import Navbar from "./components/Navbar";
 import HomePage from "./pages/HomePage";
+import NewModule from "./pages/NewModule";
 
 function App() {
   return (
@@ -33,6 +34,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+          path="/recruitment-series/:series-id/add-module"
+          element={
+            <ProtectedRoute roles="admin">
+              <NewModule />
+            </ProtectedRoute>
+          } />
 
           {/* Fallback redirect */}
           <Route path="*" element={<Navigate to="/login" replace />} />

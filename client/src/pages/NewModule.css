@@ -1,0 +1,17 @@
+.new-module-input{
+    @apply py-1 px-2 rounded-md outline outline-1 outline-text-secondary focus:outline-primary-light focus:outline-offset-1 focus:outline-2;
+    width: auto;
+}
+
+.new-module-type-select::-webkit-outer-spin-button,
+.new-module-type-select::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+.new-module-type-select{
+    @apply appearance-none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
