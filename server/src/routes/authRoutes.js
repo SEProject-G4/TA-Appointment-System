@@ -2,9 +2,8 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 
-router.get('/google', authController.googleLogin);
-router.get('/google/callback', authController.googleCallback);
+router.post('/google-verify', authController.googleVerify);
 router.get('/current-user', authController.getCurrentUser);
-router.get('/logout', authController.logout);
+router.post('/logout', authController.logout);
 
 module.exports = router;

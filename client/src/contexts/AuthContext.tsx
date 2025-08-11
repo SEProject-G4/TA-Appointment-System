@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getCurrentUser, logout as apiLogout } from "../api/authApi";
+import {
+  getCurrentUser,
+  logout as apiLogout,
+  verifyGoogleToken,
+} from "../api/authApi";
 import type { User } from "../api/authApi";
 
 interface AuthContextType {
@@ -7,6 +11,7 @@ interface AuthContextType {
   loading: boolean;
   isLoggingOut: boolean;
   logout: () => void;
+  loginWithGIS: (idToken: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +33,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchUser();
   }, []);
 
+  const loginWithGIS = async (idToken: string) => {
+    setLoading(true);
+    try {
+      const authenticatedUser = await verifyGoogleToken(idToken);
+      setUser(authenticatedUser);
+    } catch (error) {
+      console.error("Login failed:", error);
+      setUser(null);
+      throw error; // Re-throw the error so the component can handle it
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     setIsLoggingOut(true);
     apiLogout()
@@ -48,6 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       loading,
       isLoggingOut,
       logout,
+      loginWithGIS,
     }),
     [user, loading, isLoggingOut]
   );
