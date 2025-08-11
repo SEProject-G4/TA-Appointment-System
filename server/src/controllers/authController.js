@@ -39,7 +39,7 @@ const googleVerify = async (req, res) => {
         req.session.userId = user._id;
         req.session.role = user.role;
 
-        return res.status(200).json({ message: 'Login successful', user });
+        return res.status(200).json(user);
     } catch (error) {
         console.error('Google token verification failed:', error.message);
         return res.status(401).json({ error: 'Token verification failed' });
@@ -80,8 +80,9 @@ const logout = (req, res) => {
             return res.status(500).json({error: 'Could not log out'});
         }
         res.clearCookie('connect.sid');
-        return res.redirect(`${config.FRONTEND_URL}/`);
+        return res.status(200).json({ message: 'Logout successful' });
     });
+    console.log('User logged out successfully');
 };
 
 module.exports = {
