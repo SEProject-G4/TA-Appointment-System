@@ -15,7 +15,6 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
-    navigate("/login", { replace: true });
   };
   
   const isLoginPage = location.pathname === '/login';

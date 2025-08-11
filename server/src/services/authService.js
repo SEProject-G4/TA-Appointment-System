@@ -37,7 +37,21 @@ const findUserById = async (id) => {
   }
 };
 
+const findUserByEmail = async (email) => {
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new Error("User not found");
+    }
+    return user;
+  } catch (error) {
+    console.error("Error finding user by email:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   findUser,
   findUserById,
+  findUserByEmail,
 };

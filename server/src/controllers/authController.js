@@ -1,78 +1,48 @@
-const axios = require('axios');
+const { OAuth2Client } = require('google-auth-library');
 const config = require('../config');
 const authService = require('../services/authService');
 
-const GOOGLE_OAUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const GOOGLE_USER_INFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
+const client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
 
-const googleLogin = (req, res) => {
-    const queryParams = new URLSearchParams({
-        client_id: config.GOOGLE_CLIENT_ID,
-        redirect_uri: `${config.BACKEND_URL}/api/auth/google/callback`,
-        response_type: 'code',
-        scope: 'openid email profile',
-        access_type: 'offline',
-        prompt: 'consent'
-    }).toString();
-
-    return res.redirect(`${GOOGLE_OAUTH_URL}?${queryParams}`);
-};
-
-const googleCallback = async (req, res) => {
-    const {code, error} = req.query;
-
-    if(error){
-        console.error('Google OAuth error:', error);
-        return res.redirect(`${config.FRONTEND_URL}/login?error=oauth_error`);
-    }
-    if (!code){
-        return res.redirect(`${config.FRONTEND_URL}/login?error=missing_code`);
+const googleVerify = async (req, res) => {
+    const { id_token } = req.body;
+    if (!id_token) {
+        return res.status(400).json({ error: 'ID token is required' });
     }
 
-    try{
-        const tokenResponse = await axios.post(GOOGLE_TOKEN_URL, null, {
-            params: {
-                code,
-                client_id: config.GOOGLE_CLIENT_ID,
-                client_secret: config.GOOGLE_CLIENT_SECRET,
-                redirect_uri: `${config.BACKEND_URL}/api/auth/google/callback`,
-                grant_type: 'authorization_code'
-            },
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: id_token,
+            audience: config.GOOGLE_CLIENT_ID
         });
 
-        const {access_token} = tokenResponse.data;
-
-        const userInfoResponse = await axios.get(GOOGLE_USER_INFO_URL, {
-            headers: {
-                Authorization: `Bearer ${access_token}`
-            }
-        });
-
-        const googleProfile = userInfoResponse.data;
-        //console.log('Google Profile:', googleProfile);
-        const userEmail = googleProfile.email;
-        
+        const payload = ticket.getPayload();
+        if (!payload || !payload.email) {
+            return res.status(400).json({ error: 'Invalid ID token' });
+        }
+        console.log('Verified Google Profile:', payload);
+        const userEmail = payload.email;
 
         // Check if the email is from the cse domain
         const allowedDomain = 'cse.mrt.ac.lk';
-        if(!userEmail || !userEmail.endsWith(`@${allowedDomain}`)) {
-            console.log('Unauthorised login attempt from:', userEmail);
-            return res.redirect(`${config.FRONTEND_URL}/login?error=unauthorized_domain`);
+        if (!userEmail || !userEmail.endsWith(`@${allowedDomain}`)) {
+            console.log('Unauthorized login attempt from:', userEmail);
+            return res.status(403).json({ error: 'Unauthorized domain' });
         }
 
-        let user = await authService.findUser(googleProfile);
+        let user = await authService.findUserByEmail(userEmail);
         if (!user) {
-            return res.redirect(`${config.FRONTEND_URL}/login?error=unauthorized_cse_user`);
+            console.log('User not found:', userEmail);
+            return res.status(404).json({ error: 'User not found' });
         }
 
         req.session.userId = user._id;
         req.session.role = user.role;
 
-        return res.redirect(`${config.FRONTEND_URL}/admin-dashboard`);
-    }catch(error){
-        console.error('Google authentication error:', error.message);
-        return res.redirect(`${config.FRONTEND_URL}/login?error=auth_failed`);
+        return res.status(200).json(user);
+    } catch (error) {
+        console.error('Google token verification failed:', error.message);
+        return res.status(401).json({ error: 'Token verification failed' });
     }
 };
 
@@ -110,13 +80,13 @@ const logout = (req, res) => {
             return res.status(500).json({error: 'Could not log out'});
         }
         res.clearCookie('connect.sid');
-        return res.redirect(`${config.FRONTEND_URL}/login`);
+        return res.status(200).json({ message: 'Logout successful' });
     });
+    console.log('User logged out successfully');
 };
 
 module.exports = {
-    googleLogin,
-    googleCallback,
+    googleVerify,
     getCurrentUser,
     logout
 };
