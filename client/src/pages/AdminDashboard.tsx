@@ -14,7 +14,7 @@ const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary p-20">
+    <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">
       <p className="text-3xl font-bold font-montserrat mb-5 select-none">
         Hi, {user?.name} 👋
       </p>

@@ -2,9 +2,22 @@ import React, { useState } from "react";
 import "./NewModule.css";
 import { FaPlus, FaMinus } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
+import {
+  Field,
+  Label,
+  Switch,
+  Checkbox,
+  Button,
+  Tab,
+  TabGroup,
+  TabList,
+  TabPanel,
+  TabPanels,
+} from "@headlessui/react";
 import AutoSelect, { type Option } from "../components/AutoSelect";
+import { HiOutlineLink } from "react-icons/hi";
 
-interface FormData {
+interface FormPage1Data {
   moduleCode: string;
   moduleName: string;
   semester: Option | null;
@@ -17,6 +30,15 @@ interface FormData {
   specialNotes: string;
 }
 
+interface FormPage2Data {
+  openForUndergrads: boolean;
+  openForPostgrads: boolean;
+  undergradsMailingList: string[];
+  postgradsMailingList: string[];
+  areUndergradsLinkedToRecruitmentSeries: boolean;
+  arePostgradsLinkedToRecruitmentSeries: boolean;
+}
+
 const lecturers: Option[] = [
   { id: 1, label: "Dr. Alice Smith" },
   { id: 2, label: "Prof. Bob Johnson" },
@@ -24,7 +46,7 @@ const lecturers: Option[] = [
 ];
 
 const NewModule: React.FC = () => {
-  const [formData, setFormData] = useState<FormData>({
+  const [formPage1Data, setFormPage1Data] = useState<FormPage1Data>({
     moduleCode: "",
     moduleName: "",
     semester: null,
@@ -37,6 +59,25 @@ const NewModule: React.FC = () => {
     specialNotes: "",
   });
 
+  const [formPage2Data, setFormPage2Data] = useState<FormPage2Data>({
+    openForUndergrads: true,
+    openForPostgrads: false,
+    undergradsMailingList: [],
+    postgradsMailingList: [
+      "amali22@cse.mrt.ac.lk",
+      "nimal22@cse.mrt.ac.lk",
+      "tharindu22@cse.mrt.ac.lk",
+    ],
+    areUndergradsLinkedToRecruitmentSeries: true,
+    arePostgradsLinkedToRecruitmentSeries: false,
+  });
+
+  const RSUndergradsMailingList = [
+    "cse22@cse.mrt.ac.lk",
+    "cyb22@cse.mrt.ac.lk",
+    "ice22@cse.mrt.ac.lk",
+  ];
+
   const [availableLecturers, setAvailableLecturers] =
     useState<Option[]>(lecturers);
   const [page, setPage] = useState(1);
@@ -47,7 +88,7 @@ const NewModule: React.FC = () => {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({
+    setFormPage1Data((prevData) => ({
       ...prevData,
       [name]:
         name === "tasRequired" ||
@@ -59,36 +100,48 @@ const NewModule: React.FC = () => {
     }));
   };
 
+  const handleChange2 = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setFormPage2Data((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
   const handleCoordinatorChange = (value: Option | null) => {
-    setFormData((prevData) => ({
+    setFormPage1Data((prevData) => ({
       ...prevData,
       coordinators: value ? [...prevData.coordinators, value] : [],
     }));
     setAvailableLecturers((prev) =>
       prev.filter((lecturer) => lecturer.id !== value?.id)
     );
-    console.log(formData);
+    console.log(formPage1Data);
   };
 
   const handleSemesterChange = (option: Option | null) => {
-    setFormData((prevData) => ({
+    setFormPage1Data((prevData) => ({
       ...prevData,
       semester: option,
     }));
   };
 
   const removeCoordinator = (lecturer: Option) => {
-    const newCoordinators = formData.coordinators?.filter(
+    const newCoordinators = formPage1Data.coordinators?.filter(
       (coord) => coord.id !== lecturer.id
     );
-    setFormData((prevData) => ({
+    setFormPage1Data((prevData) => ({
       ...prevData,
       coordinators: newCoordinators || [],
     }));
     setAvailableLecturers((prev) => [...prev, lecturer]);
   };
 
-  const isFormValid = () => {
+  const isFormPage1Valid = () => {
     const {
       moduleCode,
       moduleName,
@@ -99,7 +152,7 @@ const NewModule: React.FC = () => {
       taMinutes,
       appDueDate,
       docDueDate,
-    } = formData;
+    } = formPage1Data;
     return (
       moduleCode.length > 0 &&
       moduleName.length > 0 &&
@@ -114,9 +167,7 @@ const NewModule: React.FC = () => {
   };
 
   const handleNext = () => {
-    if (isFormValid()) {
-      setPage(2);
-    }
+    setPage(2);
   };
 
   const handleCancel = () => {
@@ -129,15 +180,134 @@ const NewModule: React.FC = () => {
     label: `Semester ${i + 1}`,
   }));
 
-  if (page !== 1) {
+  if (page == 2) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h2 className="text-3xl font-bold text-center mb-8">
-          Page 2: Coming Soon!
-        </h2>
-        <button className="btn btn-primary" onClick={() => setPage(1)}>
-          Go Back
-        </button>
+      <div className="flex flex-col items-center justify-start p-4 min-h-screen bg-bg-page">
+        <div className="rounded-lg w-full max-w-4xl bg-bg-card shadow-xl p-8">
+          <h2 className="text-3xl font-bold text-center mb-8 text-base-content select-none">
+            New Module for the Recruitment Series
+          </h2>
+
+          <div className="flex flex-col">
+            <Field>
+              <Label
+                htmlFor="openForUndergrads"
+                className={`mr-2 ${
+                  formPage2Data.openForUndergrads
+                    ? "text-text-primary"
+                    : "text-text-secondary/50"
+                }`}
+              >
+                Open for Undergraduates
+              </Label>
+              <Switch
+                id="openForUndergrads"
+                name="openForUndergrads"
+                checked={formPage2Data.openForUndergrads}
+                onChange={(checked) => {
+                  setFormPage2Data((prev) => ({
+                    ...prev,
+                    openForUndergrads: checked,
+                  }));
+                }}
+                className="group inline-flex h-6 w-11 items-center rounded-full bg-text-secondary transition data-[checked]:bg-primary"
+              >
+                <span className="size-4 translate-x-1 rounded-full bg-bg-card transition group-data-[checked]:translate-x-6" />
+              </Switch>
+            </Field>
+
+            <p className="text-text-secondary text-md">Mailing List</p>
+
+            <div className="rounded-md outline outline-text-text-primary-50 outline-1 w-full p-5 min-h-[100px] h-[30vh] overflow-y-auto overflow-x-hidden flex flex-row flex-wrap items-center justify-start space-x-3">
+              {formPage2Data.areUndergradsLinkedToRecruitmentSeries && (
+                <div className="flex flex-col items-center w-full outline-2 outline-dotted outline-text-secondary/80 rounded-md">
+                  <div className="flex flex-row w-full p-1.5 border-solid border-b-[2px] border-text-secondary/50 items-center justify-between">
+                    <p className="w-full font-semibold text-sm text-text-secondary">
+                      Undergraduate Mailing List from the Recruitment Series
+                    </p>
+                    <MdClose
+                      className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
+                      onClick={() =>
+                        setFormPage2Data((prev) => ({
+                          ...prev,
+                          areUndergradsLinkedToRecruitmentSeries: false,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="flex flex-row p-2 space-x-4 flex-wrap justify-start w-full">
+                    {RSUndergradsMailingList.map((email, index) => (
+                      <div
+                        key={index}
+                        className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-full drop-shadow bg-bg-card flex items-center text-text-primary space-x-3"
+                      >
+                        <p className="text-text-primary text-sm font-semibold">
+                          {email}
+                        </p>
+                        <MdClose
+                          className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
+                          onClick={() =>
+                            setFormPage2Data((prev) => ({
+                              ...prev,
+                              areUndergradsLinkedToRecruitmentSeries: false,
+                              undergradsMailingList:
+                                RSUndergradsMailingList.filter(
+                                  (item) => item !== email
+                                ),
+                            }))
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {formPage2Data.undergradsMailingList.map((email, index) => (
+                <div
+                  key={index}
+                  className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-full drop-shadow bg-bg-card flex items-center text-text-primary space-x-3"
+                >
+                  <p className="text-text-primary text-sm font-semibold">
+                    {email}
+                  </p>
+                  <MdClose
+                    className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
+                    onClick={() =>
+                      setFormPage2Data((prev) => ({
+                        ...prev,
+                        undergradsMailingList:
+                          prev.undergradsMailingList.filter(
+                            (item) => item !== email
+                          ),
+                      }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+
+            <p className="text-text-secondary text-md">Add mails to the mailing list</p>
+            <TabGroup className="mt-4">
+              <TabList className="ml-1">
+                <Tab className="data-[selected]:bg-primary-light data-[selected]:text-text-inverted data-[selected]:z-10 data-[selected]:scale-105 new-module-tab">
+                  From Existing Users
+                </Tab>
+                <Tab className="data-[selected]:bg-primary-light data-[selected]:text-text-inverted data-[selected]:z-10 data-[selected]:scale-105 new-module-tab">
+                  New Email
+                </Tab>
+                <Tab className="data-[selected]:bg-primary-light data-[selected]:text-text-inverted data-[selected]:z-10 data-[selected]:scale-105 new-module-tab">
+                  Tab 3
+                </Tab>
+              </TabList>
+              <TabPanels className="outline outline-1 outline-text-secondary/50 rounded-sm p-4">
+                <TabPanel>Content 1</TabPanel>
+                <TabPanel>Content 2</TabPanel>
+                <TabPanel>Content 3</TabPanel>
+              </TabPanels>
+            </TabGroup>
+          </div>
+        </div>
       </div>
     );
   }
@@ -159,7 +329,7 @@ const NewModule: React.FC = () => {
               type="text"
               name="moduleCode"
               placeholder="e.g. CS1011"
-              value={formData.moduleCode}
+              value={formPage1Data.moduleCode}
               onChange={handleChange}
               maxLength={10}
               className="ml-8 new-module-input"
@@ -175,7 +345,7 @@ const NewModule: React.FC = () => {
               type="text"
               name="moduleName"
               placeholder="e.g. Program Construction"
-              value={formData.moduleName}
+              value={formPage1Data.moduleName}
               onChange={handleChange}
               className="ml-8 max-w-full w-96 new-module-input"
             />
@@ -188,7 +358,7 @@ const NewModule: React.FC = () => {
             </label>
             <AutoSelect
               options={semesters}
-              selectedOption={formData.semester}
+              selectedOption={formPage1Data.semester}
               onSelect={handleSemesterChange}
               placeholder="Select Semester"
               className="ml-8"
@@ -210,9 +380,9 @@ const NewModule: React.FC = () => {
               />
             </div>
             <div className="flex flex-row flex-wrap ml-8 space-x-5 items-start mb-8">
-              {formData.coordinators &&
-                formData.coordinators.length > 0 &&
-                formData.coordinators.map((coordinator) => (
+              {formPage1Data.coordinators &&
+                formPage1Data.coordinators.length > 0 &&
+                formPage1Data.coordinators.map((coordinator) => (
                   <div
                     key={coordinator.id}
                     className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-full drop-shadow bg-bg-card flex items-center text-text-primary space-x-3"
@@ -238,7 +408,7 @@ const NewModule: React.FC = () => {
               <button
                 type="button"
                 onClick={() =>
-                  setFormData((prev) => ({
+                  setFormPage1Data((prev) => ({
                     ...prev,
                     tasRequired: Math.max(0, prev.tasRequired - 1),
                   }))
@@ -252,14 +422,14 @@ const NewModule: React.FC = () => {
                 min={0}
                 max={20}
                 name="tasRequired"
-                value={formData.tasRequired}
+                value={formPage1Data.tasRequired}
                 onChange={handleChange}
                 className="new-module-input text-center new-module-type-select"
               />
               <button
                 type="button"
                 onClick={() =>
-                  setFormData((prev) => ({
+                  setFormPage1Data((prev) => ({
                     ...prev,
                     tasRequired: prev.tasRequired + 1,
                   }))
@@ -283,7 +453,7 @@ const NewModule: React.FC = () => {
                   min={0}
                   max={50}
                   name="taHours"
-                  value={formData.taHours}
+                  value={formPage1Data.taHours}
                   onChange={handleChange}
                   className="pl-2 text-text-primary focus:outline-0 pr-2 border mr-2 border-0 border-r-2 border-r-text-secondary w-full"
                   placeholder="Hours"
@@ -297,7 +467,7 @@ const NewModule: React.FC = () => {
                   min={0}
                   max={59}
                   name="taMinutes"
-                  value={formData.taMinutes}
+                  value={formPage1Data.taMinutes}
                   onChange={handleChange}
                   className="pl-2 text-text-primary focus:outline-0 pr-2 border mr-2 border-0 border-r-2 border-r-text-secondary w-full"
                   placeholder="Minutes"
@@ -315,7 +485,7 @@ const NewModule: React.FC = () => {
             <input
               type="datetime-local"
               name="appDueDate"
-              value={formData.appDueDate}
+              value={formPage1Data.appDueDate}
               onChange={handleChange}
               className="input input-bordered"
             />
@@ -329,7 +499,7 @@ const NewModule: React.FC = () => {
             <input
               type="datetime-local"
               name="docDueDate"
-              value={formData.docDueDate}
+              value={formPage1Data.docDueDate}
               onChange={handleChange}
               className="input input-bordered"
             />
@@ -342,7 +512,7 @@ const NewModule: React.FC = () => {
             </label>
             <textarea
               name="specialNotes"
-              value={formData.specialNotes}
+              value={formPage1Data.specialNotes}
               onChange={handleChange}
               className="new-module-input h-24 ml-8 mt-4"
               placeholder="Any special instructions or notes for applicants..."
@@ -352,13 +522,16 @@ const NewModule: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="mt-8 flex justify-end space-x-4">
-          <button onClick={handleCancel} className="text-primary rounded-md outline outline-2 outline-primary-light hover:bg-primary-light py-2 px-4 hover:text-text-inverted">
+          <button
+            onClick={handleCancel}
+            className="text-primary rounded-md outline outline-2 outline-primary-light hover:bg-primary-light py-2 px-4 hover:text-text-inverted"
+          >
             Cancel
           </button>
           <button
             onClick={handleNext}
             className="text-primary rounded-md outline outline-2 outline-primary-light hover:bg-primary-light py-2 px-4 hover:text-text-inverted"
-            disabled={!isFormValid()}
+            // disabled={!isFormValid()}
           >
             Next
           </button>

@@ -15,3 +15,7 @@
     appearance: textfield;
 }
 
+.new-module-tab{
+    @apply px-4 py-2 rounded-t-sm text-text-secondary bg-gray-200 hover:text-text-primary focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50;
+}
+
