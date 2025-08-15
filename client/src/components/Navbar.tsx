@@ -4,7 +4,11 @@ import CSELogo from "../assets/images/cse-logo.png";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 
-const Navbar = () => {
+interface NavbarProps {
+  ref: React.Ref<HTMLDivElement>;
+}
+
+const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
   const { user, loading, logout, isLoggingOut } = useAuth(); // Destructure the new state
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,7 +41,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="w-full fixed top-0 z-50 shaddow-lg">
+    <nav ref={ref} className="w-full fixed top-0 z-50 shaddow-lg">
       <div className="navbar flex flex-row bg-bg-card text-text-primary shadow-lg w-full">
         
         <div className="flex flex-1 flex-row items-center justify-start space-x-32">
@@ -145,6 +149,6 @@ const Navbar = () => {
       </div>
     </nav>
   );
-};
+});
 
 export default Navbar;
