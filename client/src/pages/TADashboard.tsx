@@ -1,10 +1,12 @@
 import React from "react";
 import TARequestCard from "../components/TARequestCard";
+import { Navigation } from '../components/TANavbar'
 
 import { GraduationCap, BookOpen, Users, Newspaper } from "lucide-react";
 function TADashboard() {
   return (
     <div className="min-h-screen bg-bg-page">
+      <Navigation />
       {/* add the nav bar */}
       <div className="container px-4 py-8 mx-auto">
         {/* header */}
@@ -59,11 +61,14 @@ function TADashboard() {
                 </p>
               </div>
             </div>
-          </div>
-        </div>
+          </div> 
+        </div>        
       </div>
+      
       {/* TA requests */}
-    <TARequestCard 
+      <div className="m-8">
+        <h2 className="mb-4 text-2xl font-semibold text-foreground">Applied TA Positions</h2>
+            <TARequestCard 
         moduleCode="CS2040S"
         moduleName="Data Structures and Algorithms"
         coordinators={["Prof. Chong Ket Fah", "Dr. Steven Halim"]}
@@ -78,6 +83,8 @@ function TADashboard() {
         documentDueDate="2024-08-01"
         applicationDueDate="2024-07-15"
     />
+      </div>
+
     </div>
   );
 }
