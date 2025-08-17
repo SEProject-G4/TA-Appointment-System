@@ -28,7 +28,7 @@ const editModuleRequirments = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { requiredTAHours, requiredTACount, requirements } = req.body;
+    const { requiredTAHours, requiredTACount, requirements, moduleStatus } = req.body;
 
     // Verify the lecturer is a coordinator for this module
     const moduleDoc = await ModuleDetails.findById(id);
@@ -40,7 +40,7 @@ const editModuleRequirments = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to edit this module' });
     }
 
-    // Update the lecturer fields
+    // Update the lecturer fields including moduleStatus
     const updatedModule = await ModuleDetails.findByIdAndUpdate(
       id,
       {
@@ -48,6 +48,7 @@ const editModuleRequirments = async (req, res) => {
           requiredTAHours,
           requiredTACount,
           requirements,
+          moduleStatus: 'submitted', // Automatically set to submitted
           updatedBy: req.user._id,
         },
       },
