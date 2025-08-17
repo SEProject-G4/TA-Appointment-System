@@ -24,7 +24,7 @@
 
   /* --- Semantic State Colors --- */
   --color-success: 76 175 80; /* Standard Green */
-  --color-warning: 255 193 7; /* Standard Yellow */
-  --color-error: 244 67 54; /* Standard Red */
+  /* --color-warning: 255 193 7; Standard Yellow */
+  --color-warning: 244 67 54; /* Standard Red */
   --color-info: 33 150 243; /* Standard Blue */
 }
