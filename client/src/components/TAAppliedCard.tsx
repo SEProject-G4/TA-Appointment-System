@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { BookOpen, Eye } from "lucide-react";
 import { Button } from "./ui/Button";
+import TADetailedCard from "./TADetailedCard";
 
 interface AppliedRequestProps {
   moduleCode: string;
@@ -11,6 +12,7 @@ interface AppliedRequestProps {
   appliedTANumber: number;
   requirements: string[];
   documentDueDate: string;
+  applicationDueDate: string;
   appliedDate: string;
   status: string;
 }
@@ -24,23 +26,27 @@ const TAAppliedCard: React.FC<AppliedRequestProps> = ({
   appliedTANumber,
   requirements,
   documentDueDate,
+  applicationDueDate,
   appliedDate,
   status,
 }) => {
 
     const getStatusColor = (status: string) => {
     switch (status) {
-      case "Pending":
+      case "Ducuments Pending":
         return "bg-bg-card text-primary-foreground";
-      case "Rejected":
+      case "Document Submitted":
         return "bg-error text-accent-foreground";
-      case "Accepted":
+      case "Appointed":
         return "bg-success text-card";
  
     }
   };
+
+  const [isOpen, setIsOpen] = useState(false);
   
   return (
+    <>
     <div className="p-6 transition-all duration-300 border bg-gradient-to-br from-card to-muted/10 border-border/50 hover:shadow-lg">
       <div className="flex items-center justify-between">
         {/* Application Info */}
@@ -66,13 +72,33 @@ const TAAppliedCard: React.FC<AppliedRequestProps> = ({
           <Button
           icon={<Eye className="w-4 h-4" />}
             label="View Details"
-            onClick={() => alert("View Details Clicked")}
+            onClick={() => setIsOpen(true)}
           >
-
-          </Button>
+          </Button>    
         </div>
       </div>
     </div>
+     {/* Detailed Card / Modal */}
+      {isOpen && (
+        <TADetailedCard
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          details={{
+            moduleCode,
+            moduleName,
+            coordinators,
+            requiredTAHours,
+            requiredTANumber,
+            appliedTANumber,
+            requirements,
+            documentDueDate,
+            applicationDueDate, 
+            appliedDate,
+            status,
+          }}
+        />
+      )}
+    </>
   );
 };
 

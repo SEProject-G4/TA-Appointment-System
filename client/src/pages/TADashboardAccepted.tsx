@@ -1,7 +1,7 @@
 import React from 'react'
 import { Navigation } from '../components/TANavbar'
-import { Delete,Trophy, FileUser,Newspaper } from "lucide-react";
-import TAAppliedCard from '../components/TAAppliedCard';
+import { Trophy, FileUser,File, Clock, CircleCheckBig } from "lucide-react";
+import TAAccepedCard from '../components/TAAcceptedCard';
 
 function TADashboardApplied() {
   return (
@@ -14,12 +14,13 @@ function TADashboardApplied() {
         <div className="mb-12 text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="p-3 rounded-xl bg-primary/10">
-              <FileUser className="w-8 h-8 text-text-primary" />
+            <CircleCheckBig className="w-8 h-8 text-success" />
+    
             </div>
-            <h1 className="text-4xl font-bold ">Applied TA Positions</h1>
+            <h1 className="text-4xl font-bold ">Accepted TA Positions</h1>
           </div>
           <p className="max-w-2xl mx-auto text-lg text-text-secondary">
-            Track the status of your TA position applications. Stay updated on application progress.
+        Congratulations! Manage your accepted Teaching Assistant positions and stay organized with your responsibilities.
           </p>
         </div>
         {/* stats */}
@@ -27,11 +28,11 @@ function TADashboardApplied() {
           <div className="p-6 border shadow-sm bg-bg-card rounded-xl border-border-default/50">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
-                <Newspaper className="w-5 h-5 text-text-primary" />
+                <Clock className="w-5 h-5 text-text-primary" />
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-text-primary">3</h3>
-                <p className="text-sm text-text-secondary">Applications Submitted</p>
+                <p className="text-sm text-text-secondary">Total Hours per Week</p>
               </div>
             </div>
           </div>
@@ -51,33 +52,34 @@ function TADashboardApplied() {
           <div className="p-6 border shadow-sm bg-bg-card rounded-xl border-border-default/50">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
-                <Delete className="w-5 h-5 text-text-primary" />
+                <File className="w-5 h-5 text-text-primary" />
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-text-primary">0</h3>
                 <p className="text-sm text-text-secondary">
-                  Rejected Positions
+                  Documents Pending
                 </p>
               </div>
-            </div>
+            </div> 
           </div>
         </div>
       </div>
       {/* applied TA positions */}
       <div className='m-8'>
         <h2 className="mb-4 text-2xl font-semibold text-foreground">Available TA Positions</h2>
-        <TAAppliedCard
+        <TAAccepedCard
           moduleCode="CS101"
           moduleName="computer security"
           coordinators={["Dr. Smith", "Prof. Doe"]}
           requiredTAHours={20}
           requiredTANumber={2}
           appliedTANumber={1}
-          status="Rejected"
+          status="Document Submitted"
           appliedDate="2024-06-01"
           documentDueDate="2024-06-15"
           applicationDueDate='2024-06-10'
-          requirements={["Resume", "Cover Letter"]}
+          requirements={["Resume", "Cover Letter"]} 
+          
         />
       </div>
 

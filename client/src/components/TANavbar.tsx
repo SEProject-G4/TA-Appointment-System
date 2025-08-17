@@ -3,8 +3,8 @@ import { GraduationCap, Search, FileText, CheckCircle } from "lucide-react";
 
 const navigationItems = [
   { name: "Available Positions", path: "/ta-dashboard", icon: Search },
-  { name: "Applied Positions", path: "/ta-dashboard-applied", icon: FileText },
-  { name: "Accepted Positions", path: "/ta-dashboard-applied", icon: CheckCircle },
+  { name: "Applied Positions", path: "/ta-applied", icon: FileText },
+  { name: "Accepted Positions", path: "/ta-accepted", icon: CheckCircle },
 ];
 
 // Reusable Nav Item Component (no cn function)
