@@ -36,6 +36,19 @@ const EditModuleDetails: React.FC = () => {
   const [updating, setUpdating] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
 
+  // Function to check if all three fields have been edited for a specific module
+  const areAllFieldsEdited = (moduleId: string): boolean => {
+    const moduleData = moduleEdits[moduleId];
+    if (!moduleData) return false;
+    
+    // Check if all three required fields have been filled
+    return (
+      moduleData.requiredTAHoursPerWeek > 0 &&
+      moduleData.numberOfRequiredTAs > 0 &&
+      moduleData.requirements.trim().length > 0
+    );
+  };
+
   useEffect(() => {
     const loadMyModules = async () => {
       try {
@@ -85,6 +98,16 @@ const EditModuleDetails: React.FC = () => {
 
   const handleSubmit = (moduleId: string) => async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Show confirmation prompt
+    const isConfirmed = window.confirm(
+      "Are you sure you want to submit these TA requirements? This action cannot be undone and will finalize the module requirements."
+    );
+    
+    if (!isConfirmed) {
+      return; // User cancelled the action
+    }
+    
     try {
       setUpdating(prev => ({ ...prev, [moduleId]: true }));
       
@@ -153,9 +176,9 @@ const EditModuleDetails: React.FC = () => {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit(m._id)} className="p-6 space-y-6">
-                <div className="bg-info bg-opacity-10 rounded-lg p-4 mb-2">
-                  <div className="grid grid-cols-1 gap-3">
+              <form onSubmit={handleSubmit(m._id)} className="p-4 space-y-4">
+                <div className="bg-info bg-opacity-10 rounded-lg p-3 mb-2">
+                  <div className="grid grid-cols-1 gap-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-text-primary uppercase tracking-wide">Semester</span>
                       <span className="text-sm font-semibold text-text-primary">{m.semester}</span>
@@ -227,17 +250,17 @@ const EditModuleDetails: React.FC = () => {
                           </div>
                         </div>
                       
-                      <div className="mt-6 bg-white/50 rounded-lg p-4 border border-info/20">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-8 h-8 bg-info/20 rounded-lg flex items-center justify-center">
-                            <svg className="w-4 h-4 text-info" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="mt-4 bg-white/50 rounded-lg p-3 border border-info/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-6 h-6 bg-info/20 rounded-lg flex items-center justify-center">
+                            <svg className="w-3 h-3 text-info" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                             </svg>
                           </div>
-                          <span className="text-sm font-semibold text-text-primary uppercase tracking-wider">Requirements</span>
+                          <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">Requirements</span>
                         </div>
-                        <div className="bg-info/5 rounded-lg p-3 border-l-4 border-info">
-                          <p className="text-sm text-text-primary leading-relaxed">
+                        <div className="bg-info/5 rounded-lg p-2 border-l-4 border-info">
+                          <p className="text-xs text-text-primary leading-relaxed">
                             {d?.requirements || 'No specific requirements specified for this TA position.'}
                           </p>
                         </div>
@@ -247,7 +270,7 @@ const EditModuleDetails: React.FC = () => {
                 ) : (
                   // Editable form for pending modules
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-text-primary mb-2">Required TA Hours per Week</label>
                         <input
@@ -289,14 +312,15 @@ const EditModuleDetails: React.FC = () => {
                   {!(submitted[m._id] || m.moduleStatus === 'submitted') && (
                     <button
                       type="submit"
-                      disabled={updating[m._id]}
+                      disabled={updating[m._id] || !areAllFieldsEdited(m._id)}
                       className="group relative inline-flex items-center gap-2 px-6 py-2 rounded-2xl font-medium text-text-inverted
                                  bg-primary-dark text-text-inverted font-semibold py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out border-0 relative overflow-hidden group
                                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
                                  disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
                       <span className="relative z-10">
-                        {updating[m._id] ? 'Saving...' : 'Save Changes'}
+                        {updating[m._id] ? 'Saving...' : 
+                         !areAllFieldsEdited(m._id) ? 'Add Module Requirements' : 'Save Changes'}
                       </span>
                       {!updating[m._id] && (
                         <svg
