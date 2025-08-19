@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const config = require("../config");
 
 const findUser = async (profile) => {
   try {
@@ -6,12 +7,20 @@ const findUser = async (profile) => {
     // console.log("User found:", user);
     if (!user) {
     //   console.log("User not found");
+      const emailLower = String(profile.email || '').toLowerCase();
+      const lecturerEmails = String(config.LECTURER_EMAILS || '')
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean);
+
+      const isLecturerSeeded = lecturerEmails.includes(emailLower);
+
       user = new User({
         googleId: profile.sub,
         name: profile.name,
-        email: profile.email,
+        email: emailLower,
         profilePicture: profile.picture,
-        role: 'admin',
+        role: isLecturerSeeded ? 'lecturer' : 'admin',
       });
 
       await user.save();
@@ -37,7 +46,21 @@ const findUserById = async (id) => {
   }
 };
 
+const findUserByEmail = async (email) => {
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new Error("User not found");
+    }
+    return user;
+  } catch (error) {
+    console.error("Error finding user by email:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   findUser,
   findUserById,
+  findUserByEmail,
 };

@@ -1,22 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@plugin "daisyui";
 
 :root {
-  --color-primary: 59 130 246;
-  --color-primary-light: 96 165 250;
-  --color-primary-dark:19 62 135;
+  --color-primary: 28 100 208;
+  --color-primary-light: 57 137 237;
+  --color-primary-dark: 13 42 171;
+  --color-primary-content: 255 255 255;
 
-  --color-secondary: 34 197 94;
+  --color-secondary: ;
+
+
   --color-accent: 255 193 7;
+  --color-accent-light: 151 222 255;
 
   /* --- Bg Colors --- */
-  --color-bg-page:219, 227, 237;
-  --color-bg-card: 245 255 255;
+
+  --color-bg-page: 219 227 237;
+  --color-bg-card: 255 255 255;
+
   --color-bg-header: 255 255 255;
 
-  --color-text-primary: 55 65 81;
+
+  --color-text-primary: 33 33 33;
   --color-text-secondary: 107 114 128;
+
   --color-text-inverted: 255 255 255;
   --color-text-muted: 156 163 175;
 
@@ -25,7 +35,11 @@
 
   /* --- Semantic State Colors --- */
   --color-success: 76 175 80; /* Standard Green */
-  --color-warning: 255 193 7; /* Standard Yellow */
-  --color-error: 244 67 54; /* Standard Red */
+  /* --color-warning: 255 193 7; Standard Yellow */
+  --color-warning: 244 67 54; /* Standard Red */
   --color-info: 33 150 243; /* Standard Blue */
+
+  /* --- Font Families --- */
+  --font-raleway: "Raleway", sans-serif;
+
 }

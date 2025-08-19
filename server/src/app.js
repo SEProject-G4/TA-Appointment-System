@@ -7,7 +7,8 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-  origin: config.FRONTEND_URL,
+  // origin: config.FRONTEND_URL,
+  origin: ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true,
 }));
 
@@ -25,6 +26,7 @@ app.use(session({
 
 // ... mount your other routes here
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/lecturer', require('./routes/lecturerRoutes'));
 
 app.get('/', (req, res) => {
   res.send('TA Appointment System Backend is running!');

@@ -5,13 +5,18 @@ export interface User {
     id: string;
     name: string;
     email: string;
-    role: 'student' | 'teacher' | 'admin';
+    role: 'undergraduate' | 'postgraduate' | 'hod' | 'cse-office' | 'lecturer' | 'admin';
     profilePicture: string;
 }
 
-//Redirect to Google for authentication
-export const loginWithGoogle = () => {
-    window.location.href = `http://localhost:5000/api/auth/google`;
+export const verifyGoogleToken = async (id_token: string): Promise<User> => {
+  try{
+    const response = await axiosInstance.post<User>('/auth/google-verify', { id_token });
+    return response.data;
+  }catch(error) {
+    console.error('Error verifying Google token:', error);
+    throw error;
+  }
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {
@@ -31,8 +36,9 @@ export const getCurrentUser = async (): Promise<User | null> => {
 
 export const logout = async (): Promise<void> => {
     try {
-        await axiosInstance.get('/auth/logout');
+        await axiosInstance.post('/auth/logout');
     } catch (error) {
         console.error('Error during logout:', error);
+        throw error;
     }
 };
