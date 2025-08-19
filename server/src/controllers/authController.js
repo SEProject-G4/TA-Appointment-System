@@ -25,16 +25,20 @@ const googleVerify = async (req, res) => {
         const userEmail = payload.email;
 
         // Check if the email is from the cse domain
-        const allowedDomain = 'cse.mrt.ac.lk';
-        if (!userEmail || !userEmail.endsWith(`@${allowedDomain}`)) {
-            console.log('Unauthorized login attempt from:', userEmail);
-            return res.status(403).json({ error: 'Unauthorized domain' });
-        }
+        // const allowedDomain = 'cse.mrt.ac.lk';
+        // if (!userEmail || !userEmail.endsWith(`@${allowedDomain}`)) {
+        //     console.log('Unauthorized login attempt from:', userEmail);
+        //     return res.status(403).json({ error: 'Unauthorized domain' });
+        // }
 
         let user = await authService.findUserByEmail(userEmail);
         if (!user) {
             console.log('User not found:', userEmail);
             return res.status(404).json({ error: 'User not found' });
+        }
+
+        if (user.firstLogin) {
+            authService.handleFirstLogin(user, payload);
         }
 
         req.session.userId = user._id;

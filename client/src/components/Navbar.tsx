@@ -4,7 +4,11 @@ import CSELogo from "../assets/images/cse-logo.png";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 
-const Navbar = () => {
+interface NavbarProps {
+  ref: React.Ref<HTMLDivElement>;
+}
+
+const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
   const { user, loading, logout, isLoggingOut } = useAuth(); // Destructure the new state
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,7 +31,7 @@ const Navbar = () => {
       role: "admin",
       links: [
         { to: "/admin-dashboard", label: "Admin Dashboard" },
-        { to: "/manage-users", label: "Manage Users" },
+        { to: "/manage-users/add-user", label: "Manage Users" },
       ]
     },
   ]
@@ -37,14 +41,15 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="w-full fixed top-0 z-50 shaddow-lg">
+    <nav ref={ref} className="w-full fixed top-0 z-50 shaddow-lg">
       <div className="navbar flex flex-row bg-bg-card text-text-primary shadow-lg w-full">
         
         <div className="flex flex-1 flex-row items-center justify-start space-x-32">
           <div className="flex items-center">
             <img src={CSELogo} alt="CSE Logo" className="w-14 h-8 mr-2" />
-            <Link to="/" className="text-xl text-text-primary font-marcellus">
-              TA Appointment System
+            <Link to="/" className="text-xl text-text-primary font-mercellus">
+              <p className="lg:flex hidden">TA Appointment System</p>
+              <p className="lg:hidden">TAAS</p>
             </Link>
           </div>
           {/* Nav Links */}
@@ -144,6 +149,6 @@ const Navbar = () => {
       </div>
     </nav>
   );
-};
+});
 
 export default Navbar;

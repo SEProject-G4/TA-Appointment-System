@@ -42,11 +42,14 @@ export default {
         'montserrat': ['Montserrat', 'sans-serif'],
         'roboto': ['Roboto', 'sans-serif'],
         'raleway': ['Raleway', 'sans-serif'],
+        'mercellus': ['Marcellus', 'serif'],
       },
     },
   },
   plugins: [
-    require('daisyui'),
+    require('daisyui')({
+      themes: false,
+    })
   ],
 }
 

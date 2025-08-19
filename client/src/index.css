@@ -1,8 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Marcellus&family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@plugin "daisyui";
+
+@plugin "daisyui"{
+  themes: false;
+};
 
 :root {
   --color-primary: 28 100 208;
@@ -10,17 +13,16 @@
   --color-primary-dark: 13 42 171;
   --color-primary-content: 255 255 255;
 
-  --color-secondary: ;
+  --color-secondary: 100 180 20;
 
 
   --color-accent: 255 193 7;
   --color-accent-light: 151 222 255;
 
   /* --- Bg Colors --- */
-
-  --color-bg-page: 219 227 237;
+  --color-bg-page:250 250 255;
+  --color-base-100:219 227 237;
   --color-bg-card: 255 255 255;
-
   --color-bg-header: 255 255 255;
 
 
@@ -40,6 +42,6 @@
   --color-info: 33 150 243; /* Standard Blue */
 
   /* --- Font Families --- */
-  --font-raleway: "Raleway", sans-serif;
+  --font-marcellus: "Marcellus", serif;
 
 }

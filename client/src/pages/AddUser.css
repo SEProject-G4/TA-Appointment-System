@@ -1,0 +1,6 @@
+.user-type-select{
+    @apply p-2 outline outline-text-secondary/80 outline-1 focus:outline-primary focus:outline-offset-1 rounded-md;
+    @apply cursor-pointer focus:outline-2;
+    
+
+}

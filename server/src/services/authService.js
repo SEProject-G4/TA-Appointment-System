@@ -1,35 +1,15 @@
 const User = require("../models/User");
 const config = require("../config");
 
-const findUser = async (profile) => {
+const handleFirstLogin = (user, payload) => {
   try {
-    let user = await User.findOne({ googleId: profile.sub });
-    // console.log("User found:", user);
-    if (!user) {
-    //   console.log("User not found");
-      const emailLower = String(profile.email || '').toLowerCase();
-      const lecturerEmails = String(config.LECTURER_EMAILS || '')
-        .split(',')
-        .map((e) => e.trim().toLowerCase())
-        .filter(Boolean);
-
-      const isLecturerSeeded = lecturerEmails.includes(emailLower);
-
-      user = new User({
-        googleId: profile.sub,
-        name: profile.name,
-        email: emailLower,
-        profilePicture: profile.picture,
-        role: isLecturerSeeded ? 'lecturer' : 'admin',
-      });
-
-      await user.save();
-    //   console.log("New user created:", user);
-    }
-    return user;
+    user.name = payload.name;
+    user.firstLogin = false;
+    user.googleId = payload.sub;
+    user.profilePicture = payload.picture;
+    user.save();
   } catch (error) {
-    console.error("Error finding user:", error);
-    throw new Error("User not found");
+    console.error("Error handling first login:", error);
   }
 };
 
@@ -60,7 +40,7 @@ const findUserByEmail = async (email) => {
 };
 
 module.exports = {
-  findUser,
+  handleFirstLogin,
   findUserById,
   findUserByEmail,
 };
