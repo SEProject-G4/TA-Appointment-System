@@ -6,8 +6,8 @@ import TAAccepedCard from '../components/TAAcceptedCard';
 function TADashboardApplied() {
   return (
     <div>
-      <div className="min-h-screen bg-bg-page">
-      <Navigation />
+      <div className="min-h-screen bg-bg-card text-text-primary">
+      {/* <Navigation /> */}
       {/* add the nav bar */}
       <div className="container px-4 py-8 mx-auto">
         {/* header */}
@@ -17,7 +17,7 @@ function TADashboardApplied() {
             <CircleCheckBig className="w-8 h-8 text-success" />
     
             </div>
-            <h1 className="text-4xl font-bold ">Accepted TA Positions</h1>
+            <h1 className="text-4xl font-bold text-text-primary">Accepted TA Positions</h1>
           </div>
           <p className="max-w-2xl mx-auto text-lg text-text-secondary">
         Congratulations! Manage your accepted Teaching Assistant positions and stay organized with your responsibilities.

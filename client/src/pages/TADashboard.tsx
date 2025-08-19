@@ -5,8 +5,8 @@ import { Navigation } from '../components/TANavbar'
 import { GraduationCap, BookOpen, Users, Newspaper } from "lucide-react";
 function TADashboard() {
   return (
-    <div className="min-h-screen bg-bg-page">
-      <Navigation />
+    <div className="min-h-screen bg-bg-card text-text-primary">
+      {/* <Navigation /> */}
       {/* add the nav bar */}
       <div className="container px-4 py-8 mx-auto">
         {/* header */}

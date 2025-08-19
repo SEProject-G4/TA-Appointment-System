@@ -79,11 +79,11 @@ const LoginPage: React.FC = () => {
   useEffect(() => {
 
     // Redirect based on user role if already authenticated
-    if (isAuthenticated && !loading && user) {
+    if ( user && !loading ) {
       const redirectPath = location.state?.from || getDefaultRouteForRole(user.role);
       navigate(redirectPath, { replace: true });
     }
-  }, [isAuthenticated, loading, user, navigate, location.state]);
+  }, [loading, user, navigate, location.state]);
 
 
   useEffect(() => {
@@ -94,14 +94,6 @@ const LoginPage: React.FC = () => {
       }
     }, 100);
 
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-page text-text-primary">
-        Loading...
-      </div>
-    );
-  }
     return () => clearInterval(checkGIS);
   }, []);
 
@@ -128,6 +120,14 @@ const LoginPage: React.FC = () => {
       }
     }
   }, [isGisScriptLoaded, user, loading, GOOGLE_CLIENT_ID]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-page text-text-primary">
+        Loading...
+      </div>
+    );
+  }
 
 
   return (
