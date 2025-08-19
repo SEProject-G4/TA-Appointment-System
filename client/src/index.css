@@ -17,8 +17,10 @@
   --color-accent-light: 151 222 255;
 
   /* --- Bg Colors --- */
+
   --color-bg-page: 219 227 237;
   --color-bg-card: 255 255 255;
+
   --color-bg-header: 255 255 255;
 
 
@@ -26,6 +28,7 @@
   --color-text-secondary: 107 114 128;
 
   --color-text-inverted: 255 255 255;
+  --color-text-muted: 156 163 175;
 
   --color-border-default: 229 231 235;
   --color-border-strong: 156 163 175;
