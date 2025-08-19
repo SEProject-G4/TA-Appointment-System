@@ -64,13 +64,27 @@ const LoginPage: React.FC = () => {
     }
   };
 
+  // Helper function to get default route based on user role
+  const getDefaultRouteForRole = (role: string): string => {
+    switch (role) {
+      case 'admin':
+        return '/admin-dashboard';
+      case 'lecturer':
+        return '/lecturer-dashboard';
+      default:
+        return '/login'; // fallback to login if role is not recognized
+    }
+  };
+
   useEffect(() => {
-    // Redirect to home if already authenticated
-    if (user) {
-      const redirectPath = location.state?.from || "/";
+
+    // Redirect based on user role if already authenticated
+    if (isAuthenticated && !loading && user) {
+      const redirectPath = location.state?.from || getDefaultRouteForRole(user.role);
       navigate(redirectPath, { replace: true });
     }
-  }, [user, navigate, location.state]);
+  }, [isAuthenticated, loading, user, navigate, location.state]);
+
 
   useEffect(() => {
     const checkGIS = setInterval(() => {
@@ -80,6 +94,14 @@ const LoginPage: React.FC = () => {
       }
     }, 100);
 
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-page text-text-primary">
+        Loading...
+      </div>
+    );
+  }
     return () => clearInterval(checkGIS);
   }, []);
 
@@ -106,6 +128,7 @@ const LoginPage: React.FC = () => {
       }
     }
   }, [isGisScriptLoaded, user, loading, GOOGLE_CLIENT_ID]);
+
 
   return (
     <div
