@@ -1,6 +1,6 @@
 import "./AddUser.css";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaCircleCheck } from "react-icons/fa6";
 import { AiOutlineCloseCircle } from 'react-icons/ai';
 import { FaPlus, FaMinus } from "react-icons/fa";
@@ -19,32 +19,36 @@ import {
   Radio,
   RadioGroup,
 } from "@headlessui/react";
+import axiosInstance from "../api/axiosConfig";
 
 interface User {
   email: string;
-  indexNumber: string;
+  indexNumber?: string;
 }
 
 interface UserGroup {
-  id: string;
+  _id: string;
   name: string;
   userCount: number;
 }
 
 function AddUser() {
+  // ...existing code...
+  const [inputErrors, setInputErrors] = useState<{ email?: string; indexNumber?: string }[]>([]);
   const [userRole, setUserRole] = useState("undergraduate");
-  const [users, setUsers] = useState<User[]>([{ email: "", indexNumber: "" }]);
+  const [users, setUsers] = useState<User[]>([{ email: "" }]);
   const [isLoading, setIsLoading] = useState(false);
   const [dialogMessage, setDialogMessage] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // State variables regarding User Groups
   const [selectedUserGroup, setSelectedUserGroup] = useState<UserGroup | null>(
     null
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [allUserGroups, setAllUserGroups] = useState<UserGroup[]>([
-    { id: "1", name: "Undergrads In22", userCount: 200 },
-    { id: "2", name: "Postgrads In22", userCount: 15 },
-    // Add more groups as needed
+    { _id: "1", name: "Undergrads In22", userCount: 200 },
+    { _id: "2", name: "Postgrads In22", userCount: 15 },
   ]);
   const userGroups = allUserGroups.filter((group) =>
     group.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -56,17 +60,17 @@ function AddUser() {
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [groupError, setGroupError] = useState("");
 
-  // Fetch user groups (simulate reload)
+  // Fetch user groups
   const fetchUserGroups = async () => {
-    // TODO: Replace with real API call
-    // const response = await fetch('/api/user-groups');
-    // const data = await response.json();
-    // setAllUserGroups(data);
-    setAllUserGroups([
-      { id: "1", name: "Undergrads In22", userCount: 200 },
-      { id: "2", name: "Postgrads In22", userCount: 15 },
-      // Add more groups as needed
-    ]);
+    console.log("Fetching user groups for role:", userRole);
+    try {
+      const res = await axiosInstance.get('/user-management/groups/' + userRole);
+      setAllUserGroups(res.data);
+      console.log("Fetched user groups:", res.data);
+    } catch (error) {
+      console.error("Failed to fetch user groups:", error);
+      setAllUserGroups([]);
+    }
   };
 
   // Create group handler
@@ -75,18 +79,16 @@ function AddUser() {
     setIsCreatingGroup(true);
     setGroupError("");
     try {
-      // Replace with your backend endpoint
-      const response = await fetch("/api/user-groups", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newGroupName }),
+      const res = await axiosInstance.post('/user-management/groups', {
+        name: newGroupName,
+        groupType: userRole,
       });
-      if (!response.ok) {
-        throw new Error("Failed to create group");
+
+      if (res.status === 201) {
+        setIsGroupModalOpen(false);
+        setNewGroupName("");
+        await fetchUserGroups();
       }
-      setIsGroupModalOpen(false);
-      setNewGroupName("");
-      await fetchUserGroups();
     } catch (err: any) {
       setGroupError(err.message || "Failed to create group");
     } finally {
@@ -115,44 +117,59 @@ function AddUser() {
     }
   };
 
+  const validateEmail = (email: string) => {
+    // Simple email regex
+    return /^\S+@\S+\.\S+$/.test(email);
+  };
+
+  const validateIndexNumber = (indexNumber: string) => {
+    // Example: must be alphanumeric and 4-12 chars (customize as needed)
+    return /^[a-zA-Z0-9]{4,12}$/.test(indexNumber);
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setIsLoading(true);
 
+    // Validate all users and collect errors
+    const errors: { email?: string; indexNumber?: string }[] = users.map((user) => ({ }));
+    let hasError = false;
+    for (let i = 0; i < users.length; i++) {
+      const user = users[i];
+      if(user.email===""){
+        errors[i].email = "Email is required.";
+        hasError = true;
+      }
+      else if (!validateEmail(user.email)) {
+        errors[i].email = "Invalid email address.";
+        hasError = true;
+      }
+      if ((userRole === "undergraduate" || userRole === "postgraduate")) {
+        if (!user.indexNumber || !validateIndexNumber(user.indexNumber)) {
+          errors[i].indexNumber = "Invalid index number.";
+          hasError = true;
+        }
+      }
+    }
+    setInputErrors(errors);
+    if (hasError) {
+      return;
+    }
+
+    setIsLoading(true);
     // Prepare the JSON object to send to the backend
     const payload = {
       users: users,
       userRole: userRole,
+      groupId: selectedUserGroup ? selectedUserGroup._id : "",
     };
 
     console.log("Sending payload to backend:", payload);
 
     try {
-      // Replace this with your actual API call
-      // const response = await fetch('/api/add-users', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(payload),
-      // });
+      const response = await axiosInstance.post('/user-management/users', payload);
 
-      // Simulate a backend response
-      const response = await new Promise((resolve) =>
-        setTimeout(
-          () =>
-            resolve({
-              ok: true,
-              status: 200,
-              json: () =>
-                Promise.resolve({
-                  message: `${users.length} users successfully added as ${userRole}s.`,
-                }),
-            }),
-          2000
-        )
-      );
-
-      const responseData = await (response as any).json();
-      if ((response as any).ok) {
+      const responseData = response.data;
+      if (response.status === 201) {
         setDialogMessage(responseData.message);
       } else {
         setDialogMessage(responseData.message || "Failed to add users.");
@@ -166,6 +183,10 @@ function AddUser() {
     }
   };
 
+  useEffect(() => {
+    fetchUserGroups();
+  }, [userRole]);
+
   return (
     <div className="flex flex-col w-full bg-bg-page px-20 items-start p-4">
       <div className="w-full rounded-md bg-bg-card p-5">
@@ -177,14 +198,17 @@ function AddUser() {
           <select
             className="user-type-select"
             value={userRole}
-            onChange={(e) => setUserRole(e.target.value)}
+            onChange={(e) => {
+              setUserRole(e.target.value);
+              // fetchUserGroups();
+            }}
           >
             <option value="admin">Admin</option>
             <option value="lecturer">Lecturer</option>
             <option value="undergraduate">Undergraduate</option>
             <option value="postgraduate">Postgraduate</option>
-            <option value="hod">Hod</option>
-            <option value="cse-office">CSE Office</option>
+            <option value="hod">Head of Department</option>
+            <option value="cse-office">CSE Office Staff</option>
           </select>
         </div>
 
@@ -215,39 +239,51 @@ function AddUser() {
                       {users.map((user, index) => (
                         <div
                           key={index}
-                          className="hover:shadow-lg flex items-center p-2 outline outline-solid outline-1 rounded-md outline-text-secondary/30 gap-4"
+                          className="hover:shadow-lg flex flex-col gap-1 p-2 outline outline-solid outline-1 rounded-md outline-text-secondary/30"
                         >
-                          {(userRole == "undergraduate" ||
-                            userRole == "postgraduate") && (
-                            <input
-                              type="text"
-                              name="indexNumber"
-                              placeholder="Index Number"
-                              value={user.indexNumber}
-                              onChange={(e) => handleUserChange(index, e)}
-                              required
-                              className="flex-1 w-100 p-2 outline outline-1 border-text-secondary/0 rounded-md focus:outline-primary-light focus:outline-offset-1 focus:outline-2 transition-colors"
-                            />
-                          )}
-                          <input
-                            type="email"
-                            name="email"
-                            placeholder="Email"
-                            value={user.email}
-                            onChange={(e) => handleUserChange(index, e)}
-                            required
-                            className="w-300 flex-1 p-2 outline outline-1 border-text-secondary/50 rounded-md focus:outline-primary-light focus:outline-offset-1 focus:outline-2 transition-colors"
-                          />
-                          {users.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveUser(index)}
-                              className="text-red-500 hover:text-red-700 transition-colors p-2 rounded-full"
-                              aria-label="Remove user"
-                            >
-                              <FaMinus className="size-6 rounded-full p-1 hover:bg-warning/20" />
-                            </button>
-                          )}
+                          <div className="flex items-center gap-4">
+                            {(userRole == "undergraduate" ||
+                              userRole == "postgraduate") && (
+                              <div className="flex-1 flex flex-col">
+                                <input
+                                  type="text"
+                                  name="indexNumber"
+                                  placeholder="Index Number"
+                                  value={user.indexNumber}
+                                  onChange={(e) => handleUserChange(index, e)}
+                                  // required
+                                  className="w-full p-2 outline outline-1 border-text-secondary/0 rounded-md focus:outline-primary-light focus:outline-offset-1 focus:outline-2 transition-colors"
+                                />
+                                {inputErrors[index]?.indexNumber && (
+                                  <span className="text-error text-xs mt-1">{inputErrors[index].indexNumber}</span>
+                                )}
+                              </div>
+                            )}
+                            <div className="flex-1 flex flex-col">
+                              <input
+                                type="email"
+                                name="email"
+                                placeholder="Email"
+                                value={user.email}
+                                onChange={(e) => handleUserChange(index, e)}
+                                // required
+                                className="w-full p-2 outline outline-1 border-text-secondary/50 rounded-md focus:outline-primary-light focus:outline-offset-1 focus:outline-2 transition-colors"
+                              />
+                              {inputErrors[index]?.email && (
+                                <span className="text-error text-xs mt-1">{inputErrors[index].email}</span>
+                              )}
+                            </div>
+                            {users.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveUser(index)}
+                                className="text-red-500 hover:text-red-700 transition-colors p-2 rounded-full"
+                                aria-label="Remove user"
+                              >
+                                <FaMinus className="size-6 rounded-full p-1 hover:bg-warning/20" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -330,7 +366,7 @@ function AddUser() {
                 >
                   {userGroups.map((group) => (
                     <Radio
-                      key={group.id}
+                      key={group._id}
                       value={group}
                       className="group relative flex cursor-pointer rounded-lg bg-bg-card/80 px-5 py-2 text-primary/90 shadow-sm hover:shadow-md transition outline-1 outline-text-secondary/70"
                     >
