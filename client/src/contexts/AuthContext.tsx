@@ -1,12 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getCurrentUser, logout as apiLogout } from "../api/authApi";
+import {
+  getCurrentUser,
+  logout as apiLogout,
+  verifyGoogleToken,
+} from "../api/authApi";
 import type { User } from "../api/authApi";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  isAuthenticated: boolean;
-  logout: () => Promise<void>;
+  isLoggingOut: boolean;
+  logout: () => void;
+  loginWithGIS: (idToken: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Check for an existing session on initial load
   useEffect(() => {
@@ -27,21 +33,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchUser();
   }, []);
 
-  const logout = async () => {
-    await apiLogout();
-    setUser(null);
+  const loginWithGIS = async (idToken: string) => {
+    setLoading(true);
+    try {
+      const authenticatedUser = await verifyGoogleToken(idToken);
+      setUser(authenticatedUser);
+    } catch (error) {
+      console.error("Login failed:", error);
+      setUser(null);
+      throw error; // Re-throw the error so the component can handle it
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const isAuthenticated = !!user;
+  const logout = () => {
+    setIsLoggingOut(true);
+    apiLogout()
+      .then(() => {
+        setUser(null);
+      })
+      .catch((error) => {
+        console.error("Logout failed:", error);
+      })
+      .finally(() => {
+        setIsLoggingOut(false);
+      });
+  };
 
   const memoizedValue = React.useMemo(
     () => ({
       user,
       loading,
-      isAuthenticated,
+      isLoggingOut,
       logout,
+      loginWithGIS,
     }),
-    [user, loading, isAuthenticated]
+    [user, loading, isLoggingOut]
   );
 
   return (
