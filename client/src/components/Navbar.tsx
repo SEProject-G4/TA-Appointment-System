@@ -31,7 +31,7 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
       role: "admin",
       links: [
         { to: "/admin-dashboard", label: "Admin Dashboard" },
-        { to: "/manage-users", label: "Manage Users" },
+        { to: "/manage-users/add-user", label: "Manage Users" },
       ]
     },
   ]

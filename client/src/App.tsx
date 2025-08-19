@@ -8,6 +8,7 @@ import LecturerDashboard from "./pages/LecturerDashboard";
 import Navbar from "./components/Navbar";
 import HomePage from "./pages/HomePage";
 import NewModule from "./pages/NewModule";
+import AddUser from "./pages/AddUser";
 
 function App() {
   const navbarRef = useRef<HTMLDivElement>(null);
@@ -33,6 +34,7 @@ function App() {
             <Route path="/" element={<Outlet />}>
               <Route index element={<HomePage />} />
 
+              {/* Admin Routes */}
               <Route
                 path="admin-dashboard"
                 element={
@@ -42,6 +44,13 @@ function App() {
                 }
               />
 
+              <Route path="manage-users/add-user" element={
+                <ProtectedRoute roles="admin">
+                  <AddUser />
+                </ProtectedRoute>
+              } />
+
+              {/* Lecturer Routes */}
               <Route
                 path="lecturer-dashboard"
                 element={
