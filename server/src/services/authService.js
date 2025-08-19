@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const config = require("../config");
 
 const handleFirstLogin = (user, payload) => {
   try {

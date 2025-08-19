@@ -15,6 +15,7 @@
 
   --color-secondary: 100 180 20;
 
+
   --color-accent: 255 193 7;
   --color-accent-light: 151 222 255;
 
@@ -24,17 +25,20 @@
   --color-bg-card: 255 255 255;
   --color-bg-header: 255 255 255;
 
+
   --color-text-primary: 33 33 33;
   --color-text-secondary: 107 114 128;
+
   --color-text-inverted: 255 255 255;
+  --color-text-muted: 156 163 175;
 
   --color-border-default: 229 231 235;
   --color-border-strong: 156 163 175;
 
   /* --- Semantic State Colors --- */
   --color-success: 76 175 80; /* Standard Green */
-  --color-warning: 255 193 7; /* Standard Yellow */
-  --color-error: 244 67 54; /* Standard Red */
+  /* --color-warning: 255 193 7; Standard Yellow */
+  --color-warning: 244 67 54; /* Standard Red */
   --color-info: 33 150 243; /* Standard Blue */
 
   /* --- Font Families --- */

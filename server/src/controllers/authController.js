@@ -4,6 +4,7 @@ const authService = require('../services/authService');
 
 const client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
 
+
 const googleVerify = async (req, res) => {
     const { id_token } = req.body;
     if (!id_token) {
@@ -61,6 +62,8 @@ const getCurrentUser = async (req, res) => {
             req.session.destroy();
             return res.status(404).json({error: 'User not found'});
         }
+
+        console.log('Session user:', req.session.userId, 'role:', req.session.role);
         
         const userProfile = {
             id: user._id,

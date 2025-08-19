@@ -7,8 +7,13 @@ import AdminDashboard from "./pages/AdminDashboard";
 import LecturerDashboard from "./pages/LecturerDashboard";
 import Navbar from "./components/Navbar";
 import HomePage from "./pages/HomePage";
+
 import NewModule from "./pages/NewModule";
 import AddUser from "./pages/AddUser";
+
+import TADashboardApplied from "./pages/TADashboardApplied";
+import TADashboardAccepted from "./pages/TADashboardAccepted";
+import TADashboard from "./pages/TADashboard";
 
 function App() {
   const navbarRef = useRef<HTMLDivElement>(null);
@@ -22,13 +27,20 @@ function App() {
   }, [navbarRef]);
 
   const contentHeight = `calc(100vh - ${navbarHeight}px)`;
-  let isInLoginPage = location.pathname === '/login';
+  let isInLoginPage = location.pathname === "/login";
 
   return (
     <AuthProvider>
       <div className="w-screen h-screen overflow-hidden">
         <Navbar ref={navbarRef} />
-        <div className="overflow-y-auto overflow-x-hidden" style={isInLoginPage? {overflowY: 'hidden', height: '100vh'}:{ height: `${contentHeight}`, marginTop: `${navbarHeight}px` }} >
+        <div
+          className="overflow-y-auto overflow-x-hidden"
+          style={
+            isInLoginPage
+              ? { overflowY: "hidden", height: "100vh" }
+              : { height: `${contentHeight}`, marginTop: `${navbarHeight}px` }
+          }
+        >
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<Outlet />}>
@@ -44,18 +56,11 @@ function App() {
                 }
               />
 
-              <Route path="manage-users/add-user" element={
-                <ProtectedRoute roles="admin">
-                  <AddUser />
-                </ProtectedRoute>
-              } />
-
-              {/* Lecturer Routes */}
               <Route
-                path="lecturer-dashboard"
+                path="manage-users/add-user"
                 element={
-                  <ProtectedRoute roles="lecturer">
-                    <LecturerDashboard />
+                  <ProtectedRoute roles="admin">
+                    <AddUser />
                   </ProtectedRoute>
                 }
               />
@@ -65,6 +70,21 @@ function App() {
                 element={
                   <ProtectedRoute roles="admin">
                     <NewModule />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* TA Routes */}
+              <Route path="ta-dashboard" element={<TADashboard />} />
+              <Route path="ta-applied" element={<TADashboardApplied />} />
+              <Route path="ta-accepted" element={<TADashboardAccepted />} />
+
+              {/* Lecturer Routes */}
+              <Route
+                path="lecturer-dashboard"
+                element={
+                  <ProtectedRoute roles="lecturer">
+                    <LecturerDashboard />
                   </ProtectedRoute>
                 }
               />
