@@ -24,7 +24,7 @@ function TADashboardApplied() {
         </div>
         {/* stats */}
         <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
-          <div className="p-6 border shadow-sm bg-bg-card rounded-xl border-border-default/50">
+          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
                 <Newspaper className="w-5 h-5 text-text-primary" />
@@ -35,7 +35,7 @@ function TADashboardApplied() {
               </div>
             </div>
           </div>
-          <div className="p-6 border shadow-sm bg-bg-card rounded-xl border-border-default/50">
+          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
                 <Trophy className="w-5 h-5 text-text-primary" />
@@ -48,7 +48,7 @@ function TADashboardApplied() {
               </div>
             </div>
           </div>
-          <div className="p-6 border shadow-sm bg-bg-card rounded-xl border-border-default/50">
+          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
                 <Delete className="w-5 h-5 text-text-primary" />
