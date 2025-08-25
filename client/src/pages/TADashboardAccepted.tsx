@@ -81,6 +81,21 @@ function TADashboardApplied() {
           requirements={["Resume", "Cover Letter"]} 
           
         />
+        <div className='mt-4'></div>
+                <TAAccepedCard
+          moduleCode="CS101"
+          moduleName="Programming Languages"
+          coordinators={["Dr. Smith", "Prof. Fernando"]}
+          requiredTAHours={10}
+          requiredTANumber={2}
+          appliedTANumber={1}
+          status="Rejected"
+          appliedDate="2024-06-01"
+          documentDueDate="2024-06-15"
+          applicationDueDate='2024-06-10'
+          requirements={["Resume", "Cover Letter"]} 
+          
+        />
       </div>
 
       </div>

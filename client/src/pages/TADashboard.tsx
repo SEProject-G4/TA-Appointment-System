@@ -66,7 +66,7 @@ function TADashboard() {
       </div>
       
       {/* TA requests */}
-      <div className="m-8">
+      <div className="gap-2 m-8">
         <h2 className="mb-4 text-2xl font-semibold text-foreground">Applied TA Positions</h2>
             <TARequestCard 
         moduleCode="CS2040S"
@@ -74,9 +74,25 @@ function TADashboard() {
         coordinators={["Prof. Chong Ket Fah", "Dr. Steven Halim"]}
         requiredTAHours={12}
         requiredTANumber={10}
-        appliedTANumber={7}
+        appliedTANumber={2}
         requirements={[
           "Grade A- or above in CS2040S",
+          "Proficiency in Java or Python",
+          "Good problem-solving skills"
+        ]}
+        documentDueDate="2024-08-01"
+        applicationDueDate="2024-07-15"
+    />
+    <div className="mt-6"></div>
+    <TARequestCard  
+        moduleCode="CS2045S"
+        moduleName="Computer Security"
+        coordinators={["Prof. abc fernando"]}
+        requiredTAHours={5}
+        requiredTANumber={3}
+        appliedTANumber={2}
+        requirements={[
+          "Grade A- or above in CS2045S",
           "Proficiency in Java or Python",
           "Good problem-solving skills"
         ]}
