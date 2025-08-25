@@ -41,7 +41,7 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
         { to: "/ta-applied", label: "Applied Positions" },
         { to: "/ta-accepted", label: "Accepted Positions" },
       ]
-    }
+    },
 
     {
       role: "lecturer",

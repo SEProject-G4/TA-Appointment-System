@@ -81,7 +81,7 @@ const ViewModuleDetails: React.FC = () => {
       }
     ],
     totalTAHours: 18,
-    totalTAsNeeded: 5,
+    totalTAsNeeded: 3,
   };
 
   const moduleData2: ModuleDetails = {
@@ -154,7 +154,7 @@ const ViewModuleDetails: React.FC = () => {
   const allModules = [moduleData, moduleData2, moduleData3];
 
   return (
-    <div className="space-y-8 mt-6 px-4 md:px-6 lg:px-8">      
+    <div className="space-y-8 mt-20 px-4 md:px-6 lg:px-8">      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {allModules.map((module, moduleIndex) => (
                      <div key={moduleIndex} className="w-full bg-bg-card rounded-3xl shadow-xl border border-border-default overflow-hidden">

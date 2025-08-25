@@ -171,7 +171,7 @@ const EditModuleDetails: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 mt-6 px-4 md:px-6 lg:px-8">
+    <div className="space-y-6 mt-20 px-4 md:px-6 lg:px-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {modules.map((m) => {
           const d = moduleEdits[m._id];

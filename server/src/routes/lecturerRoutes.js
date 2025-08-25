@@ -6,6 +6,9 @@ const lecturerController = require('../controllers/lecturerController');
 // List modules for which the logged-in lecturer is a coordinator (by googleId)
 router.get('/modules', protected, authorize(['lecturer']), lecturerController.getMyModules);
 
+// Create a new module
+router.post('/modules', lecturerController.createModule);
+
 // Update module requirements for a specific module
 router.patch('/modules/:id', protected, authorize(['lecturer']), lecturerController.editModuleRequirments);
 
