@@ -1,5 +1,6 @@
 import React from "react";
 import { BookOpen, Users, Clock } from "lucide-react";
+import { Button } from "./ui/Button";
 
 interface TARequestCardProps {
   moduleCode: string;
@@ -127,9 +128,14 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
               ))}
             </div>
           </div>
-          <button className="w-full h-8 font-medium transition-all duration-300 rounded-lg bg-gradient-to-r from-primary to-accent hover:from-primary-glow hover:to-accent text-text-primary hover:shadow-md hover:scale-105">
+          {/* <button className="w-full h-8 font-medium transition-all duration-300 rounded-lg bg-gradient-to-r from-primary to-accent hover:from-primary-glow hover:to-accent text-text-primary hover:shadow-md hover:scale-105">
             Apply Now
-          </button>
+          </button> */}
+            <Button
+            label="Apply Now"
+            onClick={() => {}}
+          >
+          </Button>  
         </div>
       </div>
     </div>
