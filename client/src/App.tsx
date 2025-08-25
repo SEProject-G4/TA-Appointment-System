@@ -4,7 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import AdminDashboard from "./pages/AdminDashboard";
-import LecturerDashboard from "./pages/LecturerDashboard";
+// import LecturerDashboard from "./pages/LecturerDashboard";
+import ViewModuleDetails from "./components/ViewModuleDetails";
+import EditModuleDetails from "./components/EditModuleDetails";
+import HandleTARequests from "./components/HandleTARequests";
 import Navbar from "./components/Navbar";
 import HomePage from "./pages/HomePage";
 
@@ -80,14 +83,17 @@ function App() {
               <Route path="ta-accepted" element={<TADashboardAccepted />} />
 
               {/* Lecturer Routes */}
-              <Route
+              {/* <Route
                 path="lecturer-dashboard"
                 element={
                   <ProtectedRoute roles="lecturer">
                     <LecturerDashboard />
                   </ProtectedRoute>
                 }
-              />
+              /> */}
+              <Route path="lec-view-module-details" element={<ViewModuleDetails />}  />
+              <Route path="lec-edit-module-details" element={<EditModuleDetails />} />
+              <Route path="lec-handle-ta-requests" element={<HandleTARequests />} />
 
               {/* Fallback redirect */}
               <Route path="*" element={<Navigate to="/login" replace />} />

@@ -34,6 +34,14 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
         { to: "/manage-users/add-user", label: "Manage Users" },
       ]
     },
+    {
+      role: "lecturer",
+      links: [
+        { to: "/lec-view-module-details", label: "View Module Details" },
+        { to: "/lec-edit-module-details", label: "Edit Module Details" },
+        { to: "/lec-handle-ta-requests", label: "Handle TA Requests" },
+      ]
+    }
   ]
 
   const isPathActive = (path: string) => {

@@ -171,16 +171,16 @@ const EditModuleDetails: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-6 px-4 md:px-6 lg:px-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {modules.map((m) => {
           const d = moduleEdits[m._id];
           return (
             <div
               key={m._id}
-              className="bg-bg-card rounded-xl shadow-lg overflow-hidden border border-border-default"
+              className="bg-bg-card rounded-3xl shadow-lg overflow-hidden border border-border-default"
             >
-              <div className="bg-gradient-to-r from-primary-dark to-primary px-6 py-4">
+              <div className="bg-gradient-to-r from-primary-dark to-primary px-6 py-4 rounded-t-3xl">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-bg-card bg-opacity-20 rounded-full flex items-center justify-center">
                     <svg
