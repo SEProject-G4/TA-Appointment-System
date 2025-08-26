@@ -37,11 +37,11 @@ const ViewModuleDetails: React.FC = () => {
     const totalCount = Object.keys(ta.documents).length;
     
     if (submittedCount === 0) {
-      return { status: 'Not submitted', color: 'text-error', bgColor: 'bg-error/10', canExpand: false };
+      return { status: 'Pending', color: 'text-gray-600', bgColor: 'bg-gray-100', canExpand: false };
     } else if (submittedCount === totalCount) {
-      return { status: '', color: '', bgColor: '', canExpand: true };
+      return { status: 'Complete', color: 'text-green-700', bgColor: 'bg-green-50', canExpand: true };
     } else {
-      return { status: 'Not submitted', color: 'text-error', bgColor: 'bg-error/10', canExpand: false };
+      return { status: 'Partial', color: 'text-orange-700', bgColor: 'bg-orange-50', canExpand: false };
     }
   };
 
@@ -154,232 +154,226 @@ const ViewModuleDetails: React.FC = () => {
   const allModules = [moduleData, moduleData2, moduleData3];
 
   return (
-    <div className="space-y-8 mt-20 px-4 md:px-6 lg:px-8">      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {allModules.map((module, moduleIndex) => (
-                     <div key={moduleIndex} className="w-full bg-bg-card rounded-3xl shadow-xl border border-border-default overflow-hidden">
-            {/* Header */}
-                         <div className="bg-gradient-to-r from-primary-dark via-primary to-primary-light px-6 py-4 relative overflow-hidden rounded-t-3xl">
-               <div className="relative z-10">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Module Management Dashboard</h1>
+          <p className="text-gray-600">Overview of all assigned modules and teaching assistant status</p>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {allModules.map((module, moduleIndex) => (
+            <div key={moduleIndex} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              {/* Module Header */}
+              <div className="bg-gray-900 px-6 py-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-text-inverted font-bold text-2xl tracking-tight">{module.moduleCode}</h2>
-                  <span className="bg-white bg-opacity-25 backdrop-blur-sm text-text-inverted text-xs px-3 py-1.5 rounded-full font-medium border border-white/20">
+                  <h2 className="text-white font-semibold text-xl">{module.moduleCode}</h2>
+                  <span className="bg-white text-gray-900 text-xs px-3 py-1 rounded-full font-medium">
                     {module.semester} {module.year}
                   </span>
                 </div>
-                <p className="text-text-inverted font-semibold text-base leading-tight">{module.moduleName}</p>
+                <p className="text-gray-300 text-sm font-medium">{module.moduleName}</p>
               </div>
-            </div>
 
-            {/* Content */}
-            <div className="px-6 py-6 space-y-6">
-              {/* TA Hours Overview */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gradient-to-br from-info/5 to-info/10 rounded-xl p-4 border border-info/20 hover:border-info/30 transition-colors duration-200">
-                  <div className="text-center">
-                    <div className="w-10 h-10 bg-info/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <svg className="w-5 h-5 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+              {/* Module Content */}
+              <div className="p-6 space-y-6">
+                {/* Statistics */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="text-center">
+                      <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-1 font-medium">Hours per Week</p>
+                      <p className="text-lg font-bold text-gray-900">{module.totalTAHours}h</p>
                     </div>
-                    <p className="text-xs text-text-secondary mb-1 font-medium">Hours per Week</p>
-                    <p className="text-xl font-bold text-text-primary">{module.totalTAHours}h</p>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="text-center">
+                      <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-1 font-medium">Assigned TAs</p>
+                      <p className="text-lg font-bold text-gray-900">{module.assignedTAs.length}</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-success/5 to-success/10 rounded-xl p-4 border border-success/20 hover:border-success/30 transition-colors duration-200">
-                  <div className="text-center">
-                    <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    </div>
-                    <p className="text-xs text-text-secondary mb-1 font-medium">Assigned TAs</p>
-                    <p className="text-xl font-bold text-text-primary">{module.assignedTAs.length}</p>
-                  </div>
-                </div>
-              </div>
-
-                             {/* TA Progress Bar */}
-               <div className="bg-bg-page rounded-xl p-4 border border-border-default/50">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                      <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                {/* Progress Bar */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
+                      <p className="text-sm font-semibold text-gray-900">Assignment Progress</p>
                     </div>
-                    <p className="text-sm font-semibold text-text-primary">TA Assignment Progress</p>
+                    <p className="text-sm font-bold text-gray-900 bg-gray-200 px-3 py-1 rounded-full">
+                      {module.assignedTAs.length}/{module.totalTAsNeeded}
+                    </p>
                   </div>
-                  <p className="text-sm font-bold text-text-primary bg-primary/10 px-3 py-1 rounded-full">{module.assignedTAs.length}/{module.totalTAsNeeded} TAs</p>
-                </div>
-                
-                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-primary to-primary-light h-3 rounded-full transition-all duration-500 ease-out relative"
-                    style={{ width: `${(module.assignedTAs.length / module.totalTAsNeeded) * 100}%` }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-pulse"></div>
+                  
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-gray-900 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${(module.assignedTAs.length / module.totalTAsNeeded) * 100}%` }}
+                    />
                   </div>
                 </div>
-              </div>
 
-              {/* Assigned TAs Section */}
-              <div>
-                <h3 className="text-base font-bold text-text-primary mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center mr-3">
-                    <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                {/* Teaching Assistants */}
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
+                    <svg className="w-4 h-4 text-gray-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
                     </svg>
-                  </div>
-                  Assigned Teaching Assistants
-                </h3>
-                
-                <div className="space-y-3">
-                  {module.assignedTAs.map((ta, index) => {
-                    const documentStatus = getDocumentStatus(ta);
-                    const isExpanded = expandedTAs.has(`${moduleIndex}-${index}`);
-                    
-                    return (
-                                         <div key={index} className="bg-bg-page rounded-xl border border-border-default/60 overflow-hidden">
-                        {/* TA Header - Always visible */}
-                                                 <div className="p-4 border-l-4 border-primary/40 bg-primary/5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                                             <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                                <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                            <div>
-                                <p className="text-sm font-bold text-text-primary">{ta.name}</p>
-                                <p className="text-xs text-text-secondary">{ta.email}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center space-x-3">
-                              {/* Document Status - Only show if there's a status */}
-                              {documentStatus.status && (
-                                <span className={`px-3 py-1.5 rounded-full text-xs font-semibold bg-warning/10 text-warning ${documentStatus.color} ${documentStatus.bgColor} border border-current/20`}>
-                                  {documentStatus.status}
-                                </span>
-                              )}
-                              
-                              {/* Expand/Collapse Button - Only show if all documents are submitted */}
-                              {documentStatus.canExpand && (
-                                                                 <button
-                                   onClick={() => toggleTAExpansion(moduleIndex, index)}
-                                   className="p-2 hover:bg-primary/10 rounded-full transition-all duration-200"
-                                 >
-                                  <svg 
-                                    className={`w-4 h-4 text-primary transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
-                                    fill="currentColor" 
-                                    viewBox="0 0 20 20"
-                                  >
-                                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    Teaching Assistants
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    {module.assignedTAs.map((ta, index) => {
+                      const documentStatus = getDocumentStatus(ta);
+                      const isExpanded = expandedTAs.has(`${moduleIndex}-${index}`);
+                      
+                      return (
+                        <div key={index} className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                          {/* TA Header */}
+                          <div className="p-4 border-l-4 border-gray-600 bg-white">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                                   </svg>
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Collapsible Documents Section */}
-                        {isExpanded && (
-                                                     <div className="border-t border-border-default/60 bg-bg-card/30">
-                            <div className="p-4 space-y-3">
-                              <h4 className="text-sm font-bold text-text-primary mb-3 flex items-center">
-                                <svg className="w-4 h-4 text-primary mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                                </svg>
-                                Required Documents
-                              </h4>
-                              
-                              {/* NIC Copy */}
-                                                             <div className="flex items-center justify-between p-3 bg-bg-page rounded-lg border border-border-default/40">
-                                <div className="flex items-center space-x-3">
-                                                                     <div className="w-7 h-7 bg-info/20 rounded-full flex items-center justify-center">
-                                    <svg className="w-4 h-4 text-info" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                                    </svg>
-                                  </div>
-                                  <span className="text-sm font-semibold text-text-primary">NIC Copy</span>
                                 </div>
-                                {ta.documents.nicCopy.submitted ? (
-                                  <button 
-                                    onClick={() => window.open(ta.documents.nicCopy.fileUrl, '_blank')}
-                                    className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-success/10 to-success/20 text-success rounded-lg hover:from-success/20 hover:to-success/30 transition-all duration-200 border border-success/20 hover:border-success/30 hover:scale-105"
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-900">{ta.name}</p>
+                                  <p className="text-xs text-gray-600">{ta.email}</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center space-x-3">
+                                {documentStatus.status && (
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${documentStatus.bgColor} ${documentStatus.color} border`}>
+                                    {documentStatus.status}
+                                  </span>
+                                )}
+                                
+                                {documentStatus.canExpand && (
+                                  <button
+                                    onClick={() => toggleTAExpansion(moduleIndex, index)}
+                                    className="p-1 hover:bg-gray-200 rounded transition-colors"
                                   >
-                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    <svg 
+                                      className={`w-4 h-4 text-gray-600 transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
+                                      fill="currentColor" 
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                                     </svg>
-                                    <span className="text-xs font-medium">View</span>
                                   </button>
-                                ) : (
-                                  <span className="text-xs text-error font-medium bg-error/10 px-3 py-2 rounded-lg border border-error/20">Not submitted</span>
                                 )}
                               </div>
-
-                                                             {/* Bank Passport Copy */}
-                                                               <div className="flex items-center justify-between p-3 bg-bg-page rounded-lg border border-border-default/40">
-                                 <div className="flex items-center space-x-3">
-                                                                       <div className="w-7 h-7 bg-warning/20 rounded-full flex items-center justify-center">
-                                     <svg className="w-4 h-4 text-warning" fill="currentColor" viewBox="0 0 20 20">
-                                       <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                                     </svg>
-                                   </div>
-                                   <span className="text-sm font-semibold text-text-primary">Bank Passport Copy</span>
-                                 </div>
-                                 {ta.documents.bankPassportCopy.submitted ? (
-                                   <button 
-                                     onClick={() => window.open(ta.documents.bankPassportCopy.fileUrl, '_blank')}
-                                     className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-success/10 to-success/20 text-success rounded-lg hover:from-success/20 hover:to-success/30 transition-all duration-200 border border-success/20 hover:border-success/30 hover:scale-105"
-                                   >
-                                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                       <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                                     </svg>
-                                     <span className="text-xs font-medium">View</span>
-                                   </button>
-                                 ) : (
-                                   <span className="text-xs text-error font-medium bg-error/10 px-3 py-2 rounded-lg border border-error/20">Not submitted</span>
-                                 )}
-                               </div>
-
-                               {/* Declaration Copy */}
-                                                               <div className="flex items-center justify-between p-3 bg-bg-page rounded-lg border border-border-default/40">
-                                 <div className="flex items-center space-x-3">
-                                                                       <div className="w-7 h-7 bg-primary/20 rounded-full flex items-center justify-center">
-                                     <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                                       <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                                     </svg>
-                                   </div>
-                                   <span className="text-sm font-semibold text-text-primary">Declaration Copy</span>
-                                 </div>
-                                 {ta.documents.declarationCopy.submitted ? (
-                                   <button 
-                                     onClick={() => window.open(ta.documents.declarationCopy.fileUrl, '_blank')}
-                                     className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-success/10 to-success/20 text-success rounded-lg hover:from-success/20 hover:to-success/30 transition-all duration-200 border border-success/20 hover:border-success/30 hover:scale-105"
-                                   >
-                                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                       <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                                     </svg>
-                                     <span className="text-xs font-medium">View</span>
-                                   </button>
-                                 ) : (
-                                   <span className="text-xs text-error font-medium bg-error/10 px-3 py-2 rounded-lg border border-error/20">Not submitted</span>
-                                 )}
-                               </div>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+
+                          {/* Documents Section */}
+                          {isExpanded && (
+                            <div className="border-t border-gray-200 bg-white">
+                              <div className="p-4 space-y-3">
+                                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                                  <svg className="w-4 h-4 text-gray-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                  </svg>
+                                  Required Documents
+                                </h4>
+                                
+                                {/* NIC Copy */}
+                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                  <div className="flex items-center space-x-3">
+                                    <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-900">NIC Copy</span>
+                                  </div>
+                                  {ta.documents.nicCopy.submitted ? (
+                                    <button 
+                                      onClick={() => window.open(ta.documents.nicCopy.fileUrl, '_blank')}
+                                      className="flex items-center space-x-2 px-3 py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-xs font-medium"
+                                    >
+                                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                      </svg>
+                                      <span>View</span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs text-gray-600 font-medium bg-gray-100 px-3 py-1.5 rounded-md border">Not submitted</span>
+                                  )}
+                                </div>
+
+                                {/* Bank Passport Copy */}
+                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                  <div className="flex items-center space-x-3">
+                                    <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-900">Bank Passport Copy</span>
+                                  </div>
+                                  {ta.documents.bankPassportCopy.submitted ? (
+                                    <button 
+                                      onClick={() => window.open(ta.documents.bankPassportCopy.fileUrl, '_blank')}
+                                      className="flex items-center space-x-2 px-3 py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-xs font-medium"
+                                    >
+                                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                      </svg>
+                                      <span>View</span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs text-gray-600 font-medium bg-gray-100 px-3 py-1.5 rounded-md border">Not submitted</span>
+                                  )}
+                                </div>
+
+                                {/* Declaration Copy */}
+                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                  <div className="flex items-center space-x-3">
+                                    <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-900">Declaration Copy</span>
+                                  </div>
+                                  {ta.documents.declarationCopy.submitted ? (
+                                    <button 
+                                      onClick={() => window.open(ta.documents.declarationCopy.fileUrl, '_blank')}
+                                      className="flex items-center space-x-2 px-3 py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-xs font-medium"
+                                    >
+                                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                      </svg>
+                                      <span>View</span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs text-gray-600 font-medium bg-gray-100 px-3 py-1.5 rounded-md border">Not submitted</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   )

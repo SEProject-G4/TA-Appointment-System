@@ -63,53 +63,8 @@ const editModuleRequirments = async (req, res) => {
   }
 };
 
-module.exports = { getMyModules, editModuleRequirments };
+const handleRequests = async (req, res) => {
 
-// POST /api/lecturer/modules
-// Creates a new module document
-const createModule = async (req, res) => {
-  try {
-    const {
-      moduleCode,
-      moduleName,
-      semester,
-      year,
-      coordinators,
-      applicationDueDate,
-      documentDueDate,
-      requiredTAHours = null,
-      requiredTACount = null,
-      requirements = null,
-      moduleStatus, // optional, defaults in schema
-    } = req.body;
+}
 
-    // Basic validation for required fields
-    if (!moduleCode || !moduleName || !semester || !year || !coordinators || !applicationDueDate || !documentDueDate) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    // Use coordinators provided in the request body when unauthenticated
-    const coordinatorIds = Array.isArray(coordinators) ? coordinators.map(String) : [];
-
-    const moduleDoc = await ModuleDetails.create({
-      moduleCode,
-      moduleName,
-      semester,
-      year,
-      coordinators: coordinatorIds,
-      applicationDueDate,
-      documentDueDate,
-      requiredTAHours,
-      requiredTACount,
-      requirements,
-      moduleStatus, // will use default if undefined
-    });
-
-    return res.status(201).json(moduleDoc);
-  } catch (error) {
-    console.error('Error creating module:', error);
-    return res.status(500).json({ error: 'Failed to create module' });
-  }
-};
-
-module.exports.createModule = createModule;
+module.exports = { getMyModules, editModuleRequirments, handleRequests };
