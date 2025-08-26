@@ -2,9 +2,10 @@ import "./AddUser.css";
 
 import React, { useEffect, useState } from "react";
 import { FaCircleCheck } from "react-icons/fa6";
-import { AiOutlineCloseCircle } from 'react-icons/ai';
-import { FaPlus, FaMinus } from "react-icons/fa";
+import { AiOutlineCloseCircle } from "react-icons/ai";
+import { FaUpload, FaMinus } from "react-icons/fa";
 import { AiOutlinePlusCircle } from "react-icons/ai";
+import Papa from "papaparse";
 import {
   Input,
   Select,
@@ -34,7 +35,9 @@ interface UserGroup {
 
 function AddUser() {
   // ...existing code...
-  const [inputErrors, setInputErrors] = useState<{ email?: string; indexNumber?: string }[]>([]);
+  const [inputErrors, setInputErrors] = useState<
+    { email?: string; indexNumber?: string }[]
+  >([]);
   const [userRole, setUserRole] = useState("undergraduate");
   const [users, setUsers] = useState<User[]>([{ email: "" }]);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,11 +63,58 @@ function AddUser() {
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [groupError, setGroupError] = useState("");
 
+  const [file, setFile] = useState<File | null>(null);
+  const [message, setMessage] = useState("");
+  const [isFileLoading, setIsFileLoading] = useState(false);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    const selectedFile = files && files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setMessage(`Selected file: ${selectedFile.name}`);
+    } else {
+      setFile(null);
+      setMessage("No file selected.");
+    }
+  };
+
+  const handleUpload = () => {
+    if (!file) {
+      setMessage("Please select a file first.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const usersArray = results.data;
+        console.log("Parsed data:", usersArray);
+
+        // Pass the data up to a parent component or directly to an API call
+        // onDataProcessed(usersArray);
+
+        setIsLoading(false);
+        setMessage(`Successfully parsed ${usersArray.length} records.`);
+      },
+      error: (error) => {
+        setIsLoading(false);
+        setMessage(`Error parsing file: ${error.message}`);
+        console.error("Error parsing CSV:", error);
+      },
+    });
+  };
+
   // Fetch user groups
   const fetchUserGroups = async () => {
     console.log("Fetching user groups for role:", userRole);
     try {
-      const res = await axiosInstance.get('/user-management/groups/' + userRole);
+      const res = await axiosInstance.get(
+        "/user-management/groups/" + userRole
+      );
       setAllUserGroups(res.data);
       console.log("Fetched user groups:", res.data);
     } catch (error) {
@@ -79,7 +129,7 @@ function AddUser() {
     setIsCreatingGroup(true);
     setGroupError("");
     try {
-      const res = await axiosInstance.post('/user-management/groups', {
+      const res = await axiosInstance.post("/user-management/groups", {
         name: newGroupName,
         groupType: userRole,
       });
@@ -131,19 +181,20 @@ function AddUser() {
     event.preventDefault();
 
     // Validate all users and collect errors
-    const errors: { email?: string; indexNumber?: string }[] = users.map((user) => ({ }));
+    const errors: { email?: string; indexNumber?: string }[] = users.map(
+      (user) => ({})
+    );
     let hasError = false;
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
-      if(user.email===""){
+      if (user.email === "") {
         errors[i].email = "Email is required.";
         hasError = true;
-      }
-      else if (!validateEmail(user.email)) {
+      } else if (!validateEmail(user.email)) {
         errors[i].email = "Invalid email address.";
         hasError = true;
       }
-      if ((userRole === "undergraduate" || userRole === "postgraduate")) {
+      if (userRole === "undergraduate" || userRole === "postgraduate") {
         if (!user.indexNumber || !validateIndexNumber(user.indexNumber)) {
           errors[i].indexNumber = "Invalid index number.";
           hasError = true;
@@ -166,7 +217,10 @@ function AddUser() {
     console.log("Sending payload to backend:", payload);
 
     try {
-      const response = await axiosInstance.post('/user-management/users', payload);
+      const response = await axiosInstance.post(
+        "/user-management/users",
+        payload
+      );
 
       const responseData = response.data;
       if (response.status === 201) {
@@ -255,7 +309,9 @@ function AddUser() {
                                   className="w-full p-2 outline outline-1 border-text-secondary/0 rounded-md focus:outline-primary-light focus:outline-offset-1 focus:outline-2 transition-colors"
                                 />
                                 {inputErrors[index]?.indexNumber && (
-                                  <span className="text-error text-xs mt-1">{inputErrors[index].indexNumber}</span>
+                                  <span className="text-error text-xs mt-1">
+                                    {inputErrors[index].indexNumber}
+                                  </span>
                                 )}
                               </div>
                             )}
@@ -270,7 +326,9 @@ function AddUser() {
                                 className="w-full p-2 outline outline-1 border-text-secondary/50 rounded-md focus:outline-primary-light focus:outline-offset-1 focus:outline-2 transition-colors"
                               />
                               {inputErrors[index]?.email && (
-                                <span className="text-error text-xs mt-1">{inputErrors[index].email}</span>
+                                <span className="text-error text-xs mt-1">
+                                  {inputErrors[index].email}
+                                </span>
                               )}
                             </div>
                             {users.length > 1 && (
@@ -330,7 +388,37 @@ function AddUser() {
                     </div>
                   </Dialog>
                 </TabPanel>
-                <TabPanel>Content 2</TabPanel>
+                <TabPanel>
+                  <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-md">
+                    <h3 className="text-xl font-semibold mb-4">
+                      Import Users via CSV file
+                    </h3>
+
+                    <div className="flex items-center space-x-4 mb-4">
+                      <label className="flex items-center px-4 py-2 bg-primary text-text-inverted rounded-md cursor-pointer hover:bg-primary-light transition-colors">
+                        <FaUpload className="mr-2" />
+                        Select CSV File
+                        <input
+                          type="file"
+                          accept=".csv"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                      <span className="text-gray-600">{message}</span>
+                    </div>
+
+                    <button
+                      onClick={handleUpload}
+                      disabled={!file || isLoading}
+                      className="w-full max-w-xs p-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? "Processing..." : "Process CSV"}
+                    </button>
+
+                    {/* You can show a loading indicator here based on isLoading */}
+                  </div>
+                </TabPanel>
               </TabPanels>
             </TabGroup>
           </div>
@@ -355,7 +443,7 @@ function AddUser() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              
+
               {/* User group list will go here */}
               <div className="w-full p-2 overflow-y-auto max-h-[40vh] gap-y-2">
                 <RadioGroup
@@ -414,53 +502,50 @@ function AddUser() {
       </div>
 
       {/* New User Group Modal */}
-              <Dialog
-                open={isGroupModalOpen}
-                onClose={() => setIsGroupModalOpen(false)}
-                className="relative z-50"
+      <Dialog
+        open={isGroupModalOpen}
+        onClose={() => setIsGroupModalOpen(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="w-full max-w-md rounded bg-white p-6 shadow-lg relative">
+            <button
+              type="button"
+              className="absolute top-3 right-3 text-text-secondary hover:text-text-primary text-xl"
+              onClick={() => setIsGroupModalOpen(false)}
+              disabled={isCreatingGroup}
+              aria-label="Close"
+            >
+              <AiOutlineCloseCircle className="size-6" />
+            </button>
+            <DialogTitle className="text-lg font-bold mb-2">
+              Create New User Group
+            </DialogTitle>
+            <form onSubmit={handleCreateGroup} className="flex flex-col gap-4">
+              <input
+                type="text"
+                placeholder="Group Name"
+                className="p-2 border border-text-primary/40 rounded-md focus:outline-primary-light focus:border-primary transition-colors"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                required
+                disabled={isCreatingGroup}
+              />
+              {groupError && (
+                <p className="text-warning text-sm">{groupError}</p>
+              )}
+              <button
+                type="submit"
+                className="bg-primary text-text-inverted font-semibold rounded-md p-2 hover:bg-primary-light transition-colors disabled:bg-primary/40"
+                disabled={isCreatingGroup || !newGroupName.trim()}
               >
-                <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-                <div className="fixed inset-0 flex items-center justify-center p-4">
-                  <DialogPanel className="w-full max-w-md rounded bg-white p-6 shadow-lg relative">
-                    <button
-                      type="button"
-                      className="absolute top-3 right-3 text-text-secondary hover:text-text-primary text-xl"
-                      onClick={() => setIsGroupModalOpen(false)}
-                      disabled={isCreatingGroup}
-                      aria-label="Close"
-                    >
-                      <AiOutlineCloseCircle className="size-6"/>
-                    </button>
-                    <DialogTitle className="text-lg font-bold mb-2">
-                      Create New User Group
-                    </DialogTitle>
-                    <form
-                      onSubmit={handleCreateGroup}
-                      className="flex flex-col gap-4"
-                    >
-                      <input
-                        type="text"
-                        placeholder="Group Name"
-                        className="p-2 border border-text-primary/40 rounded-md focus:outline-primary-light focus:border-primary transition-colors"
-                        value={newGroupName}
-                        onChange={(e) => setNewGroupName(e.target.value)}
-                        required
-                        disabled={isCreatingGroup}
-                      />
-                      {groupError && (
-                        <p className="text-warning text-sm">{groupError}</p>
-                      )}
-                      <button
-                        type="submit"
-                        className="bg-primary text-text-inverted font-semibold rounded-md p-2 hover:bg-primary-light transition-colors disabled:bg-primary/40"
-                        disabled={isCreatingGroup || !newGroupName.trim()}
-                      >
-                        {isCreatingGroup ? "Creating..." : "Create Group"}
-                      </button>
-                    </form>
-                  </DialogPanel>
-                </div>
-              </Dialog>
+                {isCreatingGroup ? "Creating..." : "Create Group"}
+              </button>
+            </form>
+          </DialogPanel>
+        </div>
+      </Dialog>
     </div>
   );
 }

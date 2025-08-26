@@ -4,6 +4,8 @@ import CSELogo from "../assets/images/cse-logo.png";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 
+
+
 interface NavbarProps {
   ref: React.Ref<HTMLDivElement>;
 }
@@ -26,12 +28,19 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
     return null;
   }
 
-  const navLinks: { role: string; links: { to: string; label: string }[] }[] = [
+  const navLinks: { role: string; links: { subMenu:boolean; to: string; label: string; subNavs?: { to: string; label: string }[] }[] }[] = [
     {
       role: "admin",
       links: [
-        { to: "/admin-dashboard", label: "Admin Dashboard" },
-        { to: "/manage-users/add-user", label: "Manage Users" },
+        { subMenu:false, to: "/admin-dashboard", label: "Admin Dashboard" },
+        { subMenu:true, to: "/manage-users/add-user", label: "Manage Users",
+          subNavs: [
+            { to: "/manage-users/overview", label: "Overview" },
+            { to: "/manage-users/undergraduates", label: "Undergraduates" },
+            { to: "/manage-users/postgraduates", label: "Postgraduates" },
+            { to: "/manage-users/add-user", label: "Add User" },
+          ]
+        },
       ]
     },
   ]
@@ -41,7 +50,7 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
   };
 
   return (
-    <nav ref={ref} className="w-full fixed top-0 z-50 shaddow-lg">
+    <nav ref={ref} className="w-full fixed top-0 z-50 shadow-sm">
       <div className="navbar flex flex-row bg-bg-card text-text-primary shadow-lg w-full">
         
         <div className="flex flex-1 flex-row items-center justify-start space-x-32">
@@ -62,7 +71,22 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
               if (user && user.role === nav.role) {
                 return nav.links.map((link) => (
                   <li key={link.to} className={`font-raleway hover:text-primary transition duration-300 ease-in-out ${isPathActive(link.to) ? 'font-semibold text-primary-dark' : 'text-text-secondary'}`}>
-                    <Link to={link.to}>{link.label}</Link>
+
+                    {link.subMenu ? (
+                      <div className="group">
+                        <p role="button">{link.label}</p>
+                        <ul className="hidden outline-text-secondary/20 outline-1 outline rounded-sm absolute group-hover:block menu bg-bg-card z-10 w-48 p-2 drop-shadow">
+                          {link.subNavs?.map((subNav) => (
+                            <li key={subNav.to} className={`hover:bg-primary/70 hover:text-text-inverted rounded ${isPathActive(subNav.to) ? 'font-semibold text-primary-dark' : 'text-text-secondary'}`}>
+                              <Link to={subNav.to}>{subNav.label}</Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <Link to={link.to}>{link.label}</Link>
+                    )}
+
                   </li>
                 ));
               }
