@@ -8,6 +8,14 @@ router.get('/modules', protected, authorize(['lecturer']), lecturerController.ge
 
 // Update module requirements for a specific module
 router.patch('/modules/:id', protected, authorize(['lecturer']), lecturerController.editModuleRequirments);
+
+// Get TA applications for coordinator's modules
 router.get('/handle-requests', protected, authorize(["lecturer"]), lecturerController.handleRequests);
+
+// Accept a TA application
+router.patch('/applications/:applicationId/accept', protected, authorize(["lecturer"]), lecturerController.acceptApplication);
+
+// Reject a TA application
+router.patch('/applications/:applicationId/reject', protected, authorize(["lecturer"]), lecturerController.rejectApplication);
 
 module.exports = router;

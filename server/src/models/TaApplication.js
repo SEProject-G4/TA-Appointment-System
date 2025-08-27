@@ -15,6 +15,6 @@ const TaApplicationSchema = new mongoose.Schema({
         default: "pending",
         required: true
     }
-    })
+    }, { timestamps: true })
 
 module.exports = mongoose.model('TaApplication', TaApplicationSchema);
