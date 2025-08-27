@@ -36,6 +36,7 @@ interface TARequestCardProps {
   onAccept: (applicationId: string, studentName: string) => void;
   onReject: (applicationId: string, studentName: string) => void;
   processingActions: Set<string>;
+  collapsible?: boolean;
 }
 
 const TARequestCard: React.FC<TARequestCardProps> = ({
@@ -47,7 +48,8 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
   totalRequiredTAs,
   onAccept,
   onReject,
-  processingActions
+  processingActions,
+  collapsible = true
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const acceptedCount = appliedTAs.filter(ta => ta.status.toLowerCase() === 'accepted').length;
@@ -57,12 +59,16 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
   return (
     <div className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-4 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
       <div className="flex flex-row w-full items-center">
-        <FaChevronRight
-          className={`p-1 h-6 w-6 rounded-full hover:bg-primary/10 text-text-secondary cursor-pointer transition-transform ease-in-out duration-100 ${
-            isExpanded ? "rotate-90" : ""
-          }`}
-          onClick={() => setIsExpanded(!isExpanded)}
-        />
+        {collapsible ? (
+          <FaChevronRight
+            className={`p-1 h-6 w-6 rounded-full hover:bg-primary/10 text-text-secondary cursor-pointer transition-transform ease-in-out duration-100 ${
+              isExpanded ? "rotate-90" : ""
+            }`}
+            onClick={() => setIsExpanded(!isExpanded)}
+          />
+        ) : (
+          <span className="w-6" />
+        )}
         <div className="flex flex-1 flex-col ml-3">
           <div className="flex items-center space-x-3">
             <h3 className="text-lg font-semibold text-text-primary">{moduleCode}</h3>
@@ -85,10 +91,85 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
           </div>
         </div>
       </div>
+      {!collapsible && (<div className="w-full h-px bg-border-default mt-2"></div>)}
 
-      <div className={`panel ${isExpanded ? 'panel-open' : 'panel-closed'}`}>
-        <div className="w-full space-y-3">
-          {/* Summary Stats */}
+      {collapsible ? (
+        <div className={`panel ${isExpanded ? 'panel-open' : 'panel-closed'}`}>
+          <div className="w-full space-y-3">
+            {/* Summary Stats */}
+            <div className="flex justify-between items-center bg-bg-page rounded-lg p-3">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <FaUserGraduate className="text-primary-dark h-4 w-4" />
+                  <span className="text-sm text-text-secondary">Total Applications:</span>
+                  <span className="font-semibold text-text-primary">{appliedTAs.length}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FaClipboardList className="text-primary-dark h-4 w-4" />
+                  <span className="text-sm text-text-secondary">Pending:</span>
+                  <span className="font-semibold text-text-primary">{pendingCount}</span>
+                </div>
+        </div>
+      </div>
+
+            {/* Applications List */}
+          {appliedTAs.length === 0 ? (
+              <div className="text-center py-8 text-text-secondary">
+                <FaUserGraduate className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">No applications yet for this module.</p>
+              </div>
+          ) : (
+              <div className="space-y-2">
+                {appliedTAs.map((ta, idx) => {
+              const isActionDisabled = ['accepted', 'rejected'].includes(ta.status.toLowerCase());
+                  const isProcessing = processingActions.has(ta.applicationId);
+                  const isPending = ta.status.toLowerCase() === 'pending';
+              return (
+                    <div key={idx} className="flex items-center justify-between bg-bg-page rounded-lg p-3 border border-border-default">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-text-primary">{ta.name}</span>
+                          <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
+                        </div>
+                        <span className={`badge ${
+                          ta.status.toLowerCase() === 'accepted' 
+                            ? 'badge-accepted' 
+                            : ta.status.toLowerCase() === 'rejected' 
+                            ? 'badge-rejected' 
+                            : 'badge-pending'
+                        }`}>
+                          {ta.status.toLowerCase() === 'accepted' ? 'Accepted' : ta.status.toLowerCase() === 'rejected' ? 'Rejected' : 'Pending'}
+                        </span>
+                  </div>
+                      {isPending && (
+                        <div className="flex space-x-2">
+                    <button
+                            className={`btn btn-primary ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
+                            onClick={() => onAccept(ta.applicationId, ta.name)}
+                            title={isActionDisabled ? 'Already processed' : isProcessing ? 'Processing...' : 'Accept TA application'}
+                            disabled={isActionDisabled || isProcessing}
+                          >
+                            {isProcessing ? <span>⏳</span> : <span className="text-xs">Accept</span>}
+                    </button>
+                    <button
+                            className={`btn btn-outline ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
+                            onClick={() => onReject(ta.applicationId, ta.name)}
+                            title={isActionDisabled ? 'Already processed' : isProcessing ? 'Processing...' : 'Reject TA application'}
+                            disabled={isActionDisabled || isProcessing}
+                          >
+                            {isProcessing ? <span>⏳</span> : <span className="text-xs">Reject</span>}
+                    </button>
+                  </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            </div>
+          </div>
+      ) : (
+        <div className="w-full space-y-3 mt-4">
           <div className="flex justify-between items-center bg-bg-page rounded-lg p-3">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
@@ -100,11 +181,10 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
                 <FaClipboardList className="text-primary-dark h-4 w-4" />
                 <span className="text-sm text-text-secondary">Pending:</span>
                 <span className="font-semibold text-text-primary">{pendingCount}</span>
-              </div>
         </div>
       </div>
+          </div>
 
-          {/* Applications List */}
           {appliedTAs.length === 0 ? (
             <div className="text-center py-8 text-text-secondary">
               <FaUserGraduate className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -113,10 +193,10 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
           ) : (
             <div className="space-y-2">
               {appliedTAs.map((ta, idx) => {
-              const isActionDisabled = ['accepted', 'rejected'].includes(ta.status.toLowerCase());
+                const isActionDisabled = ['accepted', 'rejected'].includes(ta.status.toLowerCase());
                 const isProcessing = processingActions.has(ta.applicationId);
                 const isPending = ta.status.toLowerCase() === 'pending';
-              return (
+                return (
                   <div key={idx} className="flex items-center justify-between bg-bg-page rounded-lg p-3 border border-border-default">
                     <div className="flex items-center space-x-3">
                       <div className="flex flex-col">
@@ -132,34 +212,34 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
                       }`}>
                         {ta.status.toLowerCase() === 'accepted' ? 'Accepted' : ta.status.toLowerCase() === 'rejected' ? 'Rejected' : 'Pending'}
                       </span>
-                  </div>
+                    </div>
                     {isPending && (
                       <div className="flex space-x-2">
-                    <button
+                        <button
                           className={`btn btn-primary ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
                           onClick={() => onAccept(ta.applicationId, ta.name)}
                           title={isActionDisabled ? 'Already processed' : isProcessing ? 'Processing...' : 'Accept TA application'}
                           disabled={isActionDisabled || isProcessing}
                         >
                           {isProcessing ? <span>⏳</span> : <span className="text-xs">Accept</span>}
-                    </button>
-                    <button
+                        </button>
+                        <button
                           className={`btn btn-outline ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
                           onClick={() => onReject(ta.applicationId, ta.name)}
                           title={isActionDisabled ? 'Already processed' : isProcessing ? 'Processing...' : 'Reject TA application'}
                           disabled={isActionDisabled || isProcessing}
                         >
                           {isProcessing ? <span>⏳</span> : <span className="text-xs">Reject</span>}
-                    </button>
-                  </div>
+                        </button>
+                      </div>
                     )}
-          </div>
+                  </div>
                 )
               })}
             </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -169,6 +249,7 @@ const HandleTARequests = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingActions, setProcessingActions] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
 
   // Fetch TA applications from backend
   const fetchTAApplications = async () => {
@@ -297,13 +378,20 @@ const HandleTARequests = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold font-montserrat mb-2">Handle TA Requests</h1>
-        <p className="text-text-secondary font-raleway">Review and manage TA applications for your modules</p>
+      <div className="mb-8 w-full flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold font-montserrat mb-2">Handle TA Requests</h1>
+          <p className="text-text-secondary font-raleway">Review and manage TA applications for your modules</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode('list')}>List view</button>
+          <button className={`btn ${viewMode === 'card' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode('card')}>Card view</button>
+        </div>
       </div>
       
-      <div className="flex bg-bg-card flex-col items-center rounded-sm p-2 w-full">
-        <div className="w-full space-y-4">
+      {viewMode === 'list' ? (
+        <div className="flex bg-bg-card flex-col items-center rounded-sm p-2 w-full">
+          <div className="w-full space-y-4">
         {modules.map((m, idx) => (
           <TARequestCard
             key={`${m.moduleCode}-${idx}`}
@@ -315,11 +403,30 @@ const HandleTARequests = () => {
             appliedTAs={m.appliedTAs}
             onAccept={handleAccept}
             onReject={handleReject}
-              processingActions={processingActions}
+                processingActions={processingActions}
           />
         ))}
-        </div>
       </div>
+        </div>
+      ) : (
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {modules.map((m, idx) => (
+            <TARequestCard
+              key={`${m.moduleCode}-${idx}`}
+              moduleCode={m.moduleCode}
+              moduleName={m.moduleName}
+              semester={m.semester}
+              year={m.year}
+              totalRequiredTAs={m.totalRequiredTAs}
+              appliedTAs={m.appliedTAs}
+              onAccept={handleAccept}
+              onReject={handleReject}
+              processingActions={processingActions}
+              collapsible={false}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
