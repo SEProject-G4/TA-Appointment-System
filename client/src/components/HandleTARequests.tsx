@@ -76,7 +76,7 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
               {semester} {year}
             </span>
           </div>
-          <p className="text-text-secondary text-sm">{moduleName}</p>
+          <p className="text-text-primary text-sm">{moduleName}</p>
         </div>
         <div className="flex items-center space-x-4">
           <div className="text-right">

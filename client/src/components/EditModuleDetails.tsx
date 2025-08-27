@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../api/axiosConfig";
+import { FaRegEdit, FaUserGraduate } from "react-icons/fa";
 
 interface ModuleEditData {
   moduleCode: string;
@@ -195,8 +196,12 @@ const EditModuleDetails: React.FC = () => {
                   </div>
                   <p className="text-text-primary text-sm mt-1">{m.moduleName}</p>
                 </div>
-                {(submitted[m._id] || m.moduleStatus === "submitted") && (
+                {(submitted[m._id] || m.moduleStatus === "submitted") ? (
                   <span className="badge badge-accepted">Submitted</span>
+                ) : (
+                  <div className="p-2 rounded-full bg-primary/10 text-primary-dark" title="Edit module requirements">
+                    <FaRegEdit className="w-4 h-4" />
+                  </div>
                 )}
               </div>
 
