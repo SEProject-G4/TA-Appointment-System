@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import axiosInstance from '../api/axiosConfig'
-import { FaChevronRight, FaCheck, FaTimes, FaUserGraduate, FaClipboardList } from 'react-icons/fa'
+import { FaChevronRight, FaUserGraduate, FaClipboardList } from 'react-icons/fa'
 
 interface TAApplication {
   applicationId: string;
@@ -57,18 +57,18 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
   return (
     <div className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-4 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
       <div className="flex flex-row w-full items-center">
-                 <FaChevronRight
-           className={`p-1 h-6 w-6 rounded-full hover:bg-primary/10 text-text-secondary cursor-pointer transition-transform ease-in-out duration-100 ${
-             isExpanded ? "rotate-90" : ""
-           }`}
-           onClick={() => setIsExpanded(!isExpanded)}
-         />
+        <FaChevronRight
+          className={`p-1 h-6 w-6 rounded-full hover:bg-primary/10 text-text-secondary cursor-pointer transition-transform ease-in-out duration-100 ${
+            isExpanded ? "rotate-90" : ""
+          }`}
+          onClick={() => setIsExpanded(!isExpanded)}
+        />
         <div className="flex flex-1 flex-col ml-3">
           <div className="flex items-center space-x-3">
             <h3 className="text-lg font-semibold text-text-primary">{moduleCode}</h3>
-                         <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
-               {semester} {year}
-             </span>
+            <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
+              {semester} {year}
+            </span>
           </div>
           <p className="text-text-secondary text-sm">{moduleName}</p>
         </div>
@@ -77,20 +77,16 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
             <div className="text-sm text-text-secondary">Progress</div>
             <div className="text-lg font-semibold text-text-primary">{acceptedCount}/{totalRequiredTAs}</div>
           </div>
-                     <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-             <div
-               className="bg-gradient-to-r from-primary to-primary-dark h-full rounded-full transition-all duration-300"
-               style={{ width: `${progress}%` }}
-             />
-           </div>
+          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-primary to-primary-dark h-full rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
       </div>
 
-      <div
-        className={`${
-          isExpanded ? "flex opacity-100" : "hidden max-h-0 opacity-0"
-        } transition-all ease-in-out duration-300 flex-col items-center w-full mt-4`}
-      >
+      <div className={`panel ${isExpanded ? 'panel-open' : 'panel-closed'}`}>
         <div className="w-full space-y-3">
           {/* Summary Stats */}
           <div className="flex justify-between items-center bg-bg-page rounded-lg p-3">
@@ -100,13 +96,13 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
                 <span className="text-sm text-text-secondary">Total Applications:</span>
                 <span className="font-semibold text-text-primary">{appliedTAs.length}</span>
               </div>
-                             <div className="flex items-center space-x-2">
-                 <FaClipboardList className="text-primary-dark h-4 w-4" />
-                 <span className="text-sm text-text-secondary">Pending:</span>
-                 <span className="font-semibold text-text-secondary">{pendingCount}</span>
-               </div>
-            </div>
-          </div>
+              <div className="flex items-center space-x-2">
+                <FaClipboardList className="text-primary-dark h-4 w-4" />
+                <span className="text-sm text-text-secondary">Pending:</span>
+                <span className="font-semibold text-text-primary">{pendingCount}</span>
+              </div>
+        </div>
+      </div>
 
           {/* Applications List */}
           {appliedTAs.length === 0 ? (
@@ -117,66 +113,47 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
           ) : (
             <div className="space-y-2">
               {appliedTAs.map((ta, idx) => {
-                const isActionDisabled = ['accepted', 'rejected'].includes(ta.status.toLowerCase());
+              const isActionDisabled = ['accepted', 'rejected'].includes(ta.status.toLowerCase());
                 const isProcessing = processingActions.has(ta.applicationId);
-                return (
+                const isPending = ta.status.toLowerCase() === 'pending';
+              return (
                   <div key={idx} className="flex items-center justify-between bg-bg-page rounded-lg p-3 border border-border-default">
                     <div className="flex items-center space-x-3">
                       <div className="flex flex-col">
                         <span className="font-medium text-text-primary">{ta.name}</span>
                         <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                       </div>
-                                             <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                          ta.status.toLowerCase() === 'accepted' 
-                            ? 'bg-primary/10 text-primary-dark' 
-                            : ta.status.toLowerCase() === 'rejected' 
-                            ? 'bg-red-100 text-red-600' 
-                            : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {ta.status}
-                        </span>
-                    </div>
-                    {ta.status.toLowerCase() === 'pending' && (
+                      <span className={`badge ${
+                        ta.status.toLowerCase() === 'accepted' 
+                          ? 'badge-accepted' 
+                          : ta.status.toLowerCase() === 'rejected' 
+                          ? 'badge-rejected' 
+                          : 'badge-pending'
+                      }`}>
+                        {ta.status.toLowerCase() === 'accepted' ? 'Accepted' : ta.status.toLowerCase() === 'rejected' ? 'Rejected' : 'Pending'}
+                      </span>
+                  </div>
+                    {isPending && (
                       <div className="flex space-x-2">
-                                               <button
-                          className={`flex items-center space-x-1 px-3 py-1.5 rounded-md transition-colors focus:outline-none ${
-                            isActionDisabled || isProcessing 
-                              ? 'opacity-50 cursor-not-allowed bg-gray-300 text-gray-500' 
-                              : 'bg-gray-800 hover:bg-gray-900 text-white'
-                          }`}
+                    <button
+                          className={`btn btn-primary ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
                           onClick={() => onAccept(ta.applicationId, ta.name)}
                           title={isActionDisabled ? 'Already processed' : isProcessing ? 'Processing...' : 'Accept TA application'}
                           disabled={isActionDisabled || isProcessing}
                         >
-                          {isProcessing ? (
-                            <span>⏳</span>
-                          ) : (
-                            <>
-                              <span className="text-xs">Accept</span>
-                            </>
-                          )}
-                        </button>
-                                               <button
-                          className={`flex items-center space-x-1 px-3 py-1.5 rounded-md transition-colors focus:outline-none border ${
-                            isActionDisabled || isProcessing 
-                              ? 'opacity-50 cursor-not-allowed bg-gray-300 text-gray-500 border-gray-300' 
-                              : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-300 hover:border-gray-400'
-                          }`}
+                          {isProcessing ? <span>⏳</span> : <span className="text-xs">Accept</span>}
+                    </button>
+                    <button
+                          className={`btn btn-outline ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
                           onClick={() => onReject(ta.applicationId, ta.name)}
                           title={isActionDisabled ? 'Already processed' : isProcessing ? 'Processing...' : 'Reject TA application'}
                           disabled={isActionDisabled || isProcessing}
                         >
-                          {isProcessing ? (
-                            <span>⏳</span>
-                          ) : (
-                            <>
-                              <span className="text-xs">Reject</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
+                          {isProcessing ? <span>⏳</span> : <span className="text-xs">Reject</span>}
+                    </button>
                   </div>
+                    )}
+          </div>
                 )
               })}
             </div>
@@ -236,70 +213,45 @@ const HandleTARequests = () => {
 
   // Handle accept TA application
   const handleAccept = async (applicationId: string, studentName: string) => {
-    // Show confirmation prompt
     const isConfirmed = window.confirm(
       `Are you sure you want to accept ${studentName} as a TA?\n\nThis action cannot be undone.`
     );
-    
-    if (!isConfirmed) {
-      return; // User cancelled the action
-    }
+    if (!isConfirmed) return;
 
     try {
       setProcessingActions(prev => new Set(prev).add(applicationId));
-      const response = await axiosInstance.patch(`/lecturer/applications/${applicationId}/accept`);
-      console.log('Application accepted:', response.data);
+      await axiosInstance.patch(`/lecturer/applications/${applicationId}/accept`);
       alert(`Successfully accepted ${studentName} as a TA!`);
-      // Refresh the data
       fetchTAApplications();
     } catch (err: any) {
-      console.error('Error accepting application:', err);
       const errorMessage = err.response?.data?.error || 'Unknown error occurred';
       alert(`Failed to accept ${studentName}: ${errorMessage}`);
     } finally {
-      setProcessingActions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(applicationId);
-        return newSet;
-      });
+      setProcessingActions(prev => { const s = new Set(prev); s.delete(applicationId); return s; });
     }
   };
 
   // Handle reject TA application
   const handleReject = async (applicationId: string, studentName: string) => {
-    // Show confirmation prompt
     const isConfirmed = window.confirm(
       `Are you sure you want to reject ${studentName}'s TA application?\n\nThis action cannot be undone.`
     );
-    
-    if (!isConfirmed) {
-      return; // User cancelled the action
-    }
+    if (!isConfirmed) return;
 
     try {
       setProcessingActions(prev => new Set(prev).add(applicationId));
-      const response = await axiosInstance.patch(`/lecturer/applications/${applicationId}/reject`);
-      console.log('Application rejected:', response.data);
+      await axiosInstance.patch(`/lecturer/applications/${applicationId}/reject`);
       alert(`Successfully rejected ${studentName}'s TA application.`);
-      // Refresh the data
       fetchTAApplications();
     } catch (err: any) {
-      console.error('Error rejecting application:', err);
       const errorMessage = err.response?.data?.error || 'Unknown error occurred';
       alert(`Failed to reject ${studentName}: ${errorMessage}`);
     } finally {
-      setProcessingActions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(applicationId);
-        return newSet;
-      });
+      setProcessingActions(prev => { const s = new Set(prev); s.delete(applicationId); return s; });
     }
   };
 
-  // Fetch data on component mount
-  useEffect(() => {
-    fetchTAApplications();
-  }, []);
+  useEffect(() => { fetchTAApplications(); }, []);
 
   if (loading) {
     return (
@@ -320,12 +272,12 @@ const HandleTARequests = () => {
         <div className="bg-error/10 border border-error/20 rounded-lg p-6 w-full">
           <h3 className="text-error font-semibold mb-2">Error Loading Applications</h3>
           <p className="text-text-secondary mb-4">{error}</p>
-                     <button 
-             onClick={fetchTAApplications}
-             className="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900 transition-colors"
-           >
-             Try Again
-           </button>
+          <button 
+            onClick={fetchTAApplications}
+            className="btn btn-primary"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
@@ -352,20 +304,20 @@ const HandleTARequests = () => {
       
       <div className="flex bg-bg-card flex-col items-center rounded-sm p-2 w-full">
         <div className="w-full space-y-4">
-          {modules.map((m, idx) => (
-            <TARequestCard
-              key={`${m.moduleCode}-${idx}`}
-              moduleCode={m.moduleCode}
-              moduleName={m.moduleName}
-              semester={m.semester}
-              year={m.year}
-              totalRequiredTAs={m.totalRequiredTAs}
-              appliedTAs={m.appliedTAs}
-              onAccept={handleAccept}
-              onReject={handleReject}
+        {modules.map((m, idx) => (
+          <TARequestCard
+            key={`${m.moduleCode}-${idx}`}
+            moduleCode={m.moduleCode}
+            moduleName={m.moduleName}
+            semester={m.semester}
+            year={m.year}
+            totalRequiredTAs={m.totalRequiredTAs}
+            appliedTAs={m.appliedTAs}
+            onAccept={handleAccept}
+            onReject={handleReject}
               processingActions={processingActions}
-            />
-          ))}
+          />
+        ))}
         </div>
       </div>
     </div>
