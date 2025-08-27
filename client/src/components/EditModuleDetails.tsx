@@ -192,12 +192,12 @@ const EditModuleDetails: React.FC = () => {
                     <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
                       {m.semester} {m.year}
                     </span>
-                    {(submitted[m._id] || m.moduleStatus === "submitted") && (
-                      <span className="badge badge-accepted">Submitted</span>
-                    )}
                   </div>
                   <p className="text-text-primary text-sm mt-1">{m.moduleName}</p>
                 </div>
+                {(submitted[m._id] || m.moduleStatus === "submitted") && (
+                  <span className="badge badge-accepted">Submitted</span>
+                )}
               </div>
 
               <form onSubmit={handleSubmit(m._id)} className="p-4 space-y-4 w-full">
