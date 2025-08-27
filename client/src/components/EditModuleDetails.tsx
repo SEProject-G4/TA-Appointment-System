@@ -46,12 +46,8 @@ const EditModuleDetails: React.FC = () => {
   const areAllFieldsEdited = (moduleId: string): boolean => {
     const moduleData = moduleEdits[moduleId];
     if (!moduleData) return false;
-
-    return (
-      moduleData.requiredTAHoursPerWeek > 0 &&
-      moduleData.numberOfRequiredTAs > 0 &&
-      moduleData.requirements.trim().length > 0
-    );
+    // Only require the 'requirements' field to be filled; other fields are optional
+    return moduleData.requirements.trim().length > 0;
   };
 
   useEffect(() => {
@@ -332,11 +328,7 @@ const EditModuleDetails: React.FC = () => {
                       disabled={updating[m._id] || !areAllFieldsEdited(m._id)}
                       className={`btn btn-primary ${updating[m._id] || !areAllFieldsEdited(m._id) ? 'btn-disabled' : ''}`}
                     >
-                      {updating[m._id]
-                        ? "Saving..."
-                        : !areAllFieldsEdited(m._id)
-                        ? "Add Module Requirements"
-                        : "Save Changes"}
+                      {updating[m._id] ? "Saving..." : "Save Changes"}
                     </button>
                   )}
                 </div>
