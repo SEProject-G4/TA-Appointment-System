@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../api/axiosConfig";
-import { FaRegEdit, FaUserGraduate } from "react-icons/fa";
+import { FaRegEdit } from "react-icons/fa";
 
 interface ModuleEditData {
   moduleCode: string;
@@ -40,13 +40,13 @@ const EditModuleDetails: React.FC = () => {
   const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingModuleId, setPendingModuleId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Record<string, boolean>>({});
 
   // Function to check if all three fields have been edited for a specific module
   const areAllFieldsEdited = (moduleId: string): boolean => {
     const moduleData = moduleEdits[moduleId];
     if (!moduleData) return false;
 
-    // Check if all three required fields have been filled
     return (
       moduleData.requiredTAHoursPerWeek > 0 &&
       moduleData.numberOfRequiredTAs > 0 &&
@@ -65,6 +65,7 @@ const EditModuleDetails: React.FC = () => {
         const list = res.data || [];
         setModules(list);
         const mapped: Record<string, ModuleEditData> = {};
+        const initialEditing: Record<string, boolean> = {};
         for (const m of list) {
           mapped[m._id] = {
             moduleCode: m.moduleCode,
@@ -77,13 +78,15 @@ const EditModuleDetails: React.FC = () => {
             numberOfRequiredTAs: m.requiredTACount ?? 0,
             requirements: m.requirements ?? "",
           };
+          // Initially show read-only view for all modules
+          initialEditing[m._id] = false;
 
-          // Initialize submitted state based on database status
           if (m.moduleStatus === "submitted") {
             setSubmitted((prev) => ({ ...prev, [m._id]: true }));
           }
         }
         setModuleEdits(mapped);
+        setEditing(initialEditing);
       } catch (e) {
         setError("Failed to load your modules");
       } finally {
@@ -109,8 +112,6 @@ const EditModuleDetails: React.FC = () => {
 
   const handleSubmit = (moduleId: string) => async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Show custom confirmation modal
     setPendingModuleId(moduleId);
     setShowConfirmModal(true);
   };
@@ -135,16 +136,14 @@ const EditModuleDetails: React.FC = () => {
         payload
       );
 
-      // Mark as submitted and show success feedback
       setSubmitted((prev) => ({ ...prev, [pendingModuleId]: true }));
-      console.log("Module updated successfully:", pendingModuleId);
+      // Exit editing mode after successful submit
+      setEditing((prev) => ({ ...prev, [pendingModuleId]: false }));
 
-      // Close modal and reset
       setShowConfirmModal(false);
       setPendingModuleId(null);
     } catch (error) {
       console.error("Failed to update module:", error);
-      // Handle error (show error message to user)
     } finally {
       setUpdating((prev) => ({ ...prev, [pendingModuleId]: false }));
       setShowConfirmModal(false);
@@ -181,6 +180,8 @@ const EditModuleDetails: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full">
         {modules.map((m) => {
           const d = moduleEdits[m._id];
+          const isSubmitted = submitted[m._id] || m.moduleStatus === "submitted";
+          const isEditing = editing[m._id];
           return (
             <div
               key={m._id}
@@ -196,12 +197,18 @@ const EditModuleDetails: React.FC = () => {
                   </div>
                   <p className="text-text-primary text-sm mt-1">{m.moduleName}</p>
                 </div>
-                {(submitted[m._id] || m.moduleStatus === "submitted") ? (
+                {isSubmitted ? (
                   <span className="badge badge-accepted">Submitted</span>
                 ) : (
-                  <div className="p-2 rounded-full bg-primary/10 text-primary-dark" title="Edit module requirements">
+                  <button
+                    type="button"
+                    onClick={() => setEditing((prev) => ({ ...prev, [m._id]: true }))}
+                    className="p-2 rounded-full bg-red-500/10 text-red-700 hover:bg-red-500/20"
+                    title="Edit module requirements"
+                    aria-label="Edit module"
+                  >
                     <FaRegEdit className="w-4 h-4" />
-                  </div>
+                  </button>
                 )}
               </div>
 
@@ -225,7 +232,7 @@ const EditModuleDetails: React.FC = () => {
                   </div>
                 </div>
 
-                {submitted[m._id] || m.moduleStatus === "submitted" ? (
+                {!isEditing ? (
                   <div className="space-y-4">
                     <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
                       <h3 className="text-sm font-semibold text-text-primary mb-2">Submitted TA Requirements</h3>
@@ -309,18 +316,27 @@ const EditModuleDetails: React.FC = () => {
                   </>
                 )}
 
-                <div className="flex justify-end">
-                  {!(submitted[m._id] || m.moduleStatus === "submitted") && (
+                <div className="flex justify-end space-x-2">
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => setEditing((prev) => ({ ...prev, [m._id]: false }))}
+                      className="btn btn-outline"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  {!isSubmitted && isEditing && (
                     <button
                       type="submit"
                       disabled={updating[m._id] || !areAllFieldsEdited(m._id)}
                       className={`btn btn-primary ${updating[m._id] || !areAllFieldsEdited(m._id) ? 'btn-disabled' : ''}`}
                     >
-                        {updating[m._id]
-                          ? "Saving..."
-                          : !areAllFieldsEdited(m._id)
-                          ? "Add Module Requirements"
-                          : "Save Changes"}
+                      {updating[m._id]
+                        ? "Saving..."
+                        : !areAllFieldsEdited(m._id)
+                        ? "Add Module Requirements"
+                        : "Save Changes"}
                     </button>
                   )}
                 </div>
