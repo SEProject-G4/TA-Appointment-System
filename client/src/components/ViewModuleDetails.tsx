@@ -101,28 +101,18 @@ const ViewModuleDetails: React.FC = () => {
       <div className="mb-8 w-full flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-montserrat mb-2">View Module Details</h1>
-          <p className="text-text-secondary font-raleway">Overview of all assigned modules and teaching assistant status</p>
+          <p className="text-text-secondary font-raleway">Overview of assigned modules and teaching assistant status</p>
         </div>
-        
-        {/* View Mode Toggle */}
         <div className="flex items-center space-x-2">
-          <button
+          <button 
+            className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`} 
             onClick={() => setViewMode('list')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              viewMode === 'list'
-                ? 'bg-primary text-white'
-                : 'bg-white text-text-primary border border-border-default hover:bg-gray-50'
-            }`}
           >
             List view
           </button>
-          <button
+          <button 
+            className={`btn ${viewMode === 'card' ? 'btn-primary' : 'btn-outline'}`} 
             onClick={() => setViewMode('card')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              viewMode === 'card'
-                ? 'bg-primary text-white'
-                : 'bg-white text-text-primary border border-border-default hover:bg-gray-50'
-            }`}
           >
             Card view
           </button>
@@ -130,145 +120,132 @@ const ViewModuleDetails: React.FC = () => {
       </div>
 
       {viewMode === 'list' ? (
-        // List View
-        <div className="w-full space-y-4">
-          {modules.map((module, moduleIndex) => {
-            const isOpen = expandedModules.has(moduleIndex);
-            return (
-              <div key={moduleIndex} className="bg-white rounded-xl border border-border-default shadow-sm overflow-hidden">
-                {/* Module Header */}
-                <div 
-                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => toggleModuleExpansion(moduleIndex)}
+        <div className="flex bg-bg-card flex-col items-center rounded-sm p-2 w-full">
+          <div className="w-full space-y-4">
+            {modules.map((module, moduleIndex) => {
+              const isOpen = expandedModules.has(moduleIndex);
+              return (
+                <div key={moduleIndex} 
+                  className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-0 bg-bg-card shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-center space-x-4">
-                    <FaChevronRight 
-                      className={`h-5 w-5 text-text-secondary transition-transform ${isOpen ? 'rotate-90' : ''}`}
-                    />
-                    <div>
-                      <div className="flex items-center space-x-3">
-                        <h2 className="text-lg font-bold text-text-primary">{module.moduleCode}</h2>
-                        <span className="bg-primary/10 text-primary-dark text-xs px-3 py-1 rounded-full font-medium">
-                          {module.semester} {module.year}
-                        </span>
+                  {/* Module Header */}
+                  <div className="flex w-full items-center justify-between px-4 py-3">
+                    <div className="flex items-center">
+                      <FaChevronRight
+                        className={`p-1 h-6 w-6 rounded-full hover:bg-primary/10 text-text-secondary cursor-pointer transition-transform ease-in-out duration-100 ${isOpen ? 'rotate-90' : ''}`}
+                        onClick={() => toggleModuleExpansion(moduleIndex)}
+                      />
+                      <div className="flex flex-col ml-3">
+                        <div className="flex items-center space-x-3">
+                          <h2 className="text-text-primary font-semibold text-base">{module.moduleCode}</h2>
+                          <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
+                            {module.semester} {module.year}
+                          </span>
+                        </div>
+                        <p className="text-text-primary text-sm mt-1">{module.moduleName}</p>
                       </div>
-                      <p className="text-text-secondary text-sm mt-1">{module.moduleName}</p>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <div className="text-xs text-text-secondary">TA Hours</div>
+                        <div className="text-sm font-semibold text-text-primary">{module.requiredTAHours}h</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-text-secondary">Approved TAs</div>
+                        <div className="text-sm font-semibold text-text-primary">{module.approvedTAs.length}</div>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-6">
-                    <div className="text-right">
-                      <div className="text-xs text-text-secondary">TA Hours</div>
-                      <div className="text-lg font-semibold text-text-primary">{module.requiredTAHours}h</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-text-secondary">Approved TAs</div>
-                      <div className="text-lg font-semibold text-text-primary">{module.approvedTAs.length}</div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Expanded Content */}
-                <div className={`panel ${isOpen ? 'panel-open' : 'panel-closed'} border-t border-border-default`}>
-                  <div className="p-4 space-y-4">
-                    {/* TA List */}
-                    <div>
-                      <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center">
-                        <FaUserGraduate className="w-4 h-4 text-primary-dark mr-2" />
-                        Teaching Assistants
-                      </h3>
-                      <div className="space-y-3">
-                        {module.approvedTAs.map((ta, taIndex) => (
-                          <div key={taIndex} className="bg-bg-page rounded-lg border border-border-default p-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3">
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-text-primary">{ta.name}</span>
-                                  <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
-                                </div>
-                                {hasMissingDocs(ta.documents) && (
-                                  <span className="badge badge-pending ml-2">Not submitted</span>
-                                )}
+                  {/* Divider */}
+                  <div className="w-full h-px bg-border-default"></div>
+
+                  {/* Expanded Content */}
+                  <div className={`panel w-full ${isOpen ? 'panel-open' : 'panel-closed'} p-4 space-y-4`}>
+                    <div className="space-y-3">
+                      {module.approvedTAs.map((ta, taIndex) => (
+                        <div key={taIndex} className="bg-bg-page rounded-lg border border-border-default p-3">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <div className="flex flex-col">
+                                <span className="font-medium text-text-primary">{ta.name}</span>
+                                <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                               </div>
                             </div>
-                            {/* Document Details */}
-                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                              {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
-                              {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
-                              {renderDocRow('CV', ta.documents?.cv)}
-                              {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
-                            </div>
+                            {hasMissingDocs(ta.documents) && (
+                              <span className="badge badge-pending">Not submitted</span>
+                            )}
                           </div>
-                        ))}
-                      </div>
+                          {/* Document Grid */}
+                          <div className="grid grid-cols-2 gap-2">
+                            {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
+                            {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
+                            {renderDocRow('CV', ta.documents?.cv)}
+                            {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       ) : (
         // Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
           {modules.map((module, moduleIndex) => (
-            <div key={moduleIndex} className="bg-white rounded-xl border border-border-default shadow-sm overflow-hidden">
-              {/* Module Header */}
-              <div className="p-4 border-b border-border-default">
-                <div className="flex items-center justify-between mb-2">
+            <div key={moduleIndex} 
+              className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-0 bg-bg-card shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="flex w-full items-center justify-between p-4 border-b border-border-default">
+                <div className="flex flex-col">
                   <div className="flex items-center space-x-3">
-                    <h2 className="text-lg font-bold text-text-primary">{module.moduleCode}</h2>
-                    <span className="bg-primary/10 text-primary-dark text-xs px-3 py-1 rounded-full font-medium">
+                    <h2 className="text-text-primary font-semibold text-base">{module.moduleCode}</h2>
+                    <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
                       {module.semester} {module.year}
                     </span>
                   </div>
+                  <p className="text-text-primary text-sm mt-1">{module.moduleName}</p>
                 </div>
-                <p className="text-text-secondary text-sm mb-3">{module.moduleName}</p>
-                <div className="w-full h-px bg-border-default"></div>
               </div>
 
-              <div className="p-4 space-y-4">
-                {/* TA Stats */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="p-4 space-y-4 w-full">
+                {/* Module Stats */}
+                <div className="grid grid-cols-2 gap-4">
                   <div className="bg-bg-page rounded-lg p-3 border border-border-default">
                     <div className="text-xs text-text-secondary">TA Hours</div>
-                    <div className="text-lg font-semibold text-text-primary">{module.requiredTAHours}h</div>
+                    <div className="text-sm font-semibold text-text-primary">{module.requiredTAHours}h</div>
                   </div>
                   <div className="bg-bg-page rounded-lg p-3 border border-border-default">
                     <div className="text-xs text-text-secondary">Approved TAs</div>
-                    <div className="text-lg font-semibold text-text-primary">{module.approvedTAs.length}</div>
+                    <div className="text-sm font-semibold text-text-primary">{module.approvedTAs.length}</div>
                   </div>
                 </div>
 
                 {/* TA List */}
-                <div>
-                  <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center">
-                    <FaUserGraduate className="w-4 h-4 text-primary-dark mr-2" />
-                    Teaching Assistants
-                  </h3>
-                  <div className="space-y-2">
-                    {module.approvedTAs.map((ta, taIndex) => (
-                      <div key={taIndex} className="bg-bg-page rounded-lg border border-border-default p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="flex flex-col">
-                              <span className="font-medium text-text-primary">{ta.name}</span>
-                              <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
-                            </div>
-                          </div>
-                          {hasMissingDocs(ta.documents) && (
-                            <span className="badge badge-pending ml-2">Not submitted</span>
-                          )}
+                <div className="space-y-3">
+                  {module.approvedTAs.map((ta, taIndex) => (
+                    <div key={taIndex} className="bg-bg-page rounded-lg border border-border-default p-3">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-text-primary">{ta.name}</span>
+                          <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                         </div>
-                        {/* Document Summary (compact) */}
-                        <div className="mt-2 grid grid-cols-2 gap-2">
-                          {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
-                          {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
-                          {renderDocRow('CV', ta.documents?.cv)}
-                          {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
-                        </div>
+                        {hasMissingDocs(ta.documents) && (
+                          <span className="badge badge-pending">Not submitted</span>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                      {/* Document Grid */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
+                        {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
+                        {renderDocRow('CV', ta.documents?.cv)}
+                        {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
