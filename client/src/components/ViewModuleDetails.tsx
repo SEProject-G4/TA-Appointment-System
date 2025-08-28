@@ -68,6 +68,17 @@ const ViewModuleDetails: React.FC = () => {
     );
   }
 
+  const renderDocRow = (label: string, doc?: any) => (
+    <div className="flex items-center justify-between p-2 bg-white rounded border border-border-default">
+      <span className="text-sm font-medium text-text-primary">{label}</span>
+      {doc && doc.submitted ? (
+        <button onClick={() => doc?.fileUrl && window.open(doc.fileUrl, "_blank")} className="btn btn-primary btn-xs">View</button>
+      ) : (
+        <span className="badge badge-pending">Not submitted</span>
+      )}
+    </div>
+  );
+
   return (
     <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">
       <div className="mb-8 w-full flex items-center justify-between">
@@ -142,23 +153,6 @@ const ViewModuleDetails: React.FC = () => {
                 {/* Expanded Content */}
                 <div className={`panel ${isOpen ? 'panel-open' : 'panel-closed'} border-t border-border-default`}>
                   <div className="p-4 space-y-4">
-                    {/* Progress Bar */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        <FaClipboardList className="w-4 h-4 text-primary-dark" />
-                        <span className="text-sm font-semibold text-text-primary">Assignment Progress</span>
-                      </div>
-                      <span className="text-sm font-bold text-text-primary bg-bg-page px-3 py-1 rounded-full">
-                        {module.approvedTAs.length}/{module.requiredTACount}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                      <div
-                        className="bg-gradient-to-r from-primary to-primary-dark h-full rounded-full transition-all duration-500"
-                        style={{ width: `${(module.approvedTAs.length / Math.max(module.requiredTACount, 1)) * 100}%` }}
-                      />
-                    </div>
-
                     {/* TA List */}
                     <div>
                       <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center">
@@ -176,6 +170,13 @@ const ViewModuleDetails: React.FC = () => {
                                 </div>
                               </div>
                               <span className="badge badge-accepted">Accepted</span>
+                            </div>
+                            {/* Document Details */}
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                              {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
+                              {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
+                              {renderDocRow('CV', ta.documents?.cv)}
+                              {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
                             </div>
                           </div>
                         ))}
@@ -207,23 +208,6 @@ const ViewModuleDetails: React.FC = () => {
               </div>
 
               <div className="p-4 space-y-4">
-                {/* Progress Bar */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    <FaClipboardList className="w-4 h-4 text-primary-dark" />
-                    <span className="text-sm font-semibold text-text-primary">Assignment Progress</span>
-                  </div>
-                  <span className="text-sm font-bold text-text-primary bg-bg-page px-3 py-1 rounded-full">
-                    {module.approvedTAs.length}/{module.requiredTACount}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                  <div
-                    className="bg-gradient-to-r from-primary to-primary-dark h-full rounded-full transition-all duration-500"
-                    style={{ width: `${(module.approvedTAs.length / Math.max(module.requiredTACount, 1)) * 100}%` }}
-                  />
-                </div>
-
                 {/* TA Stats */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="bg-bg-page rounded-lg p-3 border border-border-default">
@@ -253,6 +237,13 @@ const ViewModuleDetails: React.FC = () => {
                             </div>
                           </div>
                           <span className="badge badge-accepted">Accepted</span>
+                        </div>
+                        {/* Document Summary (compact) */}
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
+                          {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
+                          {renderDocRow('CV', ta.documents?.cv)}
+                          {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
                         </div>
                       </div>
                     ))}
