@@ -227,4 +227,9 @@ const rejectApplication = async (req, res) => {
   }
 };
 
-module.exports = { getMyModules, editModuleRequirments, handleRequests, acceptApplication, rejectApplication };
+const viewModuleDetails = async (req, res) => {
+
+}
+
+
+module.exports = { getMyModules, editModuleRequirments, handleRequests, acceptApplication, rejectApplication, viewModuleDetails };

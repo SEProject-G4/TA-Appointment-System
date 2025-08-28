@@ -18,4 +18,6 @@ router.patch('/applications/:applicationId/accept', protected, authorize(["lectu
 // Reject a TA application
 router.patch('/applications/:applicationId/reject', protected, authorize(["lecturer"]), lecturerController.rejectApplication);
 
+router.get('/modules', protected, authorize(['lecturer']), lecturerController.viewModuleDetails);
+
 module.exports = router;
