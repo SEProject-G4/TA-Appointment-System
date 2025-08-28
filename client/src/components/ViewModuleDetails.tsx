@@ -68,16 +68,33 @@ const ViewModuleDetails: React.FC = () => {
     );
   }
 
-  const renderDocRow = (label: string, doc?: any) => (
-    <div className="flex items-center justify-between p-2 bg-white rounded border border-border-default">
-      <span className="text-sm font-medium text-text-primary">{label}</span>
-      {doc && doc.submitted ? (
-        <button onClick={() => doc?.fileUrl && window.open(doc.fileUrl, "_blank")} className="btn btn-primary btn-xs">View</button>
-      ) : (
-        <span className="badge badge-pending">Not submitted</span>
-      )}
-    </div>
-  );
+  // Helper to check if TA has any missing documents
+  const hasMissingDocs = (documents?: any) => {
+    if (!documents) return true;
+    const requiredDocs = [
+      documents.bankPassbookCopy,
+      documents.nicCopy,
+      documents.cv,
+      documents.degreeCertificate,
+    ];
+    return requiredDocs.some(doc => !doc?.submitted);
+  };
+
+  const renderDocRow = (label: string, doc?: any) => {
+    if (!doc?.submitted) return null;
+    
+    return (
+      <div className="flex items-center justify-between p-2 bg-white rounded border border-border-default">
+        <span className="text-sm font-medium text-text-primary">{label}</span>
+        <button 
+          onClick={() => doc?.fileUrl && window.open(doc.fileUrl, "_blank")} 
+          className="btn btn-primary btn-xs"
+        >
+          View
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">
@@ -168,8 +185,10 @@ const ViewModuleDetails: React.FC = () => {
                                   <span className="font-medium text-text-primary">{ta.name}</span>
                                   <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                                 </div>
+                                {hasMissingDocs(ta.documents) && (
+                                  <span className="badge badge-pending ml-2">Not submitted</span>
+                                )}
                               </div>
-                              <span className="badge badge-accepted">Accepted</span>
                             </div>
                             {/* Document Details */}
                             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
@@ -236,7 +255,9 @@ const ViewModuleDetails: React.FC = () => {
                               <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                             </div>
                           </div>
-                          <span className="badge badge-accepted">Accepted</span>
+                          {hasMissingDocs(ta.documents) && (
+                            <span className="badge badge-pending ml-2">Not submitted</span>
+                          )}
                         </div>
                         {/* Document Summary (compact) */}
                         <div className="mt-2 grid grid-cols-2 gap-2">
