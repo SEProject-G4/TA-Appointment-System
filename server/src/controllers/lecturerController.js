@@ -1,6 +1,7 @@
 const ModuleDetails = require('../models/ModuleDetails');
 const TaApplication = require('../models/TaApplication');
 const User = require('../models/User');
+const TaDocumentSubmission = require('../models/TaDocumentSubmission');
 
 // GET /api/lecturer/modules
 // Returns modules where the logged-in lecturer (by googleId) is listed in coordinators
@@ -77,6 +78,7 @@ const handleRequests = async (req, res) => {
     const coordinatorModules = await ModuleDetails.find({
       coordinators: coordinatorGoogleId
     }).select('_id moduleCode moduleName semester year requiredTACount');
+    console.log('edit modules -> matched', coordinatorModules.length, 'modules for', coordinatorGoogleId);
 
     if (coordinatorModules.length === 0) {
       return res.status(200).json({ 
@@ -87,11 +89,13 @@ const handleRequests = async (req, res) => {
 
     // Get module IDs
     const moduleIds = coordinatorModules.map(module => module._id.toString());
+    console.log("handle req module id", moduleIds);
 
     // Find all TA applications for these modules
     const taApplications = await TaApplication.find({
       moduleID: { $in: moduleIds }
     });
+    console.log("TA Applications", taApplications);
 
     if (taApplications.length === 0) {
       return res.status(200).json({ 
@@ -117,32 +121,54 @@ const handleRequests = async (req, res) => {
       };
     });
 
-    // Combine the data
-    const applicationsWithUserDetails = taApplications.map(app => {
-      const userDetails = userMap[app.userId] || { name: 'Unknown', indexNumber: 'N/A' };
+    // Group applications by moduleID so same module (same id) stays in one card
+    const moduleMap = new Map();
+    for (const app of taApplications) {
       const module = coordinatorModules.find(m => m._id.toString() === app.moduleID);
-      
-      return {
+      if (!module) continue;
+
+      if (!moduleMap.has(app.moduleID)) {
+        moduleMap.set(app.moduleID, {
+          moduleId: app.moduleID,
+          moduleCode: module.moduleCode,
+          moduleName: module.moduleName,
+          semester: module.semester,
+          year: module.year,
+          requiredTACount: module.requiredTACount,
+          requiredTAHours: module.requiredTAHours || 0,
+          totalApplications: 0,
+          pendingCount: 0,
+          acceptedCount: 0,
+          rejectedCount: 0,
+          applications: []
+        })
+      }
+
+      const group = moduleMap.get(app.moduleID);
+      const userDetails = userMap[app.userId] || { name: 'Unknown', indexNumber: 'N/A' };
+      group.totalApplications += 1;
+      const statusLower = String(app.status || '').toLowerCase();
+      if (statusLower === 'pending') group.pendingCount += 1;
+      else if (statusLower === 'accepted') group.acceptedCount += 1;
+      else if (statusLower === 'rejected') group.rejectedCount += 1;
+
+      group.applications.push({
         applicationId: app._id,
         userId: app.userId,
-        moduleId: app.moduleID,
-        moduleCode: module ? module.moduleCode : 'Unknown',
-        moduleName: module ? module.moduleName : 'Unknown',
-        semester: module ? module.semester : 'Unknown',
-        year: module ? module.year : 'Unknown',
-        requiredTACount: module ? module.requiredTACount : 0,
-        status: app.status,
         studentName: userDetails.name,
         indexNumber: userDetails.indexNumber,
+        status: app.status,
         appliedAt: app.createdAt
-      };
-    });
+      })
+    }
 
-    console.log('lecturer handleRequests -> found', applicationsWithUserDetails.length, 'applications for', coordinatorGoogleId);
+    const groupedModules = Array.from(moduleMap.values());
+
+    console.log('lecturer handleRequests -> grouped modules', groupedModules.length, 'for', coordinatorGoogleId);
 
     return res.status(200).json({
       message: 'TA applications retrieved successfully',
-      applications: applicationsWithUserDetails
+      modules: groupedModules
     });
 
   } catch (error) {
@@ -227,8 +253,98 @@ const rejectApplication = async (req, res) => {
   }
 };
 
+// GET /api/lecturer/modules/with-ta-requests
+// Returns modules coordinated by logged lecturer that have at least one TA request
+// and includes approved TA details with document info
 const viewModuleDetails = async (req, res) => {
+  try {
+    if (!req.user || !req.user.googleId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
 
+    const coordinatorGoogleId = String(req.user.googleId);
+
+    // Get modules coordinated by the lecturer
+    const coordinatorModules = await ModuleDetails.find({
+      coordinators: coordinatorGoogleId
+    }).select('_id moduleCode moduleName semester year requiredTACount requiredTAHours requirements');
+
+    if (coordinatorModules.length === 0) {
+      return res.status(200).json({ modules: [] });
+    }
+
+    const moduleIds = coordinatorModules.map(m => m._id.toString());
+
+    // Get all applications for these modules
+    const applications = await TaApplication.find({ moduleID: { $in: moduleIds } });
+
+    // Build map of approved applications per module
+    const approvedByModule = new Map();
+    for (const app of applications) {
+      if (app.status === 'accepted') {
+        const key = app.moduleID;
+        if (!approvedByModule.has(key)) approvedByModule.set(key, []);
+        approvedByModule.get(key).push(app);
+      }
+    }
+
+    // If no requests at all, return empty
+    const modulesWithAnyRequests = new Set(applications.map(a => a.moduleID));
+    if (modulesWithAnyRequests.size === 0) {
+      return res.status(200).json({ modules: [] });
+    }
+
+    // Collect userIds from approved applications to fetch user + docs
+    const approvedUserIds = [...new Set(applications.filter(a => a.status === 'accepted').map(a => a.userId))];
+
+    const users = await User.find({ googleId: { $in: approvedUserIds } }).select('googleId name indexNumber');
+    const userMap = users.reduce((acc, u) => { acc[u.googleId] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
+
+    const docSubs = await TaDocumentSubmission.find({ userId: { $in: approvedUserIds } }).select('userId documents');
+    const docMap = docSubs.reduce((acc, d) => { acc[d.userId] = d.documents || null; return acc; }, {});
+
+    // Count ALL applications per module using aggregation (more robust)
+    const countsAll = await TaApplication.aggregate([
+      { $match: { moduleID: { $in: moduleIds } } },
+      { $group: { _id: '$moduleID', total: { $sum: 1 } } }
+    ]);
+    const applicationsCountMap = countsAll.reduce((acc, c) => {
+      acc[c._id] = c.total;
+      return acc;
+    }, {});
+
+    // Build response (only modules with at least one APPROVED/accepted application)
+    const modules = coordinatorModules
+      .filter(m => (approvedByModule.get(m._id.toString()) || []).length > 0)
+      .map(m => {
+        const modId = m._id.toString();
+        const approvedApps = approvedByModule.get(modId) || [];
+        const approvedTAs = approvedApps.map(a => ({
+          userId: a.userId,
+          name: userMap[a.userId]?.name || 'Unknown',
+          indexNumber: userMap[a.userId]?.indexNumber || 'N/A',
+          documents: docMap[a.userId] || null
+        }));
+
+        return {
+          moduleId: m._id,
+          moduleCode: m.moduleCode,
+          moduleName: m.moduleName,
+          semester: m.semester,
+          year: m.year,
+          requiredTAHours: m.requiredTAHours,
+          assignedTAsCount: approvedTAs.length,
+          requiredTACount: m.requiredTACount,
+          approvedTAs,
+          applicationsCount: applicationsCountMap[modId] || 0
+        }
+      });
+
+    return res.status(200).json({ modules });
+  } catch (error) {
+    console.error('Error fetching modules with TA requests:', error);
+    return res.status(500).json({ error: 'Failed to fetch modules with TA requests' });
+  }
 }
 
 

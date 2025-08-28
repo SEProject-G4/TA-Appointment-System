@@ -258,32 +258,23 @@ const HandleTARequests = () => {
       setError(null);
       
       const response = await axiosInstance.get('/lecturer/handle-requests');
-      const applications: TAApplication[] = response.data.applications;
-      
-      // Group applications by module
-      const moduleGroups: { [key: string]: ModuleGroup } = {};
-      
-      applications.forEach(app => {
-        if (!moduleGroups[app.moduleCode]) {
-          moduleGroups[app.moduleCode] = {
-            moduleCode: app.moduleCode,
-            moduleName: app.moduleName,
-            semester: app.semester,
-            year: app.year,
-            totalRequiredTAs: app.requiredTACount || 5,
-            appliedTAs: []
-          };
-        }
-        
-        moduleGroups[app.moduleCode].appliedTAs.push({
-          name: app.studentName,
-          status: app.status,
-          applicationId: app.applicationId,
-          indexNumber: app.indexNumber
-        });
-      });
-      
-      setModules(Object.values(moduleGroups));
+      const modulesResponse = response.data.modules || [];
+
+      const mapped: ModuleGroup[] = modulesResponse.map((m: any) => ({
+        moduleCode: m.moduleCode,
+        moduleName: m.moduleName,
+        semester: m.semester,
+        year: m.year,
+        totalRequiredTAs: m.requiredTACount || 5,
+        appliedTAs: (m.applications || []).map((a: any) => ({
+          name: a.studentName,
+          status: a.status,
+          applicationId: a.applicationId,
+          indexNumber: a.indexNumber
+        }))
+      }));
+
+      setModules(mapped);
     } catch (err: any) {
       console.error('Error fetching TA applications:', err);
       setError(err.response?.data?.error || 'Failed to fetch TA applications');

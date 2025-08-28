@@ -4,7 +4,7 @@ const TaApplicationSchema = new mongoose.Schema({
     userId: {
         type: String,
         required: true
-        },
+    },
     moduleID: {
         type: String,
         required: true  

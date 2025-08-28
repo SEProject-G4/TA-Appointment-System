@@ -202,118 +202,118 @@ const ViewModuleDetails: React.FC = () => {
                       className={`h-5 w-5 text-text-secondary transition-transform ${isOpen ? 'rotate-90' : ''}`}
                     />
                     <div>
-                      <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3">
                         <h2 className="text-lg font-bold text-text-primary">{module.moduleCode}</h2>
                         <span className="bg-primary/10 text-primary-dark text-xs px-3 py-1 rounded-full font-medium">
-                          {module.semester} {module.year}
-                        </span>
-                      </div>
+                    {module.semester} {module.year}
+                  </span>
+                </div>
                       <p className="text-text-secondary text-sm mt-1">{module.moduleName}</p>
                     </div>
-                  </div>
+              </div>
                   <div className="flex items-center space-x-6">
-                    <div className="text-right">
-                      <div className="text-xs text-text-secondary">TA Hours</div>
-                      <div className="text-lg font-semibold text-text-primary">{module.totalTAHours}h</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-text-secondary">Assigned TAs</div>
-                      <div className="text-lg font-semibold text-text-primary">{module.assignedTAs.length}</div>
-                    </div>
-                  </div>
+                <div className="text-right">
+                  <div className="text-xs text-text-secondary">TA Hours</div>
+                  <div className="text-lg font-semibold text-text-primary">{module.totalTAHours}h</div>
                 </div>
+                <div className="text-right">
+                  <div className="text-xs text-text-secondary">Assigned TAs</div>
+                  <div className="text-lg font-semibold text-text-primary">{module.assignedTAs.length}</div>
+                </div>
+              </div>
+            </div>
 
                 {/* Expanded Content */}
                 <div className={`panel ${isOpen ? 'panel-open' : 'panel-closed'} border-t border-border-default`}>
-                  <div className="p-4 space-y-4">
-                    {/* Progress Bar */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        <FaClipboardList className="w-4 h-4 text-primary-dark" />
-                        <span className="text-sm font-semibold text-text-primary">Assignment Progress</span>
-                      </div>
-                      <span className="text-sm font-bold text-text-primary bg-bg-page px-3 py-1 rounded-full">
-                        {module.assignedTAs.length}/{module.totalTAsNeeded}
-                      </span>
-                    </div>
+            <div className="p-4 space-y-4">
+              {/* Progress Bar */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <FaClipboardList className="w-4 h-4 text-primary-dark" />
+                  <span className="text-sm font-semibold text-text-primary">Assignment Progress</span>
+                </div>
+                <span className="text-sm font-bold text-text-primary bg-bg-page px-3 py-1 rounded-full">
+                  {module.assignedTAs.length}/{module.totalTAsNeeded}
+                </span>
+              </div>
                     <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                      <div
-                        className="bg-gradient-to-r from-primary to-primary-dark h-full rounded-full transition-all duration-500"
-                        style={{ width: `${(module.assignedTAs.length / module.totalTAsNeeded) * 100}%` }}
-                      />
-                    </div>
+                <div
+                  className="bg-gradient-to-r from-primary to-primary-dark h-full rounded-full transition-all duration-500"
+                  style={{ width: `${(module.assignedTAs.length / module.totalTAsNeeded) * 100}%` }}
+                />
+              </div>
 
-                    {/* TA List */}
-                    <div>
-                      <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center">
-                        <FaUserGraduate className="w-4 h-4 text-primary-dark mr-2" />
-                        Teaching Assistants
-                      </h3>
+              {/* TA List */}
+              <div>
+                <h3 className="text-base font-semibold text-text-primary mb-3 flex items-center">
+                  <FaUserGraduate className="w-4 h-4 text-primary-dark mr-2" />
+                  Teaching Assistants
+                </h3>
                       <div className="space-y-3">
-                        {module.assignedTAs.map((ta, taIndex) => {
-                          const documentStatus = getDocumentStatus(ta);
-                          return (
+                  {module.assignedTAs.map((ta, taIndex) => {
+                    const documentStatus = getDocumentStatus(ta);
+                    return (
                             <div key={taIndex} className="bg-bg-page rounded-lg border border-border-default p-3">
                               <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                  <div className="flex flex-col">
-                                    <span className="font-medium text-text-primary">{ta.name}</span>
-                                    <span className="text-xs text-text-secondary">{ta.email}</span>
-                                  </div>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <span className={`badge ${documentStatus.badge}`}>{documentStatus.status}</span>
-                                </div>
-                              </div>
+                          <div className="flex items-center space-x-3">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-text-primary">{ta.name}</span>
+                              <span className="text-xs text-text-secondary">{ta.email}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className={`badge ${documentStatus.badge}`}>{documentStatus.status}</span>
+                          </div>
+                        </div>
                               
                               {/* Document Details */}
                               <div className="mt-3 space-y-2">
                                 <h4 className="text-sm font-semibold text-text-primary">Required Documents</h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                  {/* NIC Copy */}
+                              {/* NIC Copy */}
                                   <div className="flex items-center justify-between p-2 bg-white rounded border border-border-default">
-                                    <span className="text-sm font-medium text-text-primary">NIC Copy</span>
-                                    {ta.documents.nicCopy.submitted ? (
-                                      <button
-                                        onClick={() => window.open(ta.documents.nicCopy.fileUrl, "_blank")}
-                                        className="btn btn-primary btn-xs"
-                                      >
-                                        View
-                                      </button>
-                                    ) : (
-                                      <span className="badge badge-pending">Not submitted</span>
-                                    )}
-                                  </div>
-                                  {/* Bank Passport Copy */}
-                                  <div className="flex items-center justify-between p-2 bg-white rounded border border-border-default">
-                                    <span className="text-sm font-medium text-text-primary">Bank Passport Copy</span>
-                                    {ta.documents.bankPassportCopy.submitted ? (
-                                      <button
-                                        onClick={() => window.open(ta.documents.bankPassportCopy.fileUrl, "_blank")}
-                                        className="btn btn-primary btn-xs"
-                                      >
-                                        View
-                                      </button>
-                                    ) : (
-                                      <span className="badge badge-pending">Not submitted</span>
-                                    )}
-                                  </div>
-                                  {/* Declaration Copy */}
-                                  <div className="flex items-center justify-between p-2 bg-white rounded border border-border-default">
-                                    <span className="text-sm font-medium text-text-primary">Declaration Copy</span>
-                                    {ta.documents.declarationCopy.submitted ? (
-                                      <button
-                                        onClick={() => window.open(ta.documents.declarationCopy.fileUrl, "_blank")}
-                                        className="btn btn-primary btn-xs"
-                                      >
-                                        View
-                                      </button>
-                                    ) : (
-                                      <span className="badge badge-pending">Not submitted</span>
-                                    )}
-                                  </div>
-                                </div>
+                                <span className="text-sm font-medium text-text-primary">NIC Copy</span>
+                                {ta.documents.nicCopy.submitted ? (
+                                  <button
+                                    onClick={() => window.open(ta.documents.nicCopy.fileUrl, "_blank")}
+                                    className="btn btn-primary btn-xs"
+                                  >
+                                    View
+                                  </button>
+                                ) : (
+                                  <span className="badge badge-pending">Not submitted</span>
+                                )}
                               </div>
+                              {/* Bank Passport Copy */}
+                                  <div className="flex items-center justify-between p-2 bg-white rounded border border-border-default">
+                                <span className="text-sm font-medium text-text-primary">Bank Passport Copy</span>
+                                {ta.documents.bankPassportCopy.submitted ? (
+                                  <button
+                                    onClick={() => window.open(ta.documents.bankPassportCopy.fileUrl, "_blank")}
+                                    className="btn btn-primary btn-xs"
+                                  >
+                                    View
+                                  </button>
+                                ) : (
+                                  <span className="badge badge-pending">Not submitted</span>
+                                )}
+                              </div>
+                              {/* Declaration Copy */}
+                                  <div className="flex items-center justify-between p-2 bg-white rounded border border-border-default">
+                                <span className="text-sm font-medium text-text-primary">Declaration Copy</span>
+                                {ta.documents.declarationCopy.submitted ? (
+                                  <button
+                                    onClick={() => window.open(ta.documents.declarationCopy.fileUrl, "_blank")}
+                                    className="btn btn-primary btn-xs"
+                                  >
+                                    View
+                                  </button>
+                                ) : (
+                                  <span className="badge badge-pending">Not submitted</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                             </div>
                           );
                         })}
@@ -403,15 +403,15 @@ const ViewModuleDetails: React.FC = () => {
                               Object.values(ta.documents).filter(doc => doc.submitted).length
                             }/3 submitted</div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
       )}
     </div>
   );
