@@ -253,7 +253,6 @@ const rejectApplication = async (req, res) => {
   }
 };
 
-// GET /api/lecturer/modules/with-ta-requests
 // Returns modules coordinated by logged lecturer that have at least one TA request
 // and includes approved TA details with document info
 const viewModuleDetails = async (req, res) => {
@@ -277,11 +276,13 @@ const viewModuleDetails = async (req, res) => {
 
     // Get all applications for these modules
     const applications = await TaApplication.find({ moduleID: { $in: moduleIds } });
+    console.log("TA Applications to view status", applications);
 
     // Build map of approved applications per module
     const approvedByModule = new Map();
     for (const app of applications) {
-      if (app.status === 'accepted') {
+      const statusLower = String(app.status || '').toLowerCase();
+      if (statusLower === 'accepted') {
         const key = app.moduleID;
         if (!approvedByModule.has(key)) approvedByModule.set(key, []);
         approvedByModule.get(key).push(app);
@@ -295,7 +296,7 @@ const viewModuleDetails = async (req, res) => {
     }
 
     // Collect userIds from approved applications to fetch user + docs
-    const approvedUserIds = [...new Set(applications.filter(a => a.status === 'accepted').map(a => a.userId))];
+    const approvedUserIds = [...new Set(applications.filter(a => String(a.status || '').toLowerCase() === 'accepted').map(a => a.userId))];
 
     const users = await User.find({ googleId: { $in: approvedUserIds } }).select('googleId name indexNumber');
     const userMap = users.reduce((acc, u) => { acc[u.googleId] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
@@ -319,12 +320,38 @@ const viewModuleDetails = async (req, res) => {
       .map(m => {
         const modId = m._id.toString();
         const approvedApps = approvedByModule.get(modId) || [];
-        const approvedTAs = approvedApps.map(a => ({
-          userId: a.userId,
-          name: userMap[a.userId]?.name || 'Unknown',
-          indexNumber: userMap[a.userId]?.indexNumber || 'N/A',
-          documents: docMap[a.userId] || null
-        }));
+        const approvedTAs = approvedApps.map(a => {
+          const docs = docMap[a.userId] || {};
+          const normalize = (d) => {
+            if (!d) return { submitted: false };
+            return {
+              submitted: Boolean(d.submitted),
+              fileUrl: d.fileUrl,
+              fileName: d.fileName,
+              uploadedAt: d.uploadedAt
+            }
+          };
+          const documents = {
+            bankPassbookCopy: normalize(docs.bankPassbookCopy),
+            nicCopy: normalize(docs.nicCopy),
+            cv: normalize(docs.cv),
+            degreeCertificate: normalize(docs.degreeCertificate)
+          };
+          const submittedCount = [documents.bankPassbookCopy, documents.nicCopy, documents.cv, documents.degreeCertificate]
+            .filter(d => d.submitted).length;
+          const documentSummary = {
+            submittedCount,
+            total: 4,
+            allSubmitted: submittedCount === 4
+          };
+          return {
+            userId: a.userId,
+            name: userMap[a.userId]?.name || 'Unknown',
+            indexNumber: userMap[a.userId]?.indexNumber || 'N/A',
+            documents,
+            documentSummary
+          };
+        });
 
         return {
           moduleId: m._id,
