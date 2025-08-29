@@ -2,6 +2,12 @@ const User = require('../models/User');
 const authService = require('../services/authService');
 
 exports.protected = async (req, res, next) => {
+    console.log('Session debug:', {
+        sessionId: req.sessionID,
+        userId: req.session.userId,
+        sessionData: req.session
+    });
+    
     if (!req.session.userId) {
         return res.status(401).json({ error: 'Not authorized, no session ID' });
     }
