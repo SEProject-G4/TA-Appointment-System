@@ -3,10 +3,26 @@ import TARequestCard from "../components/TARequestCard";
 import TAStatCard from "../components/TAStatCard";
 import { GraduationCap, BookOpen, Users, Newspaper } from "lucide-react";
 import axios from "axios";
+import { useAuth } from "../contexts/AuthContext";
+
 
 function TADashboard() {
+  const { user } = useAuth( );
+  
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const applyForTA = async (moduleId: string, userId: string) => {
+    try {
+      const response = await axios.post("http://localhost:5000/api/ta/apply", {
+        moduleId,
+        userId,
+      });
+      console.log("Application successful:", response.data);
+    } catch (error) {
+      console.error("Error applying for TA position:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchModules = async () => {
@@ -46,12 +62,12 @@ function TADashboard() {
         <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
           <TAStatCard
             statName="Available Modules"
-            statValue={10}
+            statValue={modules.length}
             icon={BookOpen}
           />
           <TAStatCard
             statName="Total TA Positions"
-            statValue={20}
+            statValue={modules.reduce((total, mod) => total + mod.requiredTACount, 0)}
             icon={Users}
           />
           <TAStatCard
@@ -80,10 +96,11 @@ function TADashboard() {
               requirements={[module.requirements]}
               documentDueDate={module.documentDueDate.split("T")[0]}
               applicationDueDate={module.applicationDueDate.split("T")[0]}
+              onApply={() => applyForTA(module._id, user.id)}  //----------------------------check what can do if user is null
             />
           ))
         ) : (
-          <p>No Vailable Positions</p>
+          <p>No Available TA Positions...</p>
         )}
       </div>
     </div>

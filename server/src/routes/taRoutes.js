@@ -1,9 +1,10 @@
 const express= require('express');
 const router = express.Router();
 
-const {getAllModules, getAllRequests } = require('../controllers/taControllers');
+const { getAllRequests, applyForTA } = require('../controllers/taControllers');
 
 router.get('/requests', getAllRequests);
+router.post('/apply', applyForTA);
 
 module.exports = router;
 
