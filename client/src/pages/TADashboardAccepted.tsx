@@ -45,7 +45,7 @@ function TADashboardApplied() {
       </div>
       {/* applied TA positions */}
       <div className='m-8'>
-        <h2 className="mb-4 text-2xl font-semibold text-foreground">Available TA Positions</h2>
+        <h2 className="mb-4 text-2xl font-semibold text-foreground">Accepted TA Positions</h2>
         <TAAccepedCard
           moduleCode="CS101"
           moduleName="computer security"

@@ -1,9 +1,30 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import TARequestCard from "../components/TARequestCard";
 import TAStatCard from "../components/TAStatCard";
+import { GraduationCap, BookOpen, Users, Newspaper } from "lucide-react";
+import axios from "axios";
 
-import { GraduationCap, BookOpen, Users, Newspaper, User } from "lucide-react";
 function TADashboard() {
+  const [modules, setModules] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchModules = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/ta/requests"
+        );
+        setModules(response.data);
+      } catch (error) {
+        console.error("Error fetching modules:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchModules();
+  }, []);
+
   return (
     <div className="min-h-screen bg-bg-card text-text-primary">
       <div className="container px-4 py-8 mx-auto">
@@ -23,62 +44,51 @@ function TADashboard() {
         </div>
         {/* stats */}
         <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
-          <TAStatCard 
+          <TAStatCard
             statName="Available Modules"
             statValue={10}
             icon={BookOpen}
           />
-          <TAStatCard 
+          <TAStatCard
             statName="Total TA Positions"
             statValue={20}
             icon={Users}
           />
-          <TAStatCard 
+          <TAStatCard
             statName="Total Applications Received"
             statValue={10}
             icon={Newspaper}
           />
-        </div>        
+        </div>
       </div>
-      
-      {/* TA requests */}
       <div className="gap-2 m-8">
-        <h2 className="mb-4 text-2xl font-semibold text-foreground">Applied TA Positions</h2>
-            <TARequestCard 
-        moduleCode="CS2040S"
-        moduleName="Data Structures and Algorithms"
-        coordinators={["Prof. Chong Ket Fah", "Dr. Steven Halim"]}
-        requiredTAHours={12}
-        requiredTANumber={10}
-        appliedTANumber={2}
-        requirements={[
-          "Grade A- or above in CS2040S",
-          "Proficiency in Java or Python",
-          "Good problem-solving skills"
-        ]}
-        documentDueDate="2024-08-01"
-        applicationDueDate="2024-07-15"
-    />
-    <div className="mt-6"></div>
-    <TARequestCard  
-        moduleCode="CS2045S"
-        moduleName="Computer Security"
-        coordinators={["Prof. abc fernando"]}
-        requiredTAHours={5}
-        requiredTANumber={3}
-        appliedTANumber={2}
-        requirements={[
-          "Grade A- or above in CS2045S",
-          "Proficiency in Java or Python",
-          "Good problem-solving skills"
-        ]}
-        documentDueDate="2024-08-01"
-        applicationDueDate="2024-07-15"
-    />
+        <h2 className="mb-4 text-2xl font-semibold text-foreground">
+          Available TA Positions
+        </h2>
+        {loading ? (
+          <p>Loading...</p>
+        ) : modules.length > 0 ? (
+          modules.map((module) => (
+            <TARequestCard
+              key={module.moduleCode}
+              moduleCode={`${module.year} ${module.semester} ${module.moduleCode}`}
+              moduleName={module.moduleName}
+              coordinators={module.coordinators}
+              requiredTAHours={module.requiredTAHours}
+              requiredTANumber={module.requiredTACount}
+              appliedTANumber={1}
+              requirements={[module.requirements]}
+              documentDueDate={module.documentDueDate.split("T")[0]}
+              applicationDueDate={module.applicationDueDate.split("T")[0]}
+            />
+          ))
+        ) : (
+          <p>No Vailable Positions</p>
+        )}
       </div>
-
     </div>
   );
 }
 
 export default TADashboard;
+

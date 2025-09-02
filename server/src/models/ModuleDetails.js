@@ -9,11 +9,11 @@ const moduleDetailsSchema = new mongoose.Schema({
     moduleName: { 
         type: String, 
         required: true, 
-        trim: true 
+        trim: true
     },
     semester: { 
         type: String, 
-        required: true, 
+        required: true,   
         trim: true 
     },
     year: { 
