@@ -1,13 +1,11 @@
 import React from "react";
 import TARequestCard from "../components/TARequestCard";
-import { Navigation } from '../components/TANavbar'
+import TAStatCard from "../components/TAStatCard";
 
-import { GraduationCap, BookOpen, Users, Newspaper } from "lucide-react";
+import { GraduationCap, BookOpen, Users, Newspaper, User } from "lucide-react";
 function TADashboard() {
   return (
     <div className="min-h-screen bg-bg-card text-text-primary">
-      {/* <Navigation /> */}
-      {/* add the nav bar */}
       <div className="container px-4 py-8 mx-auto">
         {/* header */}
         <div className="mb-12 text-center">
@@ -25,43 +23,21 @@ function TADashboard() {
         </div>
         {/* stats */}
         <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
-          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <BookOpen className="w-5 h-5 text-text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text-primary">10</h3>
-                <p className="text-sm text-text-secondary">available modules</p>
-              </div>
-            </div>
-          </div>
-          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Users className="w-5 h-5 text-text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text-primary">34</h3>
-                <p className="text-sm text-text-secondary">
-                  Total TA positions
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Newspaper className="w-5 h-5 text-text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text-primary">20</h3>
-                <p className="text-sm text-text-secondary">
-                  Total applications received
-                </p>
-              </div>
-            </div>
-          </div> 
+          <TAStatCard 
+            statName="Available Modules"
+            statValue={10}
+            icon={BookOpen}
+          />
+          <TAStatCard 
+            statName="Total TA Positions"
+            statValue={20}
+            icon={Users}
+          />
+          <TAStatCard 
+            statName="Total Applications Received"
+            statValue={10}
+            icon={Newspaper}
+          />
         </div>        
       </div>
       

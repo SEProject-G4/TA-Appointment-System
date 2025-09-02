@@ -1,7 +1,7 @@
 import React from 'react'
-import { Navigation } from '../components/TANavbar'
 import { Trophy, FileUser,File, Clock, CircleCheckBig } from "lucide-react";
 import TAAccepedCard from '../components/TAAcceptedCard';
+import TAStatCard from '../components/TAStatCard';  
 
 function TADashboardApplied() {
   return (
@@ -25,43 +25,22 @@ function TADashboardApplied() {
         </div>
         {/* stats */}
         <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
-          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Clock className="w-5 h-5 text-text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text-primary">3</h3>
-                <p className="text-sm text-text-secondary">Total Hours per Week</p>
-              </div>
-            </div>
-          </div>
-          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Trophy className="w-5 h-5 text-text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text-primary">2</h3>
-                <p className="text-sm text-text-secondary">
-                  Accepted Positions
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <File className="w-5 h-5 text-text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text-primary">0</h3>
-                <p className="text-sm text-text-secondary">
-                  Documents Pending
-                </p>
-              </div>
-            </div> 
-          </div>
+          <TAStatCard 
+            statName="Total Hours per Week"
+            statValue={3}
+            icon={Clock}
+          />
+          <TAStatCard 
+            statName="Accepted Positions"
+            statValue={2}
+            icon={Trophy}
+          />
+          <TAStatCard 
+            statName="Documents Pending"
+            statValue={0}
+            icon={File}
+          />
+          
         </div>
       </div>
       {/* applied TA positions */}
