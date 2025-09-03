@@ -9,10 +9,10 @@ const taApplicationSchema = new mongoose.Schema({
     },
     moduleId:{
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Moduledetails",
+        ref: "ModuleDetails",
         required: true
     },
-    staus:{
+    status:{
         type: String,
         required: true,
         default: "pending",

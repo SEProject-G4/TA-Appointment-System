@@ -52,7 +52,7 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
   }
   
   return (
-    <div className="w-full p-6 mb-4 transition-all duration-300 border bg-gradient-to-br from-card to-muted/20 border-border/50 hover:shadow-lg hover:-translate-y-1">
+    <div className="w-full p-6 mb-4 transition-all duration-300 border-2 bg-gradient-to-br from-card to-muted/20 border-border/50 hover:shadow-lg hover:-translate-y-1">
       {/* Card content goes here */}
       <div className="grid items-center grid-cols-12 gap-6">
         {/* left */}

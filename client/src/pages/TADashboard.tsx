@@ -71,7 +71,7 @@ function TADashboard() {
             icon={Users}
           />
           <TAStatCard
-            statName="Total Applications Received"
+            statName="Remaining TA Hours Per Week"
             statValue={10}
             icon={Newspaper}
           />

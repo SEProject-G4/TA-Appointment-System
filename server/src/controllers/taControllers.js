@@ -1,3 +1,4 @@
+const app = require('../app');
 const ModuleDetails = require('../models/ModuleDetails');
 const TaApplication = require('../models/TaApplication');
 const User = require('../models/User');
@@ -44,9 +45,36 @@ const applyForTA = async (req, res) => {
   }
 };
 
+const getAppliedModules = async (req, res)=>{
+  const userId = req.query.userId;
+
+  try {
+    const applications = await TaApplication.find({ userId }).populate('moduleId');
+    const coordinatorIds = applications.flatMap(app => app.moduleId.coordinators); //may have repititions
+    const coordinators = await User.find({ googleId: { $in: coordinatorIds } });
+    const coordinatorMap = coordinators.reduce((map, user) => {
+      map[user.googleId] = user.name;
+      return map;
+    }, {});
+    const updatedApplications = applications.map(app => ({
+      ...app.toObject(),
+      moduleId:{
+        ...app.moduleId.toObject(),
+        coordinators: app.moduleId.coordinators.map(id => coordinatorMap[id] || "-")
+      }
+    }));
+
+    res.status(200).json(updatedApplications);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching applied modules', error });
+    console.error('Error fetching applied modules:', error);
+  }
+};
+
 
 
 module.exports = {
   getAllRequests,
-  applyForTA
+  applyForTA,
+  getAppliedModules
 };
