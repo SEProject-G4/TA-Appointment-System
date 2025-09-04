@@ -2,22 +2,41 @@ const ModuleDetails = require('../models/ModuleDetails');
 const TaApplication = require('../models/TaApplication');
 const User = require('../models/User');
 const TaDocumentSubmission = require('../models/TaDocumentSubmission');
+const RecruitmentSeries = require('../models/recruitmentSeries');
 
 // GET /api/lecturer/modules
-// Returns modules where the logged-in lecturer (by googleId) is listed in coordinators
+// Returns modules where the logged-in lecturer (by id) is listed in coordinators
 const getMyModules = async (req, res) => {
   try {
-    if (!req.user || !req.user.googleId) {
+    if (!req.user || !req.user._id) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const coordinatorGoogleId = String(req.user.googleId);
+    const coordinatorGoogleId = String(req.user._id);
+
+    // First get all modules where user is coordinator
     const modules = await ModuleDetails
       .find({ coordinators: coordinatorGoogleId })
       .sort({ createdAt: -1 });
-    console.log('lecturer getMyModules -> matched', modules.length, 'modules for', coordinatorGoogleId);
 
-    return res.status(200).json(modules);
+    // Get unique recruitment series IDs
+    const recruitmentSeriesIds = [...new Set(modules.map(m => m.recruitmentSeriesId))];
+
+    // Get recruitment series statuses
+    const recruitmentSeries = await RecruitmentSeries.find({
+      _id: { $in: recruitmentSeriesIds },
+      status: 'initialised'  // Only get series that are initialised
+    }).select('_id');
+
+    // Filter modules to only those with active recruitment series
+    const activeSeriesIds = recruitmentSeries.map(rs => rs._id.toString());
+    const activeModules = modules.filter(module => 
+      activeSeriesIds.includes(module.recruitmentSeriesId)
+    );
+
+    console.log('lecturer getMyModules -> matched', activeModules.length, 'active modules for', coordinatorGoogleId);
+
+    return res.status(200).json(activeModules);
   } catch (error) {
     console.error('Error fetching lecturer modules:', error);
     return res.status(500).json({ error: 'Failed to fetch modules for coordinator' });
@@ -26,7 +45,7 @@ const getMyModules = async (req, res) => {
 
 const editModuleRequirments = async (req, res) => {
   try {
-    if (!req.user || !req.user.googleId) {
+    if (!req.user || !req.user._id) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
@@ -39,7 +58,7 @@ const editModuleRequirments = async (req, res) => {
       return res.status(404).json({ error: 'Module not found' });
     }
 
-    if (!moduleDoc.coordinators.includes(req.user.googleId)) {
+    if (!moduleDoc.coordinators.includes(req.user._id)) {
       return res.status(403).json({ error: 'Not authorized to edit this module' });
     }
 
@@ -58,7 +77,7 @@ const editModuleRequirments = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    console.log('lecturer editModuleRequirments -> updated module', id, 'for', req.user.googleId);
+    console.log('lecturer editModuleRequirments -> updated module', id, 'for', req.user._id);
     return res.status(200).json(updatedModule);
   } catch (error) {
     console.error('Error updating module requirements:', error);
@@ -68,11 +87,11 @@ const editModuleRequirments = async (req, res) => {
 
 const handleRequests = async (req, res) => {
   try {
-    if (!req.user || !req.user.googleId) {
+    if (!req.user || !req.user._id) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const coordinatorGoogleId = String(req.user.googleId);
+    const coordinatorGoogleId = String(req.user._id);
 
     // First, get all modules where the coordinator is responsible
     const coordinatorModules = await ModuleDetails.find({
@@ -115,7 +134,7 @@ const handleRequests = async (req, res) => {
     // Create a map of user details for quick lookup
     const userMap = {};
     users.forEach(user => {
-      userMap[user.googleId] = {
+      userMap[user._id] = {
         name: user.name,
         indexNumber: user.indexNumber
       };
@@ -179,12 +198,12 @@ const handleRequests = async (req, res) => {
 
 const acceptApplication = async (req, res) => {
   try {
-    if (!req.user || !req.user.googleId) {
+    if (!req.user || !req.user._id) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
     const { applicationId } = req.params;
-    const coordinatorGoogleId = String(req.user.googleId);
+    const coordinatorGoogleId = String(req.user._id);
 
     // Find the application
     const application = await TaApplication.findById(applicationId);
@@ -217,12 +236,12 @@ const acceptApplication = async (req, res) => {
 
 const rejectApplication = async (req, res) => {
   try {
-    if (!req.user || !req.user.googleId) {
+    if (!req.user || !req.user._id) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
     const { applicationId } = req.params;
-    const coordinatorGoogleId = String(req.user.googleId);
+    const coordinatorGoogleId = String(req.user._id);
 
     // Find the application
     const application = await TaApplication.findById(applicationId);
@@ -257,11 +276,11 @@ const rejectApplication = async (req, res) => {
 // and includes approved TA details with document info
 const viewModuleDetails = async (req, res) => {
   try {
-    if (!req.user || !req.user.googleId) {
+    if (!req.user || !req.user._id) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const coordinatorGoogleId = String(req.user.googleId);
+    const coordinatorGoogleId = String(req.user._id);
 
     // Get modules coordinated by the lecturer
     const coordinatorModules = await ModuleDetails.find({
@@ -298,8 +317,8 @@ const viewModuleDetails = async (req, res) => {
     // Collect userIds from approved applications to fetch user + docs
     const approvedUserIds = [...new Set(applications.filter(a => String(a.status || '').toLowerCase() === 'accepted').map(a => a.userId))];
 
-    const users = await User.find({ googleId: { $in: approvedUserIds } }).select('googleId name indexNumber');
-    const userMap = users.reduce((acc, u) => { acc[u.googleId] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
+    const users = await User.find({ _id: { $in: approvedUserIds } }).select('Id name indexNumber');
+    const userMap = users.reduce((acc, u) => { acc[u._id] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
 
     const docSubs = await TaDocumentSubmission.find({ userId: { $in: approvedUserIds } }).select('userId documents');
     const docMap = docSubs.reduce((acc, d) => { acc[d.userId] = d.documents || null; return acc; }, {});
