@@ -327,10 +327,17 @@ const viewModuleDetails = async (req, res) => {
     const coordinatorGoogleId = String(req.user._id);
 
     // Get modules coordinated by the lecturer
-    const coordinatorModules = await ModuleDetails.find({
+    const coordinatorModulesAll = await ModuleDetails.find({
       coordinators: coordinatorGoogleId
-    }).select('_id moduleCode moduleName semester year requiredTACount requiredTAHours requirements');
-    console.log("coordinatorModules", coordinatorModules);
+    }).select('_id moduleCode moduleName semester year requiredTACount requiredTAHours requirements recruitmentSeriesId');
+    console.log("coordinatorModules (all)", coordinatorModulesAll);
+
+    // Filter modules to those whose recruitment series is initialised
+    const seriesIds = [...new Set(coordinatorModulesAll.map(m => m.recruitmentSeriesId))];
+    const activeSeriesDocs = await RecruitmentSeries.find({ _id: { $in: seriesIds }, status: 'initialised' }).select('_id');
+    const activeSeriesIdSet = new Set(activeSeriesDocs.map(s => s._id.toString()));
+    const coordinatorModules = coordinatorModulesAll.filter(m => activeSeriesIdSet.has(String(m.recruitmentSeriesId)));
+    console.log('viewModuleDetails -> active modules after RS filter', coordinatorModules.length);
 
     if (coordinatorModules.length === 0) {
       return res.status(200).json({ modules: [] });
