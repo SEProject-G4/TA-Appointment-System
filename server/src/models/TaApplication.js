@@ -5,14 +5,17 @@ const TaApplicationSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    moduleID: {
-        type: String,
-        required: true  
+    // Store in DB as moduleId (ObjectId). Expose alias "moduleID" for backward compatibility
+    moduleId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'ModuleDetails',
+        alias: 'moduleID'
     },
     status: {
         type: String,
-        enum: ['Pending', 'accepted', 'rejected'],
-        default: "Pending",
+        enum: ['pending', 'accepted', 'rejected'],
+        default: 'pending',
         required: true
     }
     }, { timestamps: true })

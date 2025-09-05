@@ -156,7 +156,7 @@ const handleRequests = async (req, res) => {
     console.log('Available modules:', coordinatorModules.map(m => ({ id: m._id.toString(), code: m.moduleCode })));
     
     for (const app of taApplications) {
-      const rawModuleId = app.moduleId || app.moduleID || app.module;
+      const rawModuleId = app.moduleId;
       const moduleIdStr = typeof rawModuleId === 'string' ? rawModuleId : (rawModuleId && typeof rawModuleId.toString === 'function' ? rawModuleId.toString() : null);
       if (!moduleIdStr) {
         console.log('Skipping app without module id:', app._id);
@@ -228,16 +228,25 @@ const acceptApplication = async (req, res) => {
 
     const { applicationId } = req.params;
     const coordinatorGoogleId = String(req.user._id);
+    console.log("applicationId", applicationId);
+    console.log("coordinatorGoogleId", coordinatorGoogleId);
 
     // Find the application
     const application = await TaApplication.findById(applicationId);
     if (!application) {
       return res.status(404).json({ error: 'Application not found' });
     }
+    console.log("application", application);
 
-    // Verify the coordinator is responsible for this module
-    const module = await ModuleDetails.findById(application.moduleID);
-    if (!module || !module.coordinators.includes(coordinatorGoogleId)) {
+    // Verify the coordinator is responsible for this module (handle moduleId/moduleID variants)
+    const applicationModuleId = application.moduleId;
+    console.log("applicationModuleId", applicationModuleId);
+
+    const module = await ModuleDetails.findById(applicationModuleId);
+    const coordinatorIds = [String(req.user._id || '')].filter(Boolean);
+    const moduleCoordinatorIds = (module?.coordinators || []).map(id => String(id));
+    const isAuthorized = coordinatorIds.some(id => moduleCoordinatorIds.includes(id));
+    if (!module || !isAuthorized) {
       return res.status(403).json({ error: 'Not authorized to manage this application' });
     }
 
@@ -273,9 +282,13 @@ const rejectApplication = async (req, res) => {
       return res.status(404).json({ error: 'Application not found' });
     }
 
-    // Verify the coordinator is responsible for this module
-    const module = await ModuleDetails.findById(application.moduleID);
-    if (!module || !module.coordinators.includes(coordinatorGoogleId)) {
+    // Verify the coordinator is responsible for this module (handle moduleId/moduleID variants)
+    const applicationModuleId = application.moduleId;
+    const module = await ModuleDetails.findById(applicationModuleId);
+    const coordinatorIds = [String(req.user._id || '')].filter(Boolean);
+    const moduleCoordinatorIds = (module?.coordinators || []).map(id => String(id));
+    const isAuthorized = coordinatorIds.some(id => moduleCoordinatorIds.includes(id));
+    if (!module || !isAuthorized) {
       return res.status(403).json({ error: 'Not authorized to manage this application' });
     }
 
