@@ -107,14 +107,22 @@ const handleRequests = async (req, res) => {
     }
 
     // Get module IDs
-    const moduleIds = coordinatorModules.map(module => module._id.toString());
+    const moduleIds = coordinatorModules.map(module => module._id);
     console.log("handle req module id", moduleIds);
 
     // Find all TA applications for these modules
+    const moduleIdStrings = moduleIds.map(id => id.toString());
+    
+    // Query TA applications - based on terminal output, they use moduleId as ObjectId
     const taApplications = await TaApplication.find({
-      moduleID: { $in: moduleIds }
-    });
-    console.log("TA Applications", taApplications);
+      moduleId: { $in: moduleIds }
+    }).lean();
+
+    // Add detailed debug logging
+    console.log('Module IDs being queried (ObjectIds):', moduleIds.map(id => id.toString()));
+    console.log('Module IDs being queried (Strings):', moduleIdStrings);
+    
+    console.log('Query results:', taApplications);
 
     if (taApplications.length === 0) {
       return res.status(200).json({ 
@@ -128,8 +136,9 @@ const handleRequests = async (req, res) => {
 
     // Fetch user details (name and index number)
     const users = await User.find({
-      googleId: { $in: userIds }
+      _id: { $in: userIds }
     }).select('googleId name indexNumber');
+    console.log("users", users);
 
     // Create a map of user details for quick lookup
     const userMap = {};
@@ -140,15 +149,30 @@ const handleRequests = async (req, res) => {
       };
     });
 
-    // Group applications by moduleID so same module (same id) stays in one card
+    // Group applications by moduleId so same module (same id) stays in one card
     const moduleMap = new Map();
+    console.log('Starting grouping process...');
+    console.log('TA Applications to group:', taApplications.length);
+    console.log('Available modules:', coordinatorModules.map(m => ({ id: m._id.toString(), code: m.moduleCode })));
+    
     for (const app of taApplications) {
-      const module = coordinatorModules.find(m => m._id.toString() === app.moduleID);
-      if (!module) continue;
+      const rawModuleId = app.moduleId || app.moduleID || app.module;
+      const moduleIdStr = typeof rawModuleId === 'string' ? rawModuleId : (rawModuleId && typeof rawModuleId.toString === 'function' ? rawModuleId.toString() : null);
+      if (!moduleIdStr) {
+        console.log('Skipping app without module id:', app._id);
+        continue;
+      }
+      console.log('Processing app with moduleId:', moduleIdStr);
+      const module = coordinatorModules.find(m => m._id.toString() === moduleIdStr);
+      if (!module) {
+        console.log('No matching module found for app.moduleId:', moduleIdStr);
+        continue;
+      }
+      console.log('Found matching module:', module.moduleCode);
 
-      if (!moduleMap.has(app.moduleID)) {
-        moduleMap.set(app.moduleID, {
-          moduleId: app.moduleID,
+      if (!moduleMap.has(moduleIdStr)) {
+        moduleMap.set(moduleIdStr, {
+          moduleId: rawModuleId,
           moduleCode: module.moduleCode,
           moduleName: module.moduleName,
           semester: module.semester,
@@ -163,7 +187,7 @@ const handleRequests = async (req, res) => {
         })
       }
 
-      const group = moduleMap.get(app.moduleID);
+      const group = moduleMap.get(moduleIdStr);
       const userDetails = userMap[app.userId] || { name: 'Unknown', indexNumber: 'N/A' };
       group.totalApplications += 1;
       const statusLower = String(app.status || '').toLowerCase();

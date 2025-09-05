@@ -52,8 +52,8 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
   collapsible = true
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const acceptedCount = appliedTAs.filter(ta => ta.status.toLowerCase() === 'accepted').length;
-  const pendingCount = appliedTAs.filter(ta => ta.status.toLowerCase() === 'pending').length;
+  const acceptedCount = appliedTAs.filter(ta => (ta.status || '').toLowerCase() === 'accepted').length;
+  const pendingCount = appliedTAs.filter(ta => (ta.status || '').toLowerCase() === 'pending').length;
   const progress = Math.min((acceptedCount / totalRequiredTAs) * 100, 100);
 
   return (
@@ -121,9 +121,10 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
           ) : (
               <div className="space-y-2">
                 {appliedTAs.map((ta, idx) => {
-              const isActionDisabled = ['accepted', 'rejected'].includes(ta.status.toLowerCase());
+              const statusLower = (ta.status || '').toLowerCase();
+              const isActionDisabled = ['accepted', 'rejected'].includes(statusLower);
                   const isProcessing = processingActions.has(ta.applicationId);
-                  const isPending = ta.status.toLowerCase() === 'pending';
+                  const isPending = statusLower === 'pending';
               return (
                     <div key={idx} className="flex items-center justify-between bg-bg-page rounded-lg p-3 border border-border-default">
                       <div className="flex items-center space-x-3">
@@ -132,13 +133,13 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
                           <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                         </div>
                         <span className={`badge ${
-                          ta.status.toLowerCase() === 'accepted' 
+                          statusLower === 'accepted' 
                             ? 'badge-accepted' 
-                            : ta.status.toLowerCase() === 'rejected' 
+                            : statusLower === 'rejected' 
                             ? 'badge-rejected' 
                             : 'badge-pending'
                         }`}>
-                          {ta.status.toLowerCase() === 'accepted' ? 'Accepted' : ta.status.toLowerCase() === 'rejected' ? 'Rejected' : 'Pending'}
+                          {statusLower === 'accepted' ? 'Accepted' : statusLower === 'rejected' ? 'Rejected' : 'Pending'}
                         </span>
                   </div>
                       {isPending && (
@@ -193,9 +194,10 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
           ) : (
             <div className="space-y-2">
               {appliedTAs.map((ta, idx) => {
-                const isActionDisabled = ['accepted', 'rejected'].includes(ta.status.toLowerCase());
+                const statusLower = (ta.status || '').toLowerCase();
+                const isActionDisabled = ['accepted', 'rejected'].includes(statusLower);
                 const isProcessing = processingActions.has(ta.applicationId);
-                const isPending = ta.status.toLowerCase() === 'pending';
+                const isPending = statusLower === 'pending';
                 return (
                   <div key={idx} className="flex items-center justify-between bg-bg-page rounded-lg p-3 border border-border-default">
                     <div className="flex items-center space-x-3">
@@ -204,13 +206,13 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
                         <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                       </div>
                       <span className={`badge ${
-                        ta.status.toLowerCase() === 'accepted' 
+                        statusLower === 'accepted' 
                           ? 'badge-accepted' 
-                          : ta.status.toLowerCase() === 'rejected' 
+                          : statusLower === 'rejected' 
                           ? 'badge-rejected' 
                           : 'badge-pending'
                       }`}>
-                        {ta.status.toLowerCase() === 'accepted' ? 'Accepted' : ta.status.toLowerCase() === 'rejected' ? 'Rejected' : 'Pending'}
+                        {statusLower === 'accepted' ? 'Accepted' : statusLower === 'rejected' ? 'Rejected' : 'Pending'}
                       </span>
                     </div>
                     {isPending && (
