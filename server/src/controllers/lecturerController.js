@@ -330,15 +330,17 @@ const viewModuleDetails = async (req, res) => {
     const coordinatorModules = await ModuleDetails.find({
       coordinators: coordinatorGoogleId
     }).select('_id moduleCode moduleName semester year requiredTACount requiredTAHours requirements');
+    console.log("coordinatorModules", coordinatorModules);
 
     if (coordinatorModules.length === 0) {
       return res.status(200).json({ modules: [] });
     }
 
-    const moduleIds = coordinatorModules.map(m => m._id.toString());
+    const moduleIdObjects = coordinatorModules.map(m => m._id);
+    const moduleIdStrings = moduleIdObjects.map(id => id.toString());
 
     // Get all applications for these modules
-    const applications = await TaApplication.find({ moduleID: { $in: moduleIds } });
+    const applications = await TaApplication.find({ moduleId: { $in: moduleIdObjects } });
     console.log("TA Applications to view status", applications);
 
     // Build map of approved applications per module
@@ -346,14 +348,15 @@ const viewModuleDetails = async (req, res) => {
     for (const app of applications) {
       const statusLower = String(app.status || '').toLowerCase();
       if (statusLower === 'accepted') {
-        const key = app.moduleID;
+        const key = app.moduleId.toString();
         if (!approvedByModule.has(key)) approvedByModule.set(key, []);
         approvedByModule.get(key).push(app);
       }
     }
+    console.log("approvedByModule", approvedByModule);
 
     // If no requests at all, return empty
-    const modulesWithAnyRequests = new Set(applications.map(a => a.moduleID));
+    const modulesWithAnyRequests = new Set(applications.map(a => a.moduleId.toString()));
     if (modulesWithAnyRequests.size === 0) {
       return res.status(200).json({ modules: [] });
     }
@@ -362,6 +365,8 @@ const viewModuleDetails = async (req, res) => {
     const approvedUserIds = [...new Set(applications.filter(a => String(a.status || '').toLowerCase() === 'accepted').map(a => a.userId))];
 
     const users = await User.find({ _id: { $in: approvedUserIds } }).select('Id name indexNumber');
+    console.log("users", users);
+
     const userMap = users.reduce((acc, u) => { acc[u._id] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
 
     const docSubs = await TaDocumentSubmission.find({ userId: { $in: approvedUserIds } }).select('userId documents');
@@ -369,13 +374,16 @@ const viewModuleDetails = async (req, res) => {
 
     // Count ALL applications per module using aggregation (more robust)
     const countsAll = await TaApplication.aggregate([
-      { $match: { moduleID: { $in: moduleIds } } },
-      { $group: { _id: '$moduleID', total: { $sum: 1 } } }
+      { $match: { moduleId: { $in: moduleIdObjects } } },
+      { $group: { _id: '$moduleId', total: { $sum: 1 } } }
     ]);
+    console.log("countsAll", countsAll);
+    
     const applicationsCountMap = countsAll.reduce((acc, c) => {
-      acc[c._id] = c.total;
+      acc[String(c._id)] = c.total;
       return acc;
     }, {});
+    console.log("applicationsCountMap", applicationsCountMap);
 
     // Build response (only modules with at least one APPROVED/accepted application)
     const modules = coordinatorModules
@@ -429,6 +437,7 @@ const viewModuleDetails = async (req, res) => {
           applicationsCount: applicationsCountMap[modId] || 0
         }
       });
+    console.log("modules", modules);
 
     return res.status(200).json({ modules });
   } catch (error) {
