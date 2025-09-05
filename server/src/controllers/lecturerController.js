@@ -94,10 +94,17 @@ const handleRequests = async (req, res) => {
     const coordinatorGoogleId = String(req.user._id);
 
     // First, get all modules where the coordinator is responsible
-    const coordinatorModules = await ModuleDetails.find({
+    const coordinatorModulesAll = await ModuleDetails.find({
       coordinators: coordinatorGoogleId
-    }).select('_id moduleCode moduleName semester year requiredTACount');
-    console.log('edit modules -> matched', coordinatorModules.length, 'modules for', coordinatorGoogleId);
+    }).select('_id moduleCode moduleName semester year requiredTACount recruitmentSeriesId');
+    console.log('edit modules -> matched', coordinatorModulesAll.length, 'modules for', coordinatorGoogleId);
+
+    // Filter to only modules whose recruitment series is initialised
+    const rsIds = [...new Set(coordinatorModulesAll.map(m => m.recruitmentSeriesId))];
+    const activeSeries = await RecruitmentSeries.find({ _id: { $in: rsIds }, status: 'initialised' }).select('_id');
+    const activeSeriesIds = new Set(activeSeries.map(rs => rs._id.toString()));
+    const coordinatorModules = coordinatorModulesAll.filter(m => activeSeriesIds.has(String(m.recruitmentSeriesId)));
+    console.log('handleRequests -> active modules after RS filter', coordinatorModules.length);
 
     if (coordinatorModules.length === 0) {
       return res.status(200).json({ 
@@ -113,7 +120,7 @@ const handleRequests = async (req, res) => {
     // Find all TA applications for these modules
     const moduleIdStrings = moduleIds.map(id => id.toString());
     
-    // Query TA applications - based on terminal output, they use moduleId as ObjectId
+    // Query TA applications for ONLY active modules (moduleId ObjectId)
     const taApplications = await TaApplication.find({
       moduleId: { $in: moduleIds }
     }).lean();
