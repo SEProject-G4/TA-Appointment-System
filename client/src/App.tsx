@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ToastProvider } from "./contexts/ToastContext";
 import { useState, useRef, useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
@@ -31,6 +32,7 @@ function App() {
 
   return (
     <AuthProvider>
+      <ToastProvider>
       <div className="w-screen h-screen overflow-hidden">
         <Navbar ref={navbarRef} />
         <div
@@ -95,6 +97,7 @@ function App() {
           </Routes>
         </div>
       </div>
+      </ToastProvider>
     </AuthProvider>
   );
 }
