@@ -1,25 +1,128 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { FaChevronRight } from "react-icons/fa";
+import { FaChevronRight, FaRegCalendarAlt } from "react-icons/fa";
 import { MdMoreVert } from "react-icons/md";
-import { LuCirclePlus } from 'react-icons/lu';
+import { LuCirclePlus, LuMail } from "react-icons/lu";
+import { FiClock } from "react-icons/fi";
+import {
+  RiCheckboxBlankCircleLine,
+  RiCheckboxCircleFill,
+} from "react-icons/ri";
+
+import RSModuleCard from "./RSModuleCard";
+
+interface UserGroup {
+  _id: string;
+  name: string;
+  userCount: number;
+}
 
 interface RecruitmentSeriesCardProps {
-  id: number;
-  title: string;
+  _id: string;
+  name: string;
+  applicationDueDate: string;
+  documentDueDate: string;
+  undergradHourLimit: number;
+  postgradHourLimit: number;
+  undergradMailingList: UserGroup[];
+  postgradMailingList: UserGroup[];
+  status: "initialised" | "published" | "archived";
   className?: string;
 }
 
+interface TimelineProps {
+  events: {
+    id: number;
+    title: string;
+    date: string;
+  }[];
+  completedUpto: number;
+}
+
+const getClassForStatus = (status: string) => {
+  switch (status) {
+    case "initialised":
+      return "bg-primary-light/20 text-primary";
+    case "published":
+      return "bg-green-100 text-green-800";
+    case "archived":
+      return "bg-text-secondary/80 text-text-primary";
+    default:
+      return "";
+  }
+};
+
+const Timeline: React.FC<TimelineProps> = ({ events, completedUpto }) => {
+  return (
+    <div className="flex flex-row">
+      {events.map((event, index) => (
+        <div key={event.id} className={`flex flex-col flex-1`}>
+          <p className="text-text-secondary text-sm font-semibold w-full text-center h-[3em]">
+            {event.title}
+          </p>
+          <div className="flex flex-row items-center">
+            {index <= completedUpto ? (
+              <>
+                <div
+                  className={`flex-1 h-1 ${
+                    index === 0 ? "transparent" : "bg-primary"
+                  }`}
+                ></div>
+                <RiCheckboxCircleFill className="text-primary h-4 w-4 m-0" />
+                <div
+                  className={`flex-1 h-1 ${
+                    index === events.length - 1
+                      ? "transparent"
+                      : index === completedUpto
+                      ? "bg-text-secondary"
+                      : "bg-primary"
+                  }`}
+                ></div>
+              </>
+            ) : (
+              <>
+                <div
+                  className={`flex-1 h-1 ${
+                    index === 0 ? "transparent" : "bg-text-secondary"
+                  }`}
+                ></div>
+                <RiCheckboxBlankCircleLine className="text-text-secondary h-4 w-4 m-0" />
+                <div
+                  className={`flex-1 h-1 ${
+                    index === events.length - 1
+                      ? "transparent"
+                      : "bg-text-secondary"
+                  }`}
+                ></div>
+              </>
+            )}
+          </div>
+          <p className="text-text-secondary text-sm w-full text-center">
+            {event.date}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
-  id,
-  title,
+  _id,
+  name,
+  applicationDueDate,
+  documentDueDate,
+  undergradHourLimit,
+  postgradHourLimit,
+  undergradMailingList,
+  postgradMailingList,
+  status,
   className,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
     <div
-      className={`flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-2 ${className}`}
+      className={`flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-2 pb-3 ${className}`}
     >
       <div className="flex flex-row w-full items-center">
         <FaChevronRight
@@ -28,29 +131,190 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
           }`}
           onClick={() => setIsExpanded(!isExpanded)}
         />
-        <p className="flex flex-1 select-none text-md font-semibold ml-2">
-          {title}
-        </p>
+        <div className="flex flex-1 flex-col w-full ml-2">
+          <p className="flex w-full select-none text-md font-semibold">
+            {name}
+            <span
+              className={`ml-2 text-xs items-center flex flex-col justify-center px-2 rounded-full ${getClassForStatus(
+                status
+              )}`}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </span>
+          </p>
+          {/* <p className="mt-1 text-xs text-text-secondary font-semibold">10 module recruitments, 20 undergraduate TA positions, 10 postgraduate TA positions</p> */}
+        </div>
         {isExpanded && (
-          <MdMoreVert className="rounded-full cursor-pointer hover:bg-accent-light/20 font-semibold h-6 w-6 p-0.5" />
+          <div className="dropdown dropdown-left">
+            <MdMoreVert
+              role="button"
+              tabIndex={0}
+              className="rounded-full cursor-pointer hover:bg-accent-light/20 font-semibold h-6 w-6 p-0.5"
+            />
+            {/* Dropdown menu */}
+            <ul
+              tabIndex={0}
+              className="menu outline outline-text-secondary/20 outline-1 gap-y-1 mt-1 z-[10] p-2 shadow dropdown-content bg-bg-card rounded-box w-52 flex"
+            >
+              <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
+                Change deadlines
+              </li>
+              <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
+                Change hour limits
+              </li>
+              <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
+                Edit
+              </li>
+              <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
+                Make a copy
+              </li>
+              <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
+                Delete
+              </li>
+            </ul>
+          </div>
         )}
+      </div>
+      <div className="flex w-full items-start mt-4 gap-x-2 px-1">
+        <div className="flex flex-col relative outline outline-1 outline-text-secondary/80 rounded-sm py-2 px-4">
+          <FiClock className="absolute left-2 -top-2 h-4 w-8 bg-bg-card px-2 text-text-secondary" />
+          <p className="text-text-secondary text-sm mt-1 flex-grow">
+            Undergraduate:{" "}
+            <span className="font-semibold text-text-primary/90">
+              {undergradHourLimit}H
+            </span>
+          </p>
+          <p className="text-text-secondary text-sm flex-grow">
+            Postgraduate:{" "}
+            <span className="font-semibold text-text-primary/90">
+              {postgradHourLimit}H
+            </span>
+          </p>
+        </div>
+        <div className="flex flex-col relative outline outline-1 outline-text-secondary/80 rounded-sm py-2 px-4">
+          <FaRegCalendarAlt className="absolute left-2 -top-2 h-4 w-8 bg-bg-card px-2 text-text-secondary" />
+          <p className="text-text-secondary text-sm mt-1">
+            Application:{" "}
+            <span className="font-semibold text-text-primary/90">
+              {new Date(applicationDueDate).toLocaleString(undefined, {
+                  day: "2-digit",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+            </span>
+          </p>
+          <p className="text-text-secondary text-sm">
+            Document Submission:{" "}
+            <span className="font-semibold text-text-primary/90">
+              {new Date(documentDueDate).toLocaleString(undefined, {
+                  day: "2-digit",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+            </span>
+          </p>
+        </div>
+        <div className="flex flex-col flex-1 relative outline outline-1 outline-text-secondary/80 rounded-sm py-2 px-4">
+          <LuMail className="absolute left-2 -top-2 h-4 w-8 bg-bg-card px-2 text-text-secondary" />
+          <p className="text-text-secondary text-sm mt-1">
+            Undergraduate:{" "}
+            <span className="font-semibold text-text-primary/90">
+              {undergradMailingList
+                .map((group) => group.name + "(" + group.userCount + " users)")
+                .join(", ") || "None"}
+            </span>
+          </p>
+          <p className="text-text-secondary text-sm">
+            Postgraduate:{" "}
+            <span className="font-semibold text-text-primary/90">
+              {postgradMailingList
+                .map((group) => group.name + "(" + group.userCount + " users)")
+                .join(", ") || "None"}
+            </span>
+          </p>
+        </div>
       </div>
       <div
         className={`${
           isExpanded ? "flex opacity-100" : "hidden max-h-0 opacity-0"
-        } transition-all ease-in-out duration-1000 flex-col items-center w-full`}
+        } transition-all p-1 ease-in-out duration-1000 flex-col items-center w-full`}
       >
-        <div className="w-full flex flex-row flex-wrap justify-start items-start content-start">
-          <div className="h-12 w-8 rounded-md bg-bg-card m-1 shadow-sm"></div>
+        <div className="w-full pt-4 mt-4 flex flex-row flex-wrap relative outline outline-1 outline-text-secondary/80 rounded-sm justify-start items-start content-start">
+          <p className="absolute left-2 -top-2 h-4 bg-bg-card px-2 text-text-primary flex items-center">
+            Modules
+          </p>
+          <div className="px-3 w-full flex justify-start items-center">
+            <p className="text-sm text-text-secondary">Filters: </p>
+          </div>
+          <div className="flex px-4 pb-3 gap-x-2 overflow-x-hidden flex-wrap gap-y-2">
+            <RSModuleCard
+              id="test-12345"
+              moduleCode="CS101"
+              moduleName="Introduction to Computer Science"
+              semester={2}
+              status="initialised"
+              coordinators={["Dr. Smith"]}
+              requiredTAHours={20}
+              requiredTANumber={5}
+              appliedTANumber={3}
+              requirements={[]}
+              documentDueDate="2025-09-05"
+              applicationDueDate="2025-08-28"
+            />
+            <RSModuleCard
+              id="test-12345"
+              moduleCode="CS101"
+              moduleName="Introduction to Computer Science"
+              semester={2}
+              status="initialised"
+              coordinators={["Dr. Smith"]}
+              requiredTAHours={20}
+              requiredTANumber={5}
+              appliedTANumber={3}
+              requirements={[]}
+              documentDueDate="2025-09-05"
+              applicationDueDate="2025-08-28"
+            />
+            <RSModuleCard
+              id="test-12345"
+              moduleCode="CS101"
+              moduleName="Introduction to Computer Science"
+              semester={2}
+              status="initialised"
+              coordinators={["Dr. Smith"]}
+              requiredTAHours={20}
+              requiredTANumber={5}
+              appliedTANumber={3}
+              requirements={[]}
+              documentDueDate="2025-09-05"
+              applicationDueDate="2025-08-28"
+            />
+          </div>
+          <div className="flex px-3 py-2 mt-4 w-full border-text-secondary/50 border-t-[1px] border-solid items-end justify-between">
+            <p className="text-sm text-text-secondary">
+              Selected: <span className="text-text-primary">2 modules</span>
+            </p>
+            <div className="flex gap-x-2">
+              {/* Add new module button */}
+              <Link
+                to={"/recruitment-series/" + _id + "/add-module"}
+                state={{ id: _id, name: name, appDueDate: applicationDueDate, docDueDate: documentDueDate }}
+                className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-primary-light to-primary-dark rounded-md p-2 px-5"
+              >
+                <LuCirclePlus className="h-5 w-5 mr-2" />
+                Add Module
+              </Link>
+            </div>
+          </div>
         </div>
-        <Link
-          to={"/recruitment-series/" + id + "/add-module"}
-          className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-primary-light to-primary-dark rounded-2xl p-2 px-5"
-        >
-        <LuCirclePlus className="h-5 w-5 mr-2" />
-          Add Module
-        </Link>
       </div>
+      <p className="mt-3 mr-4 w-full text-right text-xs text-text-secondary font-semibold">
+        10 modules, 20 undergraduate TA positions, 10 postgraduate TA positions
+      </p>
     </div>
   );
 };

@@ -1,17 +1,47 @@
-import React from "react";
+import React, {useEffect, useState} from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import CollapsibleCard from "../components/RecruitmentSeriesCard";
+import RSCard from "../components/RecruitmentSeriesCard";
 import { LuCirclePlus } from "react-icons/lu";
+import axiosInstance from "../api/axiosConfig";
 
-const recruitment_series = [
-  { id: 1, name: "2025 - 2,4,6,8 Semesters" },
-  { id: 2, name: "2025 - 3,5,7 Semesters" },
-];
+interface UserGroup {
+  _id: string;
+  name: string;
+  userCount: number;
+}
+
+interface RecruitmentSeriesData {
+  _id: string;
+  name: string;
+  applicationDueDate: string;
+  documentDueDate: string;
+  undergradHourLimit: number;
+  postgradHourLimit: number;
+  undergradMailingList: UserGroup[];
+  postgradMailingList: UserGroup[];
+  status: "initialised" | "published" | "archived";
+}
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [recruitmentSeriesList, setRecruitmentSeriesList] = useState<RecruitmentSeriesData[]>([]);
+
+  const fetchRecruitmentSeries = async () => {
+    try {
+      const res = await axiosInstance.get("/recruitment-series");
+      if (res.status === 200) {
+        setRecruitmentSeriesList(res.data);
+      }
+    } catch (error) {
+      console.error("Error fetching recruitment series:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecruitmentSeries();
+  }, []);
 
   return (
     <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">
@@ -23,8 +53,8 @@ const AdminDashboard: React.FC = () => {
       </p>
       <div className="flex bg-bg-card flex-col items-center rounded-sm p-2 w-full">
         <div className="w-full  space-y-2">
-          {recruitment_series.map((series) => (
-            <CollapsibleCard key={series.id} id={series.id} title={series.name} />
+          {recruitmentSeriesList.map((series) => (
+            <RSCard key={series._id} {...series} />
           ))}
         </div>
         <div className="m-10 group text-text-secondary opacity-50 hover:opacity-80 hover:text-primary-light flex flex-col items-center">
