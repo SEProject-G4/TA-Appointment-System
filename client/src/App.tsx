@@ -10,6 +10,7 @@ import Navbar from "./components/Navbar";
 import HomePage from "./pages/HomePage";
 
 import NewModule from "./pages/NewModule";
+import NewRecruitmentSeries from "./pages/NewRecruitmentSeries";
 import AddUser from "./pages/AddUser";
 
 import TADashboardApplied from "./pages/TADashboardApplied";
@@ -72,6 +73,15 @@ function App() {
                 element={
                   <ProtectedRoute roles="admin">
                     <NewModule />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/recruitment-series/create"
+                element={
+                  <ProtectedRoute roles="admin">
+                    <NewRecruitmentSeries />
                   </ProtectedRoute>
                 }
               />
