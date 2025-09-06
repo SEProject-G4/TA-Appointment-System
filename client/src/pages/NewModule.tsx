@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import "./NewModule.css";
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { FaPlus, FaMinus } from "react-icons/fa";
-import { MdClose } from "react-icons/md";
+import { FaCircleCheck } from "react-icons/fa6";
+import { MdClose, MdOutlineErrorOutline } from "react-icons/md";
 import {
   Field,
   Label,
@@ -15,164 +16,304 @@ import {
   TabPanels,
 } from "@headlessui/react";
 import AutoSelect, { type Option } from "../components/AutoSelect";
-import { HiOutlineLink } from "react-icons/hi";
+// import { HiOutlineLink } from "react-icons/hi";
 
-interface FormPage1Data {
+import { useToast } from "../contexts/ToastContext";
+import axiosInstance from "../api/axiosConfig";
+
+import "./NewModule.css";
+
+interface FormData {
   moduleCode: string;
   moduleName: string;
   semester: Option | null;
   coordinators: Option[];
-  tasRequired: number;
+  undergraduateTAsRequired: number;
+  postgraduateTAsRequired: number;
   taHours: number;
-  taMinutes: number;
   appDueDate: string;
   docDueDate: string;
   specialNotes: string;
-}
-
-interface FormPage2Data {
   openForUndergrads: boolean;
   openForPostgrads: boolean;
-  undergradsMailingList: string[];
-  postgradsMailingList: string[];
-  areUndergradsLinkedToRecruitmentSeries: boolean;
-  arePostgradsLinkedToRecruitmentSeries: boolean;
 }
 
-const lecturers: Option[] = [
-  { id: 1, label: "Dr. Alice Smith" },
-  { id: 2, label: "Prof. Bob Johnson" },
-  { id: 3, label: "Dr. Charlie Brown" },
-];
+
+function toLocalDatetimeInputValue(date: Date) {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 const NewModule: React.FC = () => {
-  const [formPage1Data, setFormPage1Data] = useState<FormPage1Data>({
+  const [formData, setFormData] = useState<FormData>({
     moduleCode: "",
     moduleName: "",
     semester: null,
     coordinators: [],
-    tasRequired: 0,
+    undergraduateTAsRequired: 0,
+    postgraduateTAsRequired: 0,
     taHours: 0,
-    taMinutes: 0,
     appDueDate: "",
     docDueDate: "",
     specialNotes: "",
-  });
-
-  const [formPage2Data, setFormPage2Data] = useState<FormPage2Data>({
-    openForUndergrads: true,
+    openForUndergrads: false,
     openForPostgrads: false,
-    undergradsMailingList: [],
-    postgradsMailingList: [
-      "amali22@cse.mrt.ac.lk",
-      "nimal22@cse.mrt.ac.lk",
-      "tharindu22@cse.mrt.ac.lk",
-    ],
-    areUndergradsLinkedToRecruitmentSeries: true,
-    arePostgradsLinkedToRecruitmentSeries: false,
   });
-
-  const RSUndergradsMailingList = [
-    "cse22@cse.mrt.ac.lk",
-    "cyb22@cse.mrt.ac.lk",
-    "ice22@cse.mrt.ac.lk",
-  ];
-
+  const [inputErrors, setInputErrors] = useState<{ [key: string]: string }>({});
+  
+  // const [lecturers, setLecturers] = useState<Option[]>([]);
   const [availableLecturers, setAvailableLecturers] =
-    useState<Option[]>(lecturers);
-  const [page, setPage] = useState(1);
+    useState<Option[]>([]);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const state = location.state as { id: string; name: string; appDueDate: string; docDueDate: string } | null;
+  const { showToast } = useToast();
+
+  const fetchLecturers = async () => {
+  try {
+    const response = await axiosInstance.get("/user-management/lecturers");
+    const data = response.data;
+    setAvailableLecturers(data.map((lecturer: any) => ({
+      id: lecturer.id,
+      label: lecturer.displayName,
+    })));
+
+    console.log("Fetched lecturers:", data);
+  } catch (error) {
+    console.error("Error fetching lecturers:", error);
+    return [];
+  }
+};
+
+const postFormData = async () => {
+  try {
+    if (!state || !state.id) {
+      showToast("Recruitment Series ID is missing. Please go to the previous page and come again", "error");
+      return;
+    }
+    const payload = {
+      moduleCode: formData.moduleCode,
+      moduleName: formData.moduleName,
+      semester: formData.semester?.id,
+      coordinators: formData.coordinators.map((coord) => coord.id),
+      applicationDueDate: formData.appDueDate,
+      documentDueDate: formData.docDueDate,
+      requiredTAHours: formData.taHours,
+      requiredUndergraduateTACount: formData.undergraduateTAsRequired,
+      requiredPostgraduateTACount: formData.postgraduateTAsRequired,
+      requirements: formData.specialNotes,
+    };
+    console.log("Posting payload:", payload);
+    const response = await axiosInstance.post("/recruitment-series/"+state.id+"/add-module", payload);
+    showToast("Module added successfully to the recruitment series!", "success");
+  } catch (error) {
+    console.error("Error creating module:", error);
+    showToast("Failed to create module.", "error");
+  }
+};
+
+  // Validation functions
+  const validateField = (name: string, value: any) => {
+    switch (name) {
+      case "moduleCode":
+        if (!value) return "Module code is required.";
+        // if (!/^([A-Za-z]{2,4}\d{3,4})$/.test(value))
+        //   return "Invalid module code format.";
+        return "";
+      case "moduleName":
+        if (!value) return "Module name is required.";
+        return "";
+      case "taHours":
+        if (value <= 0) return "TA hours should be greater than 0.";
+        return "";
+      case "undergraduateTAsRequired":
+        if (
+          value <= 0 &&
+          (!formData.postgraduateTAsRequired ||
+            formData.postgraduateTAsRequired <= 0)
+        ) {
+          return "At least one TA (undergraduate or postgraduate) is required.";
+        }
+        return "";
+      case "postgraduateTAsRequired":
+        if (
+          value <= 0 &&
+          (!formData.undergraduateTAsRequired ||
+            formData.undergraduateTAsRequired <= 0)
+        ) {
+          return "At least one TA (undergraduate or postgraduate) is required.";
+        }
+        return "";
+      case "appDueDate":
+        if (!value) return "Application due date is required.";
+        // If docDueDate is set, check order
+        if (
+          formData.docDueDate &&
+          value &&
+          new Date(formData.docDueDate) < new Date(value)
+        ) {
+          return "Application due date must be on or before document submission deadline.";
+        }
+        return "";
+      case "docDueDate":
+        if (!value) return "Document submission deadline is required.";
+        if (
+          formData.appDueDate &&
+          value &&
+          new Date(value) < new Date(formData.appDueDate)
+        ) {
+          return "Document submission deadline must be on or after application due date.";
+        }
+        return "";
+      default:
+        return "";
+    }
+  };
+
+  const validateSemester = (semester: Option | null) => {
+    if (!semester) {
+      setInputErrors((prev) => ({ ...prev, semester: "Semester is required." }));
+    } else {
+      setInputErrors((prev) => ({ ...prev, semester: "" }));
+    }
+  };
+
+  const validateCoordinators = (coordinators: Option[]) => {
+    if (coordinators.length === 0) {
+      setInputErrors((prev) => ({ ...prev, coordinators: "At least one coordinator is required." }));
+    } else {
+      setInputErrors((prev) => ({ ...prev, coordinators: "" }));
+
+    }
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
-    const { name, value } = e.target;
-    setFormPage1Data((prevData) => ({
+    const { name, value, type } = e.target;
+    let newValue: any = value;
+    if (type === "checkbox" && e.target instanceof HTMLInputElement) {
+      newValue = e.target.checked;
+    }
+    if (
+      name === "undergraduateTAsRequired" ||
+      name === "postgraduateTAsRequired" ||
+      name === "taHours" ||
+      name === "semester"
+    ) {
+      newValue = Number(newValue);
+    }
+    setFormData((prevData) => ({
       ...prevData,
-      [name]:
-        name === "tasRequired" ||
-        name === "taHours" ||
-        name === "taMinutes" ||
-        name === "semester"
-          ? Number(value)
-          : value,
+      [name]: newValue,
     }));
-  };
 
-  const handleChange2 = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    const { name, value } = e.target;
-    setFormPage2Data((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    // Validate on change
+    if (
+      name === "undergraduateTAsRequired" ||
+      name === "postgraduateTAsRequired"
+    ) {
+      setInputErrors((prev) => ({
+        ...prev,
+        tasRequired: validateField(name, Number(newValue)),
+      }));
+    } else {
+      setInputErrors((prev) => ({
+        ...prev,
+        [name]: validateField(name, newValue),
+      }));
+    }
   };
 
   const handleCoordinatorChange = (value: Option | null) => {
-    setFormPage1Data((prevData) => ({
+    if (value) validateCoordinators(formData.coordinators.concat(value));
+    setFormData((prevData) => ({
       ...prevData,
-      coordinators: value ? [...prevData.coordinators, value] : [],
+      coordinators: value ? [...prevData.coordinators, value] : [...prevData.coordinators],
     }));
     setAvailableLecturers((prev) =>
       prev.filter((lecturer) => lecturer.id !== value?.id)
     );
-    console.log(formPage1Data);
+    
   };
 
   const handleSemesterChange = (option: Option | null) => {
-    setFormPage1Data((prevData) => ({
+    setFormData((prevData) => ({
       ...prevData,
       semester: option,
     }));
+    validateSemester(option);
   };
 
   const removeCoordinator = (lecturer: Option) => {
-    const newCoordinators = formPage1Data.coordinators?.filter(
+    const newCoordinators = formData.coordinators?.filter(
       (coord) => coord.id !== lecturer.id
     );
-    setFormPage1Data((prevData) => ({
+    validateCoordinators(newCoordinators || []);
+    setFormData((prevData) => ({
       ...prevData,
       coordinators: newCoordinators || [],
     }));
     setAvailableLecturers((prev) => [...prev, lecturer]);
   };
 
-  const isFormPage1Valid = () => {
-    const {
-      moduleCode,
-      moduleName,
-      semester,
-      coordinators,
-      tasRequired,
-      taHours,
-      taMinutes,
-      appDueDate,
-      docDueDate,
-    } = formPage1Data;
+  const isFormValid = () => {
     return (
-      moduleCode.length > 0 &&
-      moduleName.length > 0 &&
-      semester !== null &&
-      coordinators &&
-      coordinators.length > 0 &&
-      tasRequired > 0 &&
-      (taHours > 0 || taMinutes > 0) &&
-      appDueDate.length > 0 &&
-      docDueDate.length > 0
+      formData.moduleCode &&
+      !inputErrors.moduleCode &&
+      formData.moduleName &&
+      !inputErrors.moduleName &&
+      formData.semester &&
+      formData.coordinators.length &&
+      !inputErrors.tasRequired &&
+      !inputErrors.taHours &&
+      formData.appDueDate &&
+      !inputErrors.appDueDate &&
+      formData.docDueDate &&
+      !inputErrors.docDueDate
     );
   };
 
-  const handleNext = () => {
-    setPage(2);
+  const validateForm = () => {
+    Object.keys(formData).forEach((key) => {
+      if (
+        key === "undergraduateTAsRequired" ||
+        key === "postgraduateTAsRequired"
+      ) {
+        setInputErrors((prev) => ({
+          ...prev,
+          tasRequired: validateField(
+            key as keyof FormData,
+            formData[key as keyof FormData]
+          ),
+        }));
+      } else if(key === "semester"){
+        validateSemester(formData.semester);
+      }else if(key === "coordinators"){
+        validateCoordinators(formData.coordinators);
+      } else {
+        setInputErrors((prev) => ({
+          ...prev,
+          [key]: validateField(
+            key as keyof FormData,
+            formData[key as keyof FormData]
+          ),
+        }));
+      }
+    });
   };
 
-  const handleCancel = () => {
-    // Logic to cancel the form, e.g., redirect to another page
-    console.log("Form canceled");
+  const handleAddModule = () => {
+    validateForm();
+    if (isFormValid()) {
+      postFormData();
+    }else{
+      showToast("Please fix the errors in the form.", "error");
+    }
+    console.log("Form is ready to send", formData);
   };
 
   const semesters: Option[] = Array.from({ length: 8 }, (_, i) => ({
@@ -180,362 +321,368 @@ const NewModule: React.FC = () => {
     label: `Semester ${i + 1}`,
   }));
 
-  if (page == 2) {
+  if (!state || !state.id || !state.name) {
     return (
-      <div className="flex flex-col items-center justify-start p-4 min-h-screen bg-bg-page">
-        <div className="rounded-lg w-full max-w-4xl bg-bg-card shadow-xl p-8">
-          <h2 className="text-3xl font-bold text-center mb-8 text-base-content select-none">
-            New Module for the Recruitment Series
-          </h2>
-
-          <div className="flex flex-col">
-            <Field>
-              <Label
-                htmlFor="openForUndergrads"
-                className={`mr-2 ${
-                  formPage2Data.openForUndergrads
-                    ? "text-text-primary"
-                    : "text-text-secondary/50"
-                }`}
-              >
-                Open for Undergraduates
-              </Label>
-              <Switch
-                id="openForUndergrads"
-                name="openForUndergrads"
-                checked={formPage2Data.openForUndergrads}
-                onChange={(checked) => {
-                  setFormPage2Data((prev) => ({
-                    ...prev,
-                    openForUndergrads: checked,
-                  }));
-                }}
-                className="group inline-flex h-6 w-11 items-center rounded-full bg-text-secondary transition data-[checked]:bg-primary"
-              >
-                <span className="size-4 translate-x-1 rounded-full bg-bg-card transition group-data-[checked]:translate-x-6" />
-              </Switch>
-            </Field>
-
-            <p className="text-text-secondary text-md">Mailing List</p>
-
-            <div className="rounded-md outline outline-text-text-primary-50 outline-1 w-full p-5 min-h-[100px] h-[30vh] overflow-y-auto overflow-x-hidden flex flex-row flex-wrap items-center justify-start space-x-3">
-              {formPage2Data.areUndergradsLinkedToRecruitmentSeries && (
-                <div className="flex flex-col items-center w-full outline-2 outline-dotted outline-text-secondary/80 rounded-md">
-                  <div className="flex flex-row w-full p-1.5 border-solid border-b-[2px] border-text-secondary/50 items-center justify-between">
-                    <p className="w-full font-semibold text-sm text-text-secondary">
-                      Undergraduate Mailing List from the Recruitment Series
-                    </p>
-                    <MdClose
-                      className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
-                      onClick={() =>
-                        setFormPage2Data((prev) => ({
-                          ...prev,
-                          areUndergradsLinkedToRecruitmentSeries: false,
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className="flex flex-row p-2 space-x-4 flex-wrap justify-start w-full">
-                    {RSUndergradsMailingList.map((email, index) => (
-                      <div
-                        key={index}
-                        className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-full drop-shadow bg-bg-card flex items-center text-text-primary space-x-3"
-                      >
-                        <p className="text-text-primary text-sm font-semibold">
-                          {email}
-                        </p>
-                        <MdClose
-                          className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
-                          onClick={() =>
-                            setFormPage2Data((prev) => ({
-                              ...prev,
-                              areUndergradsLinkedToRecruitmentSeries: false,
-                              undergradsMailingList:
-                                RSUndergradsMailingList.filter(
-                                  (item) => item !== email
-                                ),
-                            }))
-                          }
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {formPage2Data.undergradsMailingList.map((email, index) => (
-                <div
-                  key={index}
-                  className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-full drop-shadow bg-bg-card flex items-center text-text-primary space-x-3"
-                >
-                  <p className="text-text-primary text-sm font-semibold">
-                    {email}
-                  </p>
-                  <MdClose
-                    className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
-                    onClick={() =>
-                      setFormPage2Data((prev) => ({
-                        ...prev,
-                        undergradsMailingList:
-                          prev.undergradsMailingList.filter(
-                            (item) => item !== email
-                          ),
-                      }))
-                    }
-                  />
-                </div>
-              ))}
-            </div>
-
-            <p className="text-text-secondary text-md">Add mails to the mailing list</p>
-            <TabGroup className="mt-4">
-              <TabList className="ml-1">
-                <Tab className="data-[selected]:bg-primary-light data-[selected]:text-text-inverted data-[selected]:z-10 data-[selected]:scale-105 new-module-tab">
-                  From Existing Users
-                </Tab>
-                <Tab className="data-[selected]:bg-primary-light data-[selected]:text-text-inverted data-[selected]:z-10 data-[selected]:scale-105 new-module-tab">
-                  New Email
-                </Tab>
-                <Tab className="data-[selected]:bg-primary-light data-[selected]:text-text-inverted data-[selected]:z-10 data-[selected]:scale-105 new-module-tab">
-                  Tab 3
-                </Tab>
-              </TabList>
-              <TabPanels className="outline outline-1 outline-text-secondary/50 rounded-sm p-4">
-                <TabPanel>Content 1</TabPanel>
-                <TabPanel>Content 2</TabPanel>
-                <TabPanel>Content 3</TabPanel>
-              </TabPanels>
-            </TabGroup>
-          </div>
-        </div>
+      <div className="text-xl flex-col text-center w-full h-[80vh] flex items-center justify-center text-text-secondary">
+        <MdOutlineErrorOutline className="inline-block size-60" />
+        <p>
+          Recruitment Series is not found. Please go back to the dashboard and
+          try again.
+        </p>
       </div>
     );
   }
 
+  useEffect(() => {
+    setFormData((prevData) => ({
+      ...prevData,
+      appDueDate: toLocalDatetimeInputValue(new Date(state.appDueDate)),
+      docDueDate: toLocalDatetimeInputValue(new Date(state.docDueDate)),
+    }));
+    fetchLecturers();
+  },[])
+
   return (
-    <div className="flex flex-col items-center justify-start p-4 min-h-screen bg-bg-page">
+    <div
+      className="flex flex-col items-center justify-start p-4 min-h-screen bg-gradient-to-br from-primary-dark/10 to-primary-light/20"
+    >
       <div className="rounded-lg w-full max-w-4xl bg-bg-card shadow-xl p-8">
-        <h2 className="text-3xl font-bold text-center mb-8 text-base-content select-none">
-          New Module for the Recruitment Series
-        </h2>
+      <h2 className="text-3xl font-bold text-center mb-16 text-base-content select-none">
+        New Module for <br />
+        {state.name}
+      </h2>
 
-        <div className="flex flex-col space-y-6">
-          {/* Module Code */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Module Code</span>
-            </label>
-            <input
-              type="text"
-              name="moduleCode"
-              placeholder="e.g. CS1011"
-              value={formPage1Data.moduleCode}
-              onChange={handleChange}
-              maxLength={10}
-              className="ml-8 new-module-input"
+      <div className="flex flex-col space-y-6">
+        {/* Module Code */}
+        <div className="form-control">
+        <label className="label">
+          <span className="label-text">Module Code</span>
+        </label>
+        <input
+          type="text"
+          name="moduleCode"
+          placeholder="e.g. CS1011"
+          value={formData.moduleCode}
+          onChange={handleChange}
+          maxLength={10}
+          className="ml-8 new-module-input"
+        />
+        {inputErrors.moduleCode && (
+          <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+          {inputErrors.moduleCode}
+          </span>
+        )}
+        </div>
+
+        {/* Module Name */}
+        <div className="form-control">
+        <label className="label">
+          <span className="label-text">Module Name</span>
+        </label>
+        <input
+          type="text"
+          name="moduleName"
+          placeholder="e.g. Program Construction"
+          value={formData.moduleName}
+          onChange={handleChange}
+          className="ml-8 max-w-full w-96 new-module-input"
+        />
+        {inputErrors.moduleName && (
+          <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+          {inputErrors.moduleName}
+          </span>
+        )}
+        </div>
+
+        {/* Semester */}
+        <div className="form-control flex flex-row items-center">
+        <label className="label">
+          <span className="label-text">Semester</span>
+        </label>
+        <AutoSelect
+          options={semesters}
+          selectedOption={formData.semester}
+          onSelect={handleSemesterChange}
+          placeholder="Select Semester"
+          className="ml-8"
+        />
+        {inputErrors.semester && (
+          <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+          {inputErrors.semester}
+          </span>
+        )}
+        </div>
+
+        {/* Module Coordinator(s) */}
+        <div className="form-control flex flex-col">
+        <div className="flex flex-row items-center space-x-8 mb-5 mt-8">
+          <label className="label">
+          <span className="label-text">Module Coordinator(s)</span>
+          </label>
+          <AutoSelect
+          options={availableLecturers}
+          selectedOption={null}
+          onSelect={handleCoordinatorChange}
+          placeholder="Select Coordinator(s)"
+          className="ml-8"
+          />
+        </div>
+        <div className="flex flex-row flex-wrap ml-8 space-x-5 items-start mb-8">
+          {formData.coordinators &&
+          formData.coordinators.length > 0 &&
+          formData.coordinators.map((coordinator) => (
+            <div
+            key={coordinator.id}
+            className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-full drop-shadow bg-bg-card flex items-center text-text-primary space-x-3"
+            >
+            <p className="text-text-primary text-sm font-semibold">
+              {coordinator.label}
+            </p>
+            <MdClose
+              className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
+              onClick={() => removeCoordinator(coordinator)}
             />
-          </div>
-
-          {/* Module Name */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Module Name</span>
-            </label>
-            <input
-              type="text"
-              name="moduleName"
-              placeholder="e.g. Program Construction"
-              value={formPage1Data.moduleName}
-              onChange={handleChange}
-              className="ml-8 max-w-full w-96 new-module-input"
-            />
-          </div>
-
-          {/* Semester */}
-          <div className="form-control flex flex-row">
-            <label className="label">
-              <span className="label-text">Semester</span>
-            </label>
-            <AutoSelect
-              options={semesters}
-              selectedOption={formPage1Data.semester}
-              onSelect={handleSemesterChange}
-              placeholder="Select Semester"
-              className="ml-8"
-            />
-          </div>
-
-          {/* Module Coordinator(s) */}
-          <div className="form-control flex flex-col">
-            <div className="flex flex-row items-center space-x-8 mb-5 mt-8">
-              <label className="label">
-                <span className="label-text">Module Coordinator(s)</span>
-              </label>
-              <AutoSelect
-                options={availableLecturers}
-                selectedOption={null}
-                onSelect={handleCoordinatorChange}
-                placeholder="Select Coordinator(s)"
-                className="ml-8"
-              />
             </div>
-            <div className="flex flex-row flex-wrap ml-8 space-x-5 items-start mb-8">
-              {formPage1Data.coordinators &&
-                formPage1Data.coordinators.length > 0 &&
-                formPage1Data.coordinators.map((coordinator) => (
-                  <div
-                    key={coordinator.id}
-                    className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-full drop-shadow bg-bg-card flex items-center text-text-primary space-x-3"
-                  >
-                    <p className="text-text-primary text-sm font-semibold">
-                      {coordinator.label}
-                    </p>
-                    <MdClose
-                      className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
-                      onClick={() => removeCoordinator(coordinator)}
-                    />
-                  </div>
-                ))}
-            </div>
-          </div>
+          ))}
+        </div>
+        {inputErrors.coordinators && (
+          <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+          {inputErrors.coordinators}
+          </span>
+        )}
+        </div>
 
-          {/* No. of TAs Required */}
+        {/* No. of TAs Required */}
+        <div className="flex flex-col gap-y-6 w-full">
+        <p className="label">Number of TAs required</p>
+        <div className="flex ml-8 gap-x-24">
+          {/* Undergraduate TAs */}
           <div className="form-control flex flex-col space-y-5">
-            <label className="label">
-              <span className="label-text">No. of TAs Required</span>
-            </label>
-            <div className="ml-8 flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={() =>
-                  setFormPage1Data((prev) => ({
-                    ...prev,
-                    tasRequired: Math.max(0, prev.tasRequired - 1),
-                  }))
-                }
-                className="hover:text-primary-light hover:outline-primary-light hover:outline-2 rounded-sm p-2 text-sm outline-1 outline-text-secondary outline text-text-secondary"
-              >
-                <FaMinus />
-              </button>
-              <input
-                type="number"
-                min={0}
-                max={20}
-                name="tasRequired"
-                value={formPage1Data.tasRequired}
-                onChange={handleChange}
-                className="new-module-input text-center new-module-type-select"
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  setFormPage1Data((prev) => ({
-                    ...prev,
-                    tasRequired: prev.tasRequired + 1,
-                  }))
-                }
-                className="hover:text-primary-light hover:outline-primary-light hover:outline-2 rounded-sm p-2 text-sm outline-1 outline-text-secondary outline text-text-secondary"
-              >
-                <FaPlus />
-              </button>
-            </div>
-          </div>
-
-          {/* Requested TA hours /week /TA */}
-          <div className="form-control flex flex-col space-y-4">
-            <label className="label mt-5">
-              <span className="label-text">Requested TA hours /week /TA</span>
-            </label>
-            <div className="flex ml-8 space-x-8">
-              <label className="text-text-secondary flex flex-row items-center new-module-input">
-                <input
-                  type="number"
-                  min={0}
-                  max={50}
-                  name="taHours"
-                  value={formPage1Data.taHours}
-                  onChange={handleChange}
-                  className="pl-2 text-text-primary focus:outline-0 pr-2 border mr-2 border-0 border-r-2 border-r-text-secondary w-full"
-                  placeholder="Hours"
-                />
-                hours
-              </label>
-
-              <label className="text-text-secondary flex flex-row items-center new-module-input">
-                <input
-                  type="number"
-                  min={0}
-                  max={59}
-                  name="taMinutes"
-                  value={formPage1Data.taMinutes}
-                  onChange={handleChange}
-                  className="pl-2 text-text-primary focus:outline-0 pr-2 border mr-2 border-0 border-r-2 border-r-text-secondary w-full"
-                  placeholder="Minutes"
-                />
-                mins
-              </label>
-            </div>
-          </div>
-
-          {/* Application due date */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Application Due Date</span>
-            </label>
+          <label className="label">
+            <span className="label-text">Undergraduate TAs</span>
+          </label>
+          <div className="ml-8 flex items-center space-x-2">
+            <button
+            type="button"
+            onClick={() => {
+              setFormData((prev) => ({
+              ...prev,
+              undergraduateTAsRequired: Math.max(
+                0,
+                prev.undergraduateTAsRequired - 1
+              ),
+              }));
+              setInputErrors((prev) => ({
+              ...prev,
+              tasRequired: validateField(
+                "undergraduateTAsRequired",
+                formData.undergraduateTAsRequired - 1
+              ),
+              }));
+            }}
+            className="hover:text-primary-light hover:outline-primary-light hover:outline-2 focus:outline-2 focus:outline-primary-light focus:text-primary-light rounded-sm p-2 text-sm outline-1 outline-text-secondary outline text-text-secondary"
+            >
+            <FaMinus />
+            </button>
             <input
-              type="datetime-local"
-              name="appDueDate"
-              value={formPage1Data.appDueDate}
-              onChange={handleChange}
-              className="input input-bordered"
+            type="number"
+            min={0}
+            max={20}
+            name="undergraduateTAsRequired"
+            value={formData.undergraduateTAsRequired}
+            onChange={handleChange}
+            className="new-module-input text-center new-module-type-select"
             />
+            <button
+            type="button"
+            onClick={() => {
+              setFormData((prev) => ({
+              ...prev,
+              undergraduateTAsRequired:
+                prev.undergraduateTAsRequired + 1,
+              }));
+              setInputErrors((prev) => ({
+              ...prev,
+              tasRequired: validateField(
+                "undergraduateTAsRequired",
+                formData.undergraduateTAsRequired + 1
+              ),
+              }));
+            }}
+            className="hover:text-primary-light hover:outline-primary-light hover:outline-2 focus:outline-2 focus:outline-primary-light focus:text-primary-light rounded-sm p-2 text-sm outline-1 outline-text-secondary outline text-text-secondary"
+            >
+            <FaPlus />
+            </button>
+          </div>
           </div>
 
-          {/* Document submission deadline */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Document Submission Deadline</span>
-            </label>
+          {/* Postgraduate TAS */}
+          <div className="form-control flex flex-col space-y-5">
+          <label className="label">
+            <span className="label-text">
+            Postgraduate TAs
+            </span>
+          </label>
+          <div className="ml-8 flex items-center space-x-2">
+            <button
+            type="button"
+            onClick={() => {
+              setFormData((prev) => ({
+              ...prev,
+              postgraduateTAsRequired: Math.max(
+                0,
+                prev.postgraduateTAsRequired - 1
+              ),
+              }));
+              setInputErrors((prev) => ({
+              ...prev,
+              tasRequired: validateField(
+                "postgraduateTAsRequired",
+                formData.postgraduateTAsRequired - 1
+              ),
+              }));
+            }}
+            className="hover:text-primary-light hover:outline-primary-light hover:outline-2 focus:outline-2 focus:outline-primary-light focus:text-primary-light rounded-sm p-2 text-sm outline-1 outline-text-secondary outline text-text-secondary"
+            >
+            <FaMinus />
+            </button>
             <input
-              type="datetime-local"
-              name="docDueDate"
-              value={formPage1Data.docDueDate}
-              onChange={handleChange}
-              className="input input-bordered"
+            type="number"
+            min={0}
+            max={20}
+            name="postgraduateTAsRequired"
+            value={formData.postgraduateTAsRequired}
+            onChange={handleChange}
+            className="new-module-input text-center new-module-type-select"
             />
+            <button
+            type="button"
+            onClick={() => {
+              setFormData((prev) => ({
+              ...prev,
+              postgraduateTAsRequired:
+                prev.postgraduateTAsRequired + 1,
+              }));
+              setInputErrors((prev) => ({
+              ...prev,
+              tasRequired: validateField(
+                "postgraduateTAsRequired",
+                formData.postgraduateTAsRequired + 1
+              ),
+              }));
+            }}
+            className="hover:text-primary-light hover:outline-primary-light hover:outline-2 focus:outline-2 focus:outline-primary-light focus:text-primary-light rounded-sm p-2 text-sm outline-1 outline-text-secondary outline text-text-secondary"
+            >
+            <FaPlus />
+            </button>
           </div>
-
-          {/* Special Notes */}
-          <div className="form-control flex flex-col">
-            <label className="label">
-              <span className="label-text">Special Notes</span>
-            </label>
-            <textarea
-              name="specialNotes"
-              value={formPage1Data.specialNotes}
-              onChange={handleChange}
-              className="new-module-input h-24 ml-8 mt-4"
-              placeholder="Any special instructions or notes for applicants..."
-            ></textarea>
           </div>
         </div>
-
-        {/* Action Buttons */}
-        <div className="mt-8 flex justify-end space-x-4">
-          <button
-            onClick={handleCancel}
-            className="text-primary rounded-md outline outline-2 outline-primary-light hover:bg-primary-light py-2 px-4 hover:text-text-inverted"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleNext}
-            className="text-primary rounded-md outline outline-2 outline-primary-light hover:bg-primary-light py-2 px-4 hover:text-text-inverted"
-            // disabled={!isFormValid()}
-          >
-            Next
-          </button>
+        {inputErrors.tasRequired && (
+          <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+          {inputErrors.tasRequired}
+          </span>
+        )}
         </div>
+
+        {/* Requested TA hours /week /TA */}
+        <div className="form-control flex flex-col space-y-4">
+        <label className="label mt-5">
+          <span className="label-text">Requested TA hours /week /TA</span>
+        </label>
+        <label className="text-text-secondary ml-8 flex flex-row items-center new-module-input max-w-fit">
+          <input
+          type="number"
+          min={0}
+          max={50}
+          name="taHours"
+          value={formData.taHours}
+          onChange={handleChange}
+          className="pl-2 text-text-primary focus:outline-0 pr-2 mr-2 border-0 border-r-2 border-r-text-secondary"
+          placeholder="Hours"
+          />
+          hours
+        </label>
+        {inputErrors.taHours && (
+          <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+          {inputErrors.taHours}
+          </span>
+        )}
+        </div>
+
+        {/* Application due date */}
+        <div className="flex flex-col gap-y-3">
+        <div className="form-control">
+          <label className="label">
+          <span className="label-text">Application Due Date</span>
+          </label>
+          <input
+          type="datetime-local"
+          name="appDueDate"
+          value={formData.appDueDate}
+          onChange={handleChange}
+          className="ml-5 input input-bordered"
+          />
+        </div>
+        {inputErrors.appDueDate && (
+          <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+          {inputErrors.appDueDate}
+          </span>
+        )}
+        </div>
+
+        {/* Document submission deadline */}
+        <div className="flex flex-col gap-y-3">
+        <div className="form-control">
+          <label className="label">
+          <span className="label-text">Document Submission Deadline</span>
+          </label>
+          <input
+          type="datetime-local"
+          name="docDueDate"
+          value={formData.docDueDate}
+          onChange={handleChange}
+          className="ml-5 input input-bordered"
+          />
+        </div>
+        {inputErrors.docDueDate && (
+          <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+          {inputErrors.docDueDate}
+          </span>
+        )}
+        </div>
+
+        {/* Special Notes */}
+        <div className="form-control flex flex-col">
+        <label className="label">
+          <span className="label-text">Special Notes</span>
+        </label>
+        <textarea
+          name="specialNotes"
+          value={formData.specialNotes}
+          onChange={handleChange}
+          className="new-module-input h-24 ml-8 mt-4"
+          placeholder="Any special instructions or notes for applicants..."
+        ></textarea>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="mt-16 flex justify-end gap-x-5 w-full">
+        <button
+        onClick={() => navigate(-1)}
+        className="text-text-primary rounded-md outline outline-2 outline-text-primary hover:bg-text-primary w-36 py-2 px-4 hover:text-text-inverted"
+        >
+        Cancel
+        </button>
+        <button
+        onClick={handleAddModule}
+        className="w-36 rounded-md outline outline-2 outline-primary-light bg-primary hover:bg-primary-light py-2 px-4 text-text-inverted"
+        // disabled={isFormValid()}
+        >
+        Add Module
+        </button>
+      </div>
       </div>
     </div>
   );

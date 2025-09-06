@@ -1,21 +1,28 @@
-.new-module-input{
-    @apply py-1 px-2 rounded-md outline outline-1 outline-text-secondary focus:outline-primary-light focus:outline-offset-1 focus:outline-2;
-    width: auto;
+.new-module-input {
+  @apply py-1 px-2 rounded-md outline outline-1 outline-text-secondary focus:outline-primary-light focus:outline-offset-1 focus:outline-2;
+  width: auto;
 }
 
 .new-module-type-select::-webkit-outer-spin-button,
 .new-module-type-select::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-
-.new-module-type-select{
-    @apply appearance-none;
-    -moz-appearance: textfield;
-    appearance: textfield;
+  -webkit-appearance: none;
+  margin: 0;
 }
 
-.new-module-tab{
-    @apply px-4 py-2 rounded-t-sm text-text-secondary bg-gray-200 hover:text-text-primary focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50;
+.new-module-type-select {
+  @apply appearance-none;
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
+.new-module-tab {
+  @apply px-4 py-2 rounded-t-sm text-text-secondary bg-gray-200 hover:text-text-primary focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50;
+}
+
+input[type="datetime-local"] {
+  @apply py-1 px-2 rounded-md outline outline-1 outline-text-secondary;
+}
+
+input[type="datetime-local"]:focus {
+  @apply outline outline-2 outline-primary-light outline-offset-1;
+}

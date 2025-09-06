@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const moduleDetailsSchema = new mongoose.Schema({
+    recruitmentSeriesId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: "RecruitmentSeries"
+    },
     moduleCode: { 
         type: String, 
         required: true, 
@@ -12,21 +17,16 @@ const moduleDetailsSchema = new mongoose.Schema({
         trim: true 
     },
     semester: { 
-        type: String, 
+        type: Number, 
         required: true, 
         trim: true 
     },
-    year: { 
-        type: String, 
+    coordinators: [{ 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "User", 
         required: true, 
-        trim: true 
-    },
-    // Array of Google ID strings for coordinators
-    coordinators: { 
-        type: [String], 
-        required: true, 
-        default: [] 
-    },
+        default: []
+    }],
     applicationDueDate: { 
         type: Date, 
         required: true 
@@ -35,31 +35,54 @@ const moduleDetailsSchema = new mongoose.Schema({
         type: Date, 
         required: true 
     },
-    // Lecturer fields can be filled later
     requiredTAHours: { 
         type: Number, 
         required: false, 
-        default: null, 
+        default: 0, 
         min: 0 
     },
-    requiredTACount: { 
+    requiredUndergraduateTACount: { 
         type: Number, 
         required: false, 
-        default: null, 
+        default: 0, 
         min: 0 
     },
-    requirements: { 
-        type: String, 
+    requiredPostgraduateTACount: { 
+        type: Number, 
         required: false, 
-        default: null, 
-        trim: true 
+        default: 0, 
+        min: 0 
+    },
+    requirements: {
+        type: String,
+        required: false,
+        default: "",
     },
     moduleStatus: {
         type: String,
         required: true,
-        default: "pending",
-        enum: ["pending", "submitted"]
+        default: "initialised",
+        enum: ["initialised", "pending", "submitted"]
     }
 }, { timestamps: true });
+
+
+// Pre-validate hook to check all coordinators are lecturers
+moduleDetailsSchema.pre('validate', async function(next) {
+    if (Array.isArray(this.coordinators) && this.coordinators.length > 0) {
+        const User = mongoose.model('User');
+        const users = await User.find({ _id: { $in: this.coordinators }, role: 'lecturer' }).select('_id');
+        if (users.length !== this.coordinators.length) {
+            const error = new mongoose.Error.ValidationError(this);
+            error.addError('coordinators', new mongoose.Error.ValidatorError({
+                message: 'All coordinators must be users with the lecturer role.',
+                path: 'coordinators',
+                value: this.coordinators
+            }));
+            return next(error);
+        }
+    }
+    next();
+});
 
 module.exports = mongoose.model('ModuleDetails', moduleDetailsSchema, 'moduledetails');
