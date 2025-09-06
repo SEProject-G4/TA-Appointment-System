@@ -25,6 +25,7 @@ import axiosInstance from "../api/axiosConfig";
 interface User {
   email: string;
   indexNumber?: string;
+  displayName?: string;
 }
 
 interface UserGroup {
@@ -36,7 +37,7 @@ interface UserGroup {
 function AddUser() {
   // ...existing code...
   const [inputErrors, setInputErrors] = useState<
-    { email?: string; indexNumber?: string }[]
+    { email?: string; indexNumber?: string; displayName?: string }[]
   >([]);
   const [userRole, setUserRole] = useState("undergraduate");
   const [users, setUsers] = useState<User[]>([{ email: "" }]);
@@ -181,7 +182,7 @@ function AddUser() {
     event.preventDefault();
 
     // Validate all users and collect errors
-    const errors: { email?: string; indexNumber?: string }[] = users.map(
+    const errors: { email?: string; indexNumber?: string; displayName?: string }[] = users.map(
       (user) => ({})
     );
     let hasError = false;
@@ -197,6 +198,12 @@ function AddUser() {
       if (userRole === "undergraduate" || userRole === "postgraduate") {
         if (!user.indexNumber || !validateIndexNumber(user.indexNumber)) {
           errors[i].indexNumber = "Invalid index number.";
+          hasError = true;
+        }
+      }
+      if (userRole === 'lecturer' || userRole === 'hod') {
+        if (!user.displayName) {
+          errors[i].displayName = "Display Name is required.";
           hasError = true;
         }
       }
@@ -311,6 +318,24 @@ function AddUser() {
                                 {inputErrors[index]?.indexNumber && (
                                   <span className="text-error text-xs mt-1">
                                     {inputErrors[index].indexNumber}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {(userRole === "lecturer" || userRole === "hod") && (
+                              <div className="flex-1 flex flex-col">
+                                <input
+                                  type="text"
+                                  name="displayName"
+                                  placeholder="Display Name"
+                                  value={user.displayName}
+                                  onChange={(e) => handleUserChange(index, e)}
+                                  // required
+                                  className="w-full p-2 outline outline-1 border-text-secondary/0 rounded-md focus:outline-primary-light focus:outline-offset-1 focus:outline-2 transition-colors"
+                                />
+                                {inputErrors[index]?.displayName && (
+                                  <span className="text-error text-xs mt-1">
+                                    {inputErrors[index].displayName}
                                   </span>
                                 )}
                               </div>
@@ -456,7 +481,7 @@ function AddUser() {
                     <Radio
                       key={group._id}
                       value={group}
-                      className="group relative flex cursor-pointer rounded-lg bg-bg-card/80 px-5 py-2 text-primary/90 shadow-sm hover:shadow-md transition outline-1 outline-text-secondary/70"
+                      className="group relative flex cursor-pointer data-[checked]:bg-primary/20 rounded-lg bg-bg-card/80 px-5 py-2 text-primary/90 shadow-sm hover:shadow-md transition outline-1 outline-text-secondary/70"
                     >
                       <div className="flex w-full items-center justify-between">
                         <div className="text-sm/6">

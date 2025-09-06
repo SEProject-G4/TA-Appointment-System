@@ -1,6 +1,13 @@
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
+  displayName: {
+    type: String,
+    required: function () {
+      return this.role === "undergraduate" || this.role === "postgraduate";
+    },
+    default: undefined,
+  },
   googleId: {
     type: String,
     unique: true,
@@ -34,20 +41,24 @@ const userSchema = new mongoose.Schema({
   },
   indexNumber: {
     type: String,
-    unique: true
+    unique: true,
+    sparse: true,
+    required: function () {
+      return this.role === "undergraduate" || this.role === "postgraduate";
+    },
   },
   userGroup: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "UserGroup",
     required: true,
     sparse: true,
-    required: function(){
-        return this.role === "undergraduate" || this.role === "postgraduate";
-    }
+    required: function () {
+      return this.role === "undergraduate" || this.role === "postgraduate";
+    },
   },
-  firstLogin:{
+  firstLogin: {
     type: Boolean,
-    default: true
+    default: true,
   },
   createdAt: {
     type: Date,

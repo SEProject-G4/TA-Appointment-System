@@ -57,6 +57,14 @@ const createNewUsers = async (req, res) => {
             .json({ message: "Index Number is required for this user type." });
         }
       }
+    }else if(userRole === "lecturer"|| userRole==="hod"){
+      for (const user of users) {
+        if (!user.displayName) {
+          return res
+            .status(400)
+            .json({ message: "Display Name is required for this user type." });
+        }
+      }
     }
 
     const newUsers = users.map((user) => ({
