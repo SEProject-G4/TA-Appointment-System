@@ -45,6 +45,7 @@ const AutoSelect: React.FC<AutoSelectProps> = ({
         !containerRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
+        setActiveOptionIndex(-1);
       }
     }
     if (isOpen) {
@@ -56,10 +57,6 @@ const AutoSelect: React.FC<AutoSelectProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
-
-  useEffect(() => {
-    setActiveOptionIndex(0);
-  }, [filteredOptions]);
 
   // Show query in input, or selected label if not typing
   const inputValue = isOpen
@@ -114,10 +111,17 @@ const AutoSelect: React.FC<AutoSelectProps> = ({
                 setIsOpen(true);
                 setActiveOptionIndex(0);
               }
-            } else if (e.key.match(/^[a-zA-Z0-9]$/)) {
+            } else if (
+                e.key.length === 1 &&
+                !e.ctrlKey &&
+                !e.altKey &&
+                !e.metaKey
+              ) {
               setQuery((prev) => prev + e.key);
+              setActiveOptionIndex(0);
             } else if (e.key === "Backspace") {
               setQuery((prev) => prev.slice(0, -1));
+              setActiveOptionIndex(0);
             } else if (e.key === "Escape") {
               setIsOpen(false);
               setActiveOptionIndex(-1);
