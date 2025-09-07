@@ -39,7 +39,7 @@ const HomePage = () => {
             </div>
             <div className="lg:w-1/2">
               <img
-                src="https://via.placeholder.com/600/ADD8E6/FFFFFF?Text=Modern+Scheduling"
+                src="https://via.placeholder.com/300x200/4F46E5/FFFFFF?text=Modern+Scheduling"
                 alt="Modern Scheduling Illustration"
                 className="rounded-lg shadow-lg animate-fade-in-up"
               />
