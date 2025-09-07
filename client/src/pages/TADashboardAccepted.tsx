@@ -1,95 +1,110 @@
-import React from 'react'
-import { Navigation } from '../components/TANavbar'
-import { Trophy, FileUser,File, Clock, CircleCheckBig } from "lucide-react";
-import TAAccepedCard from '../components/TAAcceptedCard';
+import React, { useEffect, useState } from "react";
+import { Trophy, FileUser, File, Clock, CircleCheckBig } from "lucide-react";
+import TAAcceptedCard from "../components/TAAcceptedCard";
+import TAStatCard from "../components/TAStatCard";
+import { useAuth } from "../contexts/AuthContext";
+import axios from "axios";
 
-function TADashboardApplied() {
+function TADashboardAccepted() {
+  const { user } = useAuth();
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const userId = user?.id; //check weather this correct------------------------------
+
+  useEffect(() => {
+    if (!userId) return; // Don't run until we have userId
+
+    const fetchApplications = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          "http://localhost:5000/api/ta/accepted-modules",
+          { params: { userId } }
+        );
+        setApplications(response.data);
+        console.log(response.data);
+      } catch (error) {
+        console.error("error fetching application data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplications();
+  }, [userId]); // <-- run whenever userId changes
+
   return (
     <div>
       <div className="min-h-screen bg-bg-card text-text-primary">
-      {/* <Navigation /> */}
-      {/* add the nav bar */}
-      <div className="container px-4 py-8 mx-auto">
-        {/* header */}
-        <div className="mb-12 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 rounded-xl bg-primary/10">
-            <CircleCheckBig className="w-8 h-8 text-success" />
-    
+        <div className="container px-4 py-8 mx-auto">
+          {/* header */}
+          <div className="mb-12 text-center">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="p-3 rounded-xl bg-primary/10">
+                <CircleCheckBig className="w-8 h-8 text-success" />
+              </div>
+              <h1 className="text-4xl font-bold text-text-primary">
+                Accepted TA Positions
+              </h1>
             </div>
-            <h1 className="text-4xl font-bold text-text-primary">Accepted TA Positions</h1>
+            <p className="max-w-2xl mx-auto text-lg text-text-secondary">
+              Congratulations! Manage your accepted Teaching Assistant positions
+              and stay organized with your responsibilities.
+            </p>
           </div>
-          <p className="max-w-2xl mx-auto text-lg text-text-secondary">
-        Congratulations! Manage your accepted Teaching Assistant positions and stay organized with your responsibilities.
-          </p>
-        </div>
-        {/* stats */}
-        <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
-          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Clock className="w-5 h-5 text-text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text-primary">3</h3>
-                <p className="text-sm text-text-secondary">Total Hours per Week</p>
-              </div>
-            </div>
-          </div>
-          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Trophy className="w-5 h-5 text-text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text-primary">2</h3>
-                <p className="text-sm text-text-secondary">
-                  Accepted Positions
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <File className="w-5 h-5 text-text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text-primary">0</h3>
-                <p className="text-sm text-text-secondary">
-                  Documents Pending
-                </p>
-              </div>
-            </div> 
+          {/* stats */}
+          <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
+            <TAStatCard
+              statName="Total Hours per Week"
+              statValue={3}
+              icon={Clock}
+            />
+            <TAStatCard
+              statName="Accepted Positions"
+              statValue={2}
+              icon={Trophy}
+            />
+            <TAStatCard
+              statName="Documents Pending"
+              statValue={0}
+              icon={File}
+            />
           </div>
         </div>
+        {/* accepted TA positions */}
+        <div className="m-8">
+          <h2 className="mb-4 text-2xl font-semibold text-foreground">
+            Accepted TA Positions
+          </h2>
+          {loading ? (
+            <p>Loading...</p>
+          ) : applications.length === 0 ? (
+            <p className="text-text-secondary">
+              You have not applied for any TA positions yet.
+            </p>
+          ) : (
+            applications.map((app) => (
+              <TAAcceptedCard
+                key={app.id}
+                moduleCode={app.moduleId.moduleCode}
+                moduleName={app.moduleId.moduleName}
+                coordinators={app.moduleId.coordinators}
+                requiredTAHours={app.moduleId.requiredTAHours}
+                requiredTANumber={app.moduleId.requiredTACount}
+                appliedTANumber={1}
+                status="Pending Document Submission"
+                appliedDate={app.createdAt.split("T")[0]}
+                documentDueDate={app.moduleId.documentDueDate.split("T")[0]}
+                applicationDueDate={app.moduleId.applicationDueDate.split("T")[0]}
+                requirements={[app.moduleId.requirements]}
+              />
+            ))
+          )}
+        </div>
       </div>
-      {/* applied TA positions */}
-      <div className='m-8'>
-        <h2 className="mb-4 text-2xl font-semibold text-foreground">Available TA Positions</h2>
-        <TAAccepedCard
-          moduleCode="CS101"
-          moduleName="computer security"
-          coordinators={["Dr. Smith", "Prof. Doe"]}
-          requiredTAHours={20}
-          requiredTANumber={2}
-          appliedTANumber={1}
-          status="Document Submitted"
-          appliedDate="2024-06-01"
-          documentDueDate="2024-06-15"
-          applicationDueDate='2024-06-10'
-          requirements={["Resume", "Cover Letter"]} 
-          
-        />
-      </div>
-
-      </div>
-
-      
     </div>
-  ) 
+  );
 }
 
-export default TADashboardApplied
-
+export default TADashboardAccepted;
 

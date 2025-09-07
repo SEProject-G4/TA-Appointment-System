@@ -1,13 +1,48 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import TARequestCard from "../components/TARequestCard";
-import { Navigation } from '../components/TANavbar'
-
+import TAStatCard from "../components/TAStatCard";
 import { GraduationCap, BookOpen, Users, Newspaper } from "lucide-react";
+import axios from "axios";
+import { useAuth } from "../contexts/AuthContext";
+
+
 function TADashboard() {
+  const { user } = useAuth( );
+  
+  const [modules, setModules] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const applyForTA = async (moduleId: string, userId: string) => {
+    try {
+      const response = await axios.post("http://localhost:5000/api/ta/apply", {
+        moduleId,
+        userId,
+      });
+      console.log("Application successful:", response.data);
+    } catch (error) {
+      console.error("Error applying for TA position:", error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchModules = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/ta/requests"
+        );
+        setModules(response.data);
+      } catch (error) {
+        console.error("Error fetching modules:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchModules();
+  }, []);
+
   return (
     <div className="min-h-screen bg-bg-card text-text-primary">
-      {/* <Navigation /> */}
-      {/* add the nav bar */}
       <div className="container px-4 py-8 mx-auto">
         {/* header */}
         <div className="mb-12 text-center">
@@ -25,68 +60,52 @@ function TADashboard() {
         </div>
         {/* stats */}
         <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
-          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <BookOpen className="w-5 h-5 text-text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text-primary">10</h3>
-                <p className="text-sm text-text-secondary">available modules</p>
-              </div>
-            </div>
-          </div>
-          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Users className="w-5 h-5 text-text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text-primary">34</h3>
-                <p className="text-sm text-text-secondary">
-                  Total TA positions
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="p-6 border shadow-sm bg-primary-light/10 rounded-xl border-border-default/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Newspaper className="w-5 h-5 text-text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-text-primary">20</h3>
-                <p className="text-sm text-text-secondary">
-                  Total applications received
-                </p>
-              </div>
-            </div>
-          </div> 
-        </div>        
+          <TAStatCard
+            statName="Available Modules"
+            statValue={modules.length}
+            icon={BookOpen}
+          />
+          <TAStatCard
+            statName="Total TA Positions"
+            statValue={modules.reduce((total, mod) => total + mod.requiredTACount, 0)}
+            icon={Users}
+          />
+          <TAStatCard
+            statName="Remaining TA Hours Per Week"
+            statValue={10}
+            icon={Newspaper}
+          />
+        </div>
       </div>
-      
-      {/* TA requests */}
-      <div className="m-8">
-        <h2 className="mb-4 text-2xl font-semibold text-foreground">Applied TA Positions</h2>
-            <TARequestCard 
-        moduleCode="CS2040S"
-        moduleName="Data Structures and Algorithms"
-        coordinators={["Prof. Chong Ket Fah", "Dr. Steven Halim"]}
-        requiredTAHours={12}
-        requiredTANumber={10}
-        appliedTANumber={7}
-        requirements={[
-          "Grade A- or above in CS2040S",
-          "Proficiency in Java or Python",
-          "Good problem-solving skills"
-        ]}
-        documentDueDate="2024-08-01"
-        applicationDueDate="2024-07-15"
-    />
+      <div className="gap-2 m-8">
+        <h2 className="mb-4 text-2xl font-semibold text-foreground">
+          Available TA Positions
+        </h2>
+        {loading ? (
+          <p>Loading...</p>
+        ) : modules.length > 0 ? (
+          modules.map((module) => (
+            <TARequestCard
+              key={module.moduleCode}
+              moduleCode={`${module.year} ${module.semester} ${module.moduleCode}`}
+              moduleName={module.moduleName}
+              coordinators={module.coordinators}
+              requiredTAHours={module.requiredTAHours}
+              requiredTANumber={module.requiredTACount}
+              appliedTANumber={1}
+              requirements={[module.requirements]}
+              documentDueDate={module.documentDueDate.split("T")[0]}
+              applicationDueDate={module.applicationDueDate.split("T")[0]}
+              onApply={() => applyForTA(module._id, user.id)}  //----------------------------check what can do if user is null
+            />
+          ))
+        ) : (
+          <p>No Available TA Positions...</p>
+        )}
       </div>
-
     </div>
   );
 }
 
 export default TADashboard;
+

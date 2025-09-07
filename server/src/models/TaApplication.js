@@ -1,23 +1,23 @@
 const mongoose = require("mongoose");
 
-const TaApplicationSchema = new mongoose.Schema({
-    userId: {
+const taApplicationSchema = new mongoose.Schema({
+    userId:{
         type: String,
+        ref: "Users",
+        trim: true,
         required: true
     },
-    // Store in DB as moduleId (ObjectId). Expose alias "moduleID" for backward compatibility
-    moduleId: {
+    moduleId:{
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        ref: 'ModuleDetails',
-        alias: 'moduleID'
-    },
-    status: {
-        type: String,
-        enum: ['pending', 'accepted', 'rejected'],
-        default: 'pending',
+        ref: "ModuleDetails",
         required: true
+    },
+    status:{
+        type: String,
+        required: true,
+        default: "pending",
+        enum: ["pending", "approved", "rejected"]
     }
-    }, { timestamps: true })
+}, { timestamps: true });
 
-module.exports = mongoose.model('TaApplication', TaApplicationSchema);
+module.exports = mongoose.model("TAApplication", taApplicationSchema, "taapplications");
