@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../api/axiosConfig";
-import { FaChevronRight, FaUserGraduate, FaClipboardList } from "react-icons/fa";
+import { FaChevronRight } from "react-icons/fa";
 
-interface ApprovedTA { userId: string; name: string; indexNumber: string; documents?: any }
+interface ApprovedTA { userId: string; name: string; indexNumber: string; documents?: any; docStatus?: 'pending' | 'submitted' }
 interface ModuleWithApproved {
   moduleId: string;
   moduleCode: string;
@@ -68,30 +68,54 @@ const ViewModuleDetails: React.FC = () => {
     );
   }
 
-  // Helper to check if TA has any missing documents
-  const hasMissingDocs = (documents?: any) => {
-    if (!documents) return true;
-    const requiredDocs = [
-      documents.bankPassbookCopy,
-      documents.nicCopy,
-      documents.cv,
-      documents.degreeCertificate,
-    ];
-    return requiredDocs.some(doc => !doc?.submitted);
-  };
+  // Removed hasMissingDocs; visibility is based on docStatus
 
   const renderDocRow = (label: string, doc?: any) => {
-    if (!doc?.submitted) return null;
+    if (!doc) return null;
     
+    const toDriveDownloadUrl = (url?: string) => {
+      if (!url) return '';
+      try {
+        // Patterns: 
+        // - https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+        // - https://drive.google.com/open?id=FILE_ID
+        // - https://drive.google.com/uc?id=FILE_ID&export=download
+        const fileIdMatch = url.match(/\/d\/([^/]+)\//) || url.match(/[?&]id=([^&]+)/);
+        const fileId = fileIdMatch ? fileIdMatch[1] : '';
+        return fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : url;
+      } catch {
+        return url;
+      }
+    };
+
+    const hasAnyUrl = Boolean(doc.fileUrl);
+    const downloadUrl = toDriveDownloadUrl(doc.fileUrl);
+
     return (
       <div className="flex items-center justify-between p-2 bg-white rounded border border-border-default">
         <span className="text-sm font-medium text-text-primary">{label}</span>
-        <button 
-          onClick={() => doc?.fileUrl && window.open(doc.fileUrl, "_blank")} 
-          className="btn btn-primary btn-xs"
-        >
-          View
-        </button>
+        <div className="flex items-center gap-2">
+          {hasAnyUrl ? (
+            <>
+              <button 
+                onClick={() => window.open(doc.fileUrl, "_blank")} 
+                className="btn btn-primary btn-xs"
+              >
+                View
+              </button>
+              <a 
+                href={downloadUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="btn btn-outline btn-xs"
+              >
+                Download
+              </a>
+            </>
+          ) : (
+            <span className="text-xs text-text-secondary">No file uploaded</span>
+          )}
+        </div>
       </div>
     );
   };
@@ -172,17 +196,21 @@ const ViewModuleDetails: React.FC = () => {
                                 <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                               </div>
                             </div>
-                            {hasMissingDocs(ta.documents) && (
+                            {ta.docStatus !== 'submitted' ? (
                               <span className="badge badge-pending">Not submitted</span>
+                            ) : (
+                              <details>
+                                <summary className="btn btn-outline btn-xs">View more</summary>
+                                <div className="mt-3 grid grid-cols-2 gap-2">
+                                  {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
+                                  {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
+                                  {renderDocRow('CV', ta.documents?.cv)}
+                                  {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
+                                </div>
+                              </details>
                             )}
                           </div>
-                          {/* Document Grid */}
-                          <div className="grid grid-cols-2 gap-2">
-                            {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
-                            {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
-                            {renderDocRow('CV', ta.documents?.cv)}
-                            {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
-                          </div>
+                          {/* Document Grid is shown inside details when submitted */}
                         </div>
                       ))}
                     </div>
@@ -233,17 +261,21 @@ const ViewModuleDetails: React.FC = () => {
                           <span className="font-medium text-text-primary">{ta.name}</span>
                           <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                         </div>
-                        {hasMissingDocs(ta.documents) && (
+                        {ta.docStatus !== 'submitted' ? (
                           <span className="badge badge-pending">Not submitted</span>
+                        ) : (
+                          <details>
+                            <summary className="btn btn-outline btn-xs">View more</summary>
+                            <div className="mt-3 grid grid-cols-2 gap-2">
+                              {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
+                              {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
+                              {renderDocRow('CV', ta.documents?.cv)}
+                              {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
+                            </div>
+                          </details>
                         )}
                       </div>
-                      {/* Document Grid */}
-                      <div className="grid grid-cols-2 gap-2">
-                        {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
-                        {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
-                        {renderDocRow('CV', ta.documents?.cv)}
-                        {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
-                      </div>
+                      {/* Document Grid is shown inside details when submitted */}
                     </div>
                   ))}
                 </div>

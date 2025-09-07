@@ -73,6 +73,8 @@ const LoginPage: React.FC = () => {
         return '/lecturer-dashboard';
       case 'undergraduate':
         return '/ta-dashboard';
+      case 'cse office' :
+        return '/cse-office-dashboard';
       default:
         return '/login'; // fallback to login if role is not recognized
     }

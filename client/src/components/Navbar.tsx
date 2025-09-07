@@ -50,6 +50,13 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
         { to: "/lec-edit-module-details", label: "Edit Module Details" },
         { to: "/lec-handle-ta-requests", label: "Handle TA Requests" },
       ]
+    },
+
+    {
+      role: "cse office",
+      links: [
+        { to: "/cse-office-dashboard", label: "View TA Documents" }
+      ]
     }
   ]
 

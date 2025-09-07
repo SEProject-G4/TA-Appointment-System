@@ -29,6 +29,7 @@ app.use(session({
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/user-management', protected, authorize("admin"), require('./routes/userGroupRoutes'));
 app.use('/api/lecturer', require('./routes/lecturerRoutes'));
+app.use('/api/cse-office', require('./routes/cseOfficeRoutes'));
 
 app.get('/', (req, res) => {
   res.send('TA Appointment System Backend is running!');
