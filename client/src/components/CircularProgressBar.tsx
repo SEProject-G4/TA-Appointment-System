@@ -3,7 +3,7 @@ import React from 'react';
 interface CircularProgressProps {
   percentage: number;
   size?: 'small' | 'medium' | 'large';
-  color?: 'blue' | 'green' | 'purple' | 'red' | 'orange';
+  color?: 'blue' | 'green' | 'purple' | 'red' | 'orange' | 'gray';
   children?: React.ReactNode;
 }
 
@@ -31,6 +31,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
     'purple': 'stroke-purple-500',
     'red': 'stroke-red-500',
     'orange': 'stroke-orange-500',
+    'gray': 'stroke-gray-300',
   }[color] || 'stroke-blue-500';
 
   return (

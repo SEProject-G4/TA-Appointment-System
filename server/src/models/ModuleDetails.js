@@ -53,6 +53,18 @@ const moduleDetailsSchema = new mongoose.Schema({
         default: 0, 
         min: 0 
     },
+    appliedUndergraduateCount: {
+        type: Number,
+        required: false,
+        default: 0,
+        min: 0
+    },
+    appliedPostgraduateCount: {
+        type: Number,
+        required: false,
+        default: 0,
+        min: 0
+    },
     requirements: {
         type: String,
         required: false,

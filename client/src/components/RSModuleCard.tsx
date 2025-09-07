@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { MdMoreVert } from "react-icons/md";
 import CommonAvatar from "../assets/images/common_avatar.jpg";
 import { FiClock } from "react-icons/fi";
+import { FaUserGraduate } from "react-icons/fa";
 
 import { Checkbox } from "@headlessui/react";
 import CircularProgress from "./CircularProgressBar";
@@ -14,11 +15,18 @@ interface RSModuleCardProps {
   moduleName: string;
   semester: number;
   status: string;
-  coordinators: string[];
+  coordinators: {
+    id: string;
+    displayName: string;
+    email: string;
+    profilePicture: string;
+  }[];
   requiredTAHours: number;
-  requiredTANumber: number;
-  appliedTANumber: number;
-  requirements: string[];
+  requiredUndergraduateTACount: number;
+  requiredPostgraduateTACount: number;
+  appliedUndergraduateTACount: number;
+  appliedPostgraduateTACount: number;
+  requirements: string;
   documentDueDate: string;
   applicationDueDate: string;
 }
@@ -44,22 +52,15 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   status,
   coordinators,
   requiredTAHours,
-  appliedTANumber,
+  appliedUndergraduateTACount,
+  appliedPostgraduateTACount,
   requirements,
-  requiredTANumber,
+  requiredUndergraduateTACount,
+  requiredPostgraduateTACount,
   documentDueDate,
   applicationDueDate,
 }) => {
-  const progressPercentage = (appliedTANumber / requiredTANumber) * 100;
-  const isFullyFilled = appliedTANumber >= requiredTANumber;
   const navigate = useNavigate();
-
-  const moduleData = {
-    appliedUndergraduateCount: 3,
-    requiredUndergraduateCount: 5,
-    appliedPostgraduateCount: 2,
-    requiredPostgraduateCount: 3,
-  };
 
   const [marked, setMarked] = useState(false);
   return (
@@ -125,32 +126,34 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
         </div>
       </div>
 
-      <div className="flex items-start w-full gap-x-2"><div className="flex flex-col w-full bg-bg-page rounded-md p-2">
-        <p className="w-full border-b-[0px] border-text-secondary/80 text-sm text-text-primary font-semibold">
-          Coordinators
-        </p>
-        <div className="mt-2 p-1 flex flex-col gap-y-1 overflow-y-auto h-[100px]">
-          {coordinators.map((coordinator) => (
-            <div key={coordinator} className="flex gap-x-2 items-center">
-              <img
-                src={CommonAvatar}
-                alt={coordinator}
-                className="rounded-full size-10"
-              />
-              <div className="flex flex-col items-start">
-                <p className="text-sm text-text-primary">{coordinator}</p>
-                <a
-                  href={`mailto:coordinator@cse.mrt.ac.lk`}
-                  className="text-xs text-text-secondary hover:underline hover:text-primary transition"
-                >
-                  coordinator@cse.mrt.ac.lk
-                </a>
+      <div className="flex items-start w-full gap-x-2">
+        <div className="flex flex-col w-full bg-bg-page rounded-md p-2">
+          <p className="w-full border-b-[0px] border-text-secondary/80 text-sm text-text-primary font-semibold">
+            Coordinators
+          </p>
+          <div className="mt-2 p-1 flex flex-col gap-y-1 overflow-y-auto h-[100px]">
+            {coordinators.map((coordinator) => (
+              <div key={coordinator.id} className="flex gap-x-2 items-center">
+                <img
+                  src={CommonAvatar}
+                  alt={coordinator.displayName}
+                  className="rounded-full size-10"
+                />
+                <div className="flex flex-col items-start">
+                  <p className="text-sm text-text-primary">
+                    {coordinator.displayName}
+                  </p>
+                  <a
+                    href={`mailto:${coordinator.email}`}
+                    className="text-xs text-text-secondary hover:underline hover:text-primary transition"
+                  >
+                    {coordinator.email}
+                  </a>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-
       </div>
       <div className="flex flex-col w-full bg-bg-page rounded-md p-2">
         <p className="w-full border-b-[0px] border-text-secondary/80 text-sm text-text-primary font-semibold">
@@ -161,34 +164,45 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
             Application:{" "}
             <span className="font-semibold text-text-primary/90">
               {new Date(applicationDueDate).toLocaleString(undefined, {
-                  day: "2-digit",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })}
             </span>
           </p>
           <p className="text-text-secondary text-sm">
             Document Submission:{" "}
             <span className="font-semibold text-text-primary/90">
-                {new Date(documentDueDate).toLocaleString(undefined, {
-                  day: "2-digit",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
+              {new Date(documentDueDate).toLocaleString(undefined, {
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })}
             </span>
           </p>
         </div>
       </div>
 
-      <div className="flex items-start w-full gap-x-2">
-        <div className="flex flex-1 flex-col items-center gap-y-2 bg-bg-page p-2 rounded-md">
+      <div className="flex w-full gap-x-2 flex-grow items-stretch">
+        <div
+          className={`flex flex-1 flex-col items-center gap-y-2 bg-bg-page p-2 rounded-md`}
+        >
           <p className="w-full border-b-[0px] border-text-secondary/80 text-sm text-text-primary font-semibold">
             Undergraduate TAs
           </p>
+          {requiredUndergraduateTACount === 0 ? (
+            <div className="w-full flex flex-col items-center justify-center py-1 flex-1">
+              <FaUserGraduate className="h-6 w-6 text-text-secondary mb-2" />
+              <p className="text-sm text-text-secondary font-semibold text-center">
+              No Undergraduate TAs required
+              </p>
+            </div>
+          ) : (
+            <>
           <div className="flex items-center justify-center w-full gap-x-2">
             <FiClock className="size-4 bg-bg-card text-text-secondary bg-transparent" />
             <p className="font-semibold text-text-secondary/90 text-sm">
@@ -197,67 +211,82 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
           </div>
           <CircularProgress
             percentage={
-              (moduleData.appliedUndergraduateCount /
-                moduleData.requiredUndergraduateCount) *
-              100
+              (appliedUndergraduateTACount / requiredUndergraduateTACount) * 100
             }
             size="small"
-            color={
-              moduleData.appliedUndergraduateCount >=
-              moduleData.requiredUndergraduateCount
+            color={ appliedUndergraduateTACount >= requiredUndergraduateTACount
                 ? "green"
                 : "blue"
             }
           >
             <p className="text-sm font-semibold">
               <span className="text-text-primary text-2xl">
-                {moduleData.appliedUndergraduateCount}
+                {appliedUndergraduateTACount}
               </span>
               <span className="text-text-secondary">
-                /{moduleData.requiredUndergraduateCount}
+                /{requiredUndergraduateTACount}
               </span>
             </p>
           </CircularProgress>
+          </>)}
         </div>
 
-        <div className="flex flex-1 flex-col items-center gap-y-2 bg-bg-page rounded-md p-2">
+        <div
+          className={`flex flex-1 flex-col items-center gap-y-2 bg-bg-page rounded-md p-2 ${
+            requiredPostgraduateTACount === 0 ? "opacity-100" : ""
+          }`}
+        >
           <p className="w-full border-b-[0px] border-text-secondary/80 text-sm text-text-primary font-semibold">
             Postgraduate TAs
           </p>
-          <div className="flex items-center justify-center w-full gap-x-2">
-            <FiClock className="size-4 bg-bg-card text-text-secondary" />
-            <p className="font-semibold text-text-secondary/90 text-sm">
-              {requiredTAHours}hours/week
-            </p>
-          </div>
-          <CircularProgress
-            percentage={
-              (moduleData.appliedPostgraduateCount /
-                moduleData.requiredPostgraduateCount) *
-              100
-            }
-            size="small"
-            color={
-              moduleData.appliedPostgraduateCount >=
-              moduleData.requiredPostgraduateCount
-                ? "green"
-                : "blue"
-            }
-          >
-            <p className="text-sm font-semibold">
-              <span className="text-text-primary text-2xl">
-                {moduleData.appliedPostgraduateCount}
-              </span>
-              <span className="text-text-secondary">
-                /{moduleData.requiredPostgraduateCount}
-              </span>
-            </p>
-          </CircularProgress>
+          {requiredPostgraduateTACount === 0 ? (
+            <div className="w-full flex flex-col items-center justify-center py-1 flex-1">
+              <FaUserGraduate className="h-6 w-6 text-text-secondary mb-2" />
+              <p className="text-sm text-text-secondary font-semibold text-center">
+              No Postgraduate TAs required
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-center w-full gap-x-2">
+                <FiClock className="size-4 bg-bg-card text-text-secondary" />
+                <p className="font-semibold text-text-secondary/90 text-sm">
+                  {requiredTAHours}hours/week
+                </p>
+              </div>
+              <CircularProgress
+                percentage={
+                  (appliedPostgraduateTACount / requiredPostgraduateTACount) *
+                  100
+                }
+                size="small"
+                color={
+                  requiredPostgraduateTACount === 0
+                    ? "gray"
+                    : appliedPostgraduateTACount >= requiredPostgraduateTACount
+                    ? "green"
+                    : "blue"
+                }
+              >
+                <p className="text-sm font-semibold">
+                  <span className="text-text-primary text-2xl">
+                    {appliedPostgraduateTACount}
+                  </span>
+                  <span className="text-text-secondary">
+                    /{requiredPostgraduateTACount}
+                  </span>
+                </p>
+              </CircularProgress>
+            </>
+          )}
         </div>
       </div>
 
       <div className="flex items-center w-full gap-x-2 p-2">
-        <div className="text-center rounded-lg p-1 hover:bg-primary-dark hover:text-text-inverted flex-1 outline-2 outline outline-primary text-primary cursor-pointer" onClick={() => navigate(`/module-recruitment/${id}`)}>
+        <div
+          className="text-center rounded-lg p-1 hover:bg-primary-dark hover:text-text-inverted flex-1 outline-2 outline outline-primary text-primary cursor-pointer"
+          onClick={() => navigate(`/module-recruitment/${id}`)}
+        >
           More Details
         </div>
       </div>

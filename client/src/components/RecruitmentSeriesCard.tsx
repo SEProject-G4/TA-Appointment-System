@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaChevronRight, FaRegCalendarAlt } from "react-icons/fa";
+import { FaChevronRight, FaRegCalendarAlt, FaBoxOpen } from "react-icons/fa";
 import { MdMoreVert } from "react-icons/md";
 import { LuCirclePlus, LuMail } from "react-icons/lu";
 import { FiClock } from "react-icons/fi";
@@ -10,6 +10,9 @@ import {
 } from "react-icons/ri";
 
 import RSModuleCard from "./RSModuleCard";
+import axiosInstance from "../api/axiosConfig";
+import Loader from "./Loader";
+import { FaB } from "react-icons/fa6";
 
 interface UserGroup {
   _id: string;
@@ -37,6 +40,28 @@ interface TimelineProps {
     date: string;
   }[];
   completedUpto: number;
+}
+
+interface ModuleDetails {
+  id: string;
+  moduleCode: string;
+  moduleName: string;
+  semester: number;
+  moduleStatus: string;
+  coordinators: {
+    id: string;
+    displayName: string;
+    email: string;
+    profilePicture: string;
+  }[];
+  requiredTAHours: number;
+  requiredUndergraduateTACount: number;
+  requiredPostgraduateTACount: number;
+  appliedUndergraduateCount: number;
+  appliedPostgraduateCount: number;
+  requirements: string;
+  documentDueDate: Date;
+  applicationDueDate: Date;
 }
 
 const getClassForStatus = (status: string) => {
@@ -118,7 +143,32 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
   status,
   className,
 }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [moduleDetails, setModuleDetails] = useState<ModuleDetails[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
+
+  const fetchModuleDetails = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axiosInstance.get(
+        `/recruitment-series/${_id}/modules`
+      );
+      setModuleDetails(response.data);
+      console.log(response.data);
+      setHasFetched(true);
+    } catch (error) {
+      console.error("Error fetching module details:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isExpanded && !hasFetched) {
+      fetchModuleDetails();
+    }
+  }, [isExpanded, hasFetched]);
 
   return (
     <div
@@ -197,24 +247,24 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
             Application:{" "}
             <span className="font-semibold text-text-primary/90">
               {new Date(applicationDueDate).toLocaleString(undefined, {
-                  day: "2-digit",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })}
             </span>
           </p>
           <p className="text-text-secondary text-sm">
             Document Submission:{" "}
             <span className="font-semibold text-text-primary/90">
               {new Date(documentDueDate).toLocaleString(undefined, {
-                  day: "2-digit",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })}
             </span>
           </p>
         </div>
@@ -243,74 +293,82 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
           isExpanded ? "flex opacity-100" : "hidden max-h-0 opacity-0"
         } transition-all p-1 ease-in-out duration-1000 flex-col items-center w-full`}
       >
-        <div className="w-full pt-4 mt-4 flex flex-row flex-wrap relative outline outline-1 outline-text-secondary/80 rounded-sm justify-start items-start content-start">
-          <p className="absolute left-2 -top-2 h-4 bg-bg-card px-2 text-text-primary flex items-center">
-            Modules
-          </p>
-          <div className="px-3 w-full flex justify-start items-center">
-            <p className="text-sm text-text-secondary">Filters: </p>
-          </div>
-          <div className="flex px-4 pb-3 gap-x-2 overflow-x-hidden flex-wrap gap-y-2">
-            <RSModuleCard
-              id="test-12345"
-              moduleCode="CS101"
-              moduleName="Introduction to Computer Science"
-              semester={2}
-              status="initialised"
-              coordinators={["Dr. Smith"]}
-              requiredTAHours={20}
-              requiredTANumber={5}
-              appliedTANumber={3}
-              requirements={[]}
-              documentDueDate="2025-09-05"
-              applicationDueDate="2025-08-28"
-            />
-            <RSModuleCard
-              id="test-12345"
-              moduleCode="CS101"
-              moduleName="Introduction to Computer Science"
-              semester={2}
-              status="initialised"
-              coordinators={["Dr. Smith"]}
-              requiredTAHours={20}
-              requiredTANumber={5}
-              appliedTANumber={3}
-              requirements={[]}
-              documentDueDate="2025-09-05"
-              applicationDueDate="2025-08-28"
-            />
-            <RSModuleCard
-              id="test-12345"
-              moduleCode="CS101"
-              moduleName="Introduction to Computer Science"
-              semester={2}
-              status="initialised"
-              coordinators={["Dr. Smith"]}
-              requiredTAHours={20}
-              requiredTANumber={5}
-              appliedTANumber={3}
-              requirements={[]}
-              documentDueDate="2025-09-05"
-              applicationDueDate="2025-08-28"
-            />
-          </div>
-          <div className="flex px-3 py-2 mt-4 w-full border-text-secondary/50 border-t-[1px] border-solid items-end justify-between">
-            <p className="text-sm text-text-secondary">
-              Selected: <span className="text-text-primary">2 modules</span>
+        
+          <div className={`w-full pt-4 mt-4 flex ${isLoading ? "flex-col items-center":"flex-row items-start"} flex-wrap relative outline outline-1 outline-text-secondary/80 rounded-sm justify-start content-start`}>
+            <p className="absolute left-2 -top-2 h-4 bg-bg-card px-2 text-text-primary flex items-center">
+              Modules
             </p>
-            <div className="flex gap-x-2">
-              {/* Add new module button */}
-              <Link
-                to={"/recruitment-series/" + _id + "/add-module"}
-                state={{ id: _id, name: name, appDueDate: applicationDueDate, docDueDate: documentDueDate }}
-                className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-primary-light to-primary-dark rounded-md p-2 px-5"
-              >
-                <LuCirclePlus className="h-5 w-5 mr-2" />
-                Add Module
-              </Link>
+            {/* <div className="px-3 w-full flex justify-start items-center">
+              <p className="text-sm text-text-secondary">Filters: </p>
+            </div> */}
+            {isLoading ? (
+          <Loader className="my-5 w-full" />
+        ) : (
+            <>
+            {moduleDetails.length > 0 ? (
+              <div className="flex px-4 pb-3 gap-x-2 overflow-x-hidden flex-wrap gap-y-2">
+                {moduleDetails.map((module) => (
+                  <RSModuleCard
+                    key={module.id}
+                    id={module.id}
+                    moduleCode={module.moduleCode}
+                    moduleName={module.moduleName}
+                    semester={module.semester}
+                    status={module.moduleStatus}
+                    coordinators={module.coordinators}
+                    requiredTAHours={module.requiredTAHours}
+                    requiredUndergraduateTACount={
+                      module.requiredUndergraduateTACount
+                      
+                    }
+                    appliedUndergraduateTACount={
+                      module.appliedUndergraduateCount
+                    }
+                    requiredPostgraduateTACount={
+                      module.requiredPostgraduateTACount
+                    }
+                    appliedPostgraduateTACount={module.appliedPostgraduateCount}
+                    requirements={module.requirements}
+                    documentDueDate={module.documentDueDate.toLocaleString()}
+                    applicationDueDate={module.applicationDueDate.toLocaleString()}
+                  />
+                ))}
+                </div>
+            ) : (
+              <div className="w-full flex flex-col items-center justify-center py-6">
+                <FaBoxOpen className="h-8 w-8 text-text-secondary mb-2" />
+                <p className="text-lg text-text-secondary font-semibold">
+                  No modules to show.
+                </p>
+                <p className="text-sm text-text-secondary mt-1">
+                  Start by adding a module to this recruitment series.
+                </p>
+              </div>
+            )}
+            </>
+        )}
+            <div className="flex px-3 py-2 mt-4 w-full border-text-secondary/50 border-t-[1px] border-solid items-end justify-end">
+              {/* <p className="text-sm text-text-secondary">
+                Selected: <span className="text-text-primary">2 modules</span>
+              </p> */}
+              <div className="flex gap-x-2">
+                {/* Add new module button */}
+                <Link
+                  to={"/recruitment-series/" + _id + "/add-module"}
+                  state={{
+                    id: _id,
+                    name: name,
+                    appDueDate: applicationDueDate,
+                    docDueDate: documentDueDate,
+                  }}
+                  className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-primary-light to-primary-dark rounded-md p-2 px-5"
+                >
+                  <LuCirclePlus className="h-5 w-5 mr-2" />
+                  Add Module
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
       </div>
       <p className="mt-3 mr-4 w-full text-right text-xs text-text-secondary font-semibold">
         10 modules, 20 undergraduate TA positions, 10 postgraduate TA positions

@@ -1,6 +1,7 @@
 const RecruitmentSeries = require("../models/RecruitmentSeries");
 const UserGroup = require("../models/UserGroup");
 const ModuleDetails = require("../models/ModuleDetails");
+const User = require("../models/User");
 
 const createRecruitmentSeries = async (req, res) => {
     try{
@@ -89,8 +90,40 @@ const addModuleToRecruitmentSeries = async (req, res) => {
     }
 };
 
+const getModuleDetailsBySeriesId = async (req, res) => {
+    try {
+        const seriesId = req.params.seriesId;
+        const moduleDetails = await ModuleDetails.find({ recruitmentSeriesId: seriesId });
+        const populatedModuleDetails = await Promise.all(moduleDetails.map(async (module) => {
+            const coordinatorDetails = await Promise.all(
+                module.coordinators.map(async (coordinatorId) => {
+                    const user = await User.findById(coordinatorId, "displayName email profilePicture");
+                    if (user) {
+                        return {
+                            id: user._id,
+                            displayName: user.displayName,
+                            email: user.email,
+                            profilePicture: user.profilePicture
+                        };
+                    }
+                    return null;
+                })
+            );
+            return {
+                ...module._doc,
+                coordinators: coordinatorDetails.filter(c => c !== null)
+            };
+        }));
+        res.status(200).json(populatedModuleDetails);
+    } catch (error) {
+        console.error("Error fetching module details:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 module.exports = {
     createRecruitmentSeries,
     getAllRecruitmentSeries,
-    addModuleToRecruitmentSeries
+    addModuleToRecruitmentSeries,
+    getModuleDetailsBySeriesId
 };
