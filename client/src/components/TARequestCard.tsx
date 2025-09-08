@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { BookOpen, Users, Clock } from "lucide-react";
 import { Button } from "./ui/Button";
 
@@ -12,6 +12,8 @@ interface TARequestCardProps {
   requirements: string[];
   documentDueDate: string;
   applicationDueDate: string;
+  onApply: () => Promise<void>;
+  isApplied?: boolean;
 }
 
 const TARequestCard: React.FC<TARequestCardProps> = ({
@@ -24,11 +26,33 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
   requiredTANumber,
   documentDueDate,
   applicationDueDate,
+  onApply,
 }) => {
   const progressPercentage = (appliedTANumber / requiredTANumber) * 100;
   const isFullyFilled = appliedTANumber >= requiredTANumber;
+  const [loading, setLoading] = useState(false);
+  const [isApplied, setIsApplied] = useState(false);
+
+  const handleApply = async() => {
+    const confirmApply = window.confirm(
+      `Are you sure you want to apply for ${moduleCode} - ${moduleName}?`
+    );
+    if (!confirmApply) return;
+    try{
+      setLoading(true);
+      await onApply();
+      setIsApplied(true);
+      alert("Application submitted successfully!");
+    } catch (error) {
+      console.error("Error submitting application:", error);
+      alert("Error submitting application.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  
   return (
-    <div className="w-full p-6 transition-all duration-300 border bg-gradient-to-br from-card to-muted/20 border-border/50 hover:shadow-lg hover:-translate-y-1">
+    <div className="w-full p-6 mb-4 transition-all duration-300 border-2 bg-gradient-to-br from-card to-muted/20 border-border/50 hover:shadow-lg hover:-translate-y-1">
       {/* Card content goes here */}
       <div className="grid items-center grid-cols-12 gap-6">
         {/* left */}
@@ -119,21 +143,22 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
             </h4>
             <div className="space-y-1">
               {requirements.map((requirement, index) => (
-                <div key={index} className="flex items-start gap-2">
+                <div key={index} className="flex items-start gap-2"> 
                   <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                   <span className="text-sm text-muted-foreground">
-                    {requirement}
+                    {requirements}
                   </span>
                 </div>
-              ))}
+              ))} 
             </div>
           </div>
           {/* <button className="w-full h-8 font-medium transition-all duration-300 rounded-lg bg-gradient-to-r from-primary to-accent hover:from-primary-glow hover:to-accent text-text-primary hover:shadow-md hover:scale-105">
             Apply Now
           </button> */}
             <Button
-            label="Apply Now"
-            onClick={() => {}}
+            label={isApplied ? "Applied" : "Apply Now"}
+            onClick={handleApply}
+            disabled={isApplied || isFullyFilled || loading}
           >
           </Button>  
         </div>
