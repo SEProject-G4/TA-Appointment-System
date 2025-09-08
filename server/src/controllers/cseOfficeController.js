@@ -10,103 +10,98 @@ const viewTADocuments = async (req, res) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // CSE office should see modules for active recruitment series only
+    // Active recruitment series
     const activeSeries = await RecruitmentSeries.find({ status: 'initialised' }).select('_id');
     const activeSeriesIds = new Set(activeSeries.map(rs => rs._id.toString()));
 
-    // Get modules in active series
+    // Modules in active series
     const modules = await ModuleDetails.find({ recruitmentSeriesId: { $in: [...activeSeriesIds] } })
-      .select('_id moduleCode moduleName semester year recruitmentSeriesId requiredTACount requiredTAHours');
+      .select('_id moduleCode moduleName semester year recruitmentSeriesId');
 
     if (!modules || modules.length === 0) {
-      return res.status(200).json({ modules: [] });
+      return res.status(200).json({ tas: [] });
     }
 
     const moduleIdObjects = modules.map(m => m._id);
-    const moduleIdStrings = moduleIdObjects.map(id => id.toString());
+    const moduleMap = modules.reduce((acc, m) => { acc[m._id.toString()] = m; return acc; }, {});
 
-    // Find accepted TA applications for these modules
+    // Accepted applications in these modules
     const applications = await TaApplication.find({
       moduleId: { $in: moduleIdObjects },
       status: 'accepted'
     }).lean();
 
     if (applications.length === 0) {
-      return res.status(200).json({ modules: [] });
+      return res.status(200).json({ tas: [] });
     }
 
     const userIds = [...new Set(applications.map(a => a.userId))];
+    const userIdsStrings = userIds.map(id => id.toString());
 
-    // Fetch user info
-    const users = await User.find({ _id: { $in: userIds } }).select('name indexNumber');
-    const userMap = users.reduce((acc, u) => {
-      acc[u._id] = { name: u.name, indexNumber: u.indexNumber };
-      return acc;
-    }, {});
+    // Only TAs whose document submission is fully submitted (status === 'submitted')
+    const docSubs = await TaDocumentSubmission.find({ userId: { $in: userIdsStrings }, status: 'submitted' })
+      .select('userId documents status').lean();
+    const submittedUserIds = new Set(docSubs.map(d => d.userId));
 
-    // Fetch document submissions
-    const docSubs = await TaDocumentSubmission.find({ userId: { $in: userIds } }).select('userId documents');
-    const docMap = docSubs.reduce((acc, d) => { acc[d.userId] = d.documents || {}; return acc; }, {});
-
-    // Build grouped response by module
-    const appsByModule = new Map();
-    for (const app of applications) {
-      const key = String(app.moduleId);
-      if (!appsByModule.has(key)) appsByModule.set(key, []);
-      appsByModule.get(key).push(app);
+    // Filter applications to those users only
+    const filteredApps = applications.filter(a => submittedUserIds.has(a.userId));
+    if (filteredApps.length === 0) {
+      return res.status(200).json({ tas: [] });
     }
+
+    const filteredUserIds = [...new Set(filteredApps.map(a => a.userId))];
+
+    const users = await User.find({ _id: { $in: filteredUserIds } }).select('name indexNumber');
+    const userMap = users.reduce((acc, u) => { acc[u._id] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
+
+    const docMap = docSubs.reduce((acc, d) => { acc[d.userId] = d.documents || {}; return acc; }, {});
 
     const normalize = (d) => {
       if (!d) return { submitted: false };
+      if (typeof d === 'string') {
+        return { submitted: true, fileUrl: d };
+      }
       return {
-        submitted: Boolean(d.submitted),
+        submitted: Boolean(d.submitted || d.fileUrl),
         fileUrl: d.fileUrl,
         fileName: d.fileName,
         uploadedAt: d.uploadedAt
       };
     };
 
-    const result = modules
-      .filter(m => (appsByModule.get(m._id.toString()) || []).length > 0)
-      .map(m => {
-        const modId = m._id.toString();
-        const modApps = appsByModule.get(modId) || [];
-        const tas = modApps.map(a => {
-          const docs = docMap[a.userId] || {};
-          const documents = {
-            bankPassbookCopy: normalize(docs.bankPassbookCopy),
-            nicCopy: normalize(docs.nicCopy),
-            cv: normalize(docs.cv),
-            degreeCertificate: normalize(docs.degreeCertificate)
-          };
-          const submittedCount = [documents.bankPassbookCopy, documents.nicCopy, documents.cv, documents.degreeCertificate]
-            .filter(d => d.submitted).length;
-          return {
-            userId: a.userId,
-            name: userMap[a.userId]?.name || 'Unknown',
-            indexNumber: userMap[a.userId]?.indexNumber || 'N/A',
-            documents,
-            documentSummary: {
-              submittedCount,
-              total: 4,
-              allSubmitted: submittedCount === 4
-            }
-          };
-        });
-
-        return {
-          moduleId: m._id,
-          moduleCode: m.moduleCode,
-          moduleName: m.moduleName,
-          semester: m.semester,
-          year: m.year,
-          requiredTAHours: m.requiredTAHours,
-          requiredTACount: m.requiredTACount,
-          approvedTAs: tas
-        };
+    // Group accepted modules per TA
+    const modulesByUser = new Map();
+    for (const app of filteredApps) {
+      const mod = moduleMap[String(app.moduleId)];
+      if (!mod) continue;
+      if (!modulesByUser.has(app.userId)) modulesByUser.set(app.userId, []);
+      modulesByUser.get(app.userId).push({
+        moduleId: mod._id,
+        moduleCode: mod.moduleCode,
+        moduleName: mod.moduleName,
+        semester: mod.semester,
+        year: mod.year
       });
+    }
 
-    return res.status(200).json({ modules: result });
+    const tas = filteredUserIds.map(uid => {
+      const docs = docMap[uid] || {};
+      const documents = {
+        bankPassbookCopy: normalize(docs.bankPassbookCopy),
+        nicCopy: normalize(docs.nicCopy),
+        cv: normalize(docs.cv),
+        degreeCertificate: normalize(docs.degreeCertificate)
+      };
+      return {
+        userId: uid,
+        name: userMap[uid]?.name || 'Unknown',
+        indexNumber: userMap[uid]?.indexNumber || 'N/A',
+        acceptedModules: modulesByUser.get(uid) || [],
+        documents
+      };
+    });
+
+    return res.status(200).json({ tas });
   } catch (error) {
     console.error('Error in viewTADocuments:', error);
     return res.status(500).json({ error: 'Failed to fetch TA documents' });
