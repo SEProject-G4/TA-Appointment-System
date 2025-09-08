@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import axios from '../api/axiosConfig'
-import { FaChevronRight, FaTimes, FaUserGraduate } from 'react-icons/fa'
+import { FaTimes, FaUserGraduate } from 'react-icons/fa'
 
 type FileMeta = {
   submitted?: boolean
@@ -23,8 +23,7 @@ type TAView = { userId: string; name: string; indexNumber: string; acceptedModul
 
 const CSEofficeDashboard = () => {
   const [tas, setTas] = useState<TAView[]>([])
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
-  const [viewMode, setViewMode] = useState<'list' | 'card'>('list')
+  // card view only
   const [docModal, setDocModal] = useState<{ open: boolean; ta?: TAView }>()
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,12 +44,7 @@ const CSEofficeDashboard = () => {
     fetchData()
   }, [])
 
-  const toggleRow = (index: number) => {
-    const next = new Set(expandedRows)
-    if (next.has(index)) next.delete(index)
-    else next.add(index)
-    setExpandedRows(next)
-  }
+  // list view removed
 
   const openDocModal = (ta: TAView) => setDocModal({ open: true, ta })
   const closeDocModal = () => setDocModal({ open: false })
@@ -108,20 +102,7 @@ const CSEofficeDashboard = () => {
           <h1 className="text-3xl font-bold font-montserrat mb-2">View TA Documents</h1>
           <p className="text-text-secondary font-raleway">TAs with submitted documents and their accepted modules</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <button 
-            className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`} 
-            onClick={() => setViewMode('list')}
-          >
-            List view
-          </button>
-          <button 
-            className={`btn ${viewMode === 'card' ? 'btn-primary' : 'btn-outline'}`} 
-            onClick={() => setViewMode('card')}
-          >
-            Card view
-          </button>
-        </div>
+        <div className="flex items-center space-x-2" />
       </div>
 
       {loading && (
@@ -143,70 +124,7 @@ const CSEofficeDashboard = () => {
         </div>
       )}
 
-      {viewMode === 'list' ? (
-        <div className="flex bg-bg-card flex-col items-center rounded-sm p-2 w-full">
-          <div className="w-full space-y-4">
-            {tas.map((ta, index) => {
-              const isOpen = expandedRows.has(index)
-              return (
-                <div key={ta.userId} className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-0 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex w-full items-center justify-between px-4 py-3">
-                    <div className="flex items-center">
-                      <FaChevronRight
-                        className={`p-1 h-6 w-6 rounded-full hover:bg-primary/10 text-text-secondary cursor-pointer transition-transform ease-in-out duration-100 ${isOpen ? 'rotate-90' : ''}`}
-                        onClick={() => toggleRow(index)}
-                      />
-                      <div className="flex items-center gap-3 ml-3">
-                        <div className="h-9 w-9 rounded-full bg-primary/10 text-primary-dark flex items-center justify-center">
-                          <FaUserGraduate />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-text-primary font-semibold">{ta.name}</span>
-                          <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <div className="text-xs text-text-secondary">Accepted Modules</div>
-                        <div className="text-sm font-semibold text-text-primary">{ta.acceptedModules.length}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="w-full h-px bg-border-default"></div>
-
-                  <div className={`panel w-full ${isOpen ? 'panel-open' : 'panel-closed'} p-4 space-y-4`}>
-                    <div>
-                      <div className="text-sm font-semibold text-text-primary mb-2">Accepted Modules</div>
-                      <div role="list" className="space-y-2">
-                        {ta.acceptedModules.map(m => (
-                          <div
-                            role="listitem"
-                            key={m.moduleId}
-                            className="flex items-center justify-between rounded-md border border-border-default bg-bg-page/60 px-3 py-2"
-                          >
-                            <div className="flex flex-col text-sm leading-tight">
-                              <span className="font-bold text-black">{m.moduleCode}</span>
-                              <span className="text-text-secondary">{m.moduleName}</span>
-                            </div>
-                            <span className="text-[11px] md:text-xs rounded-full bg-primary/10 text-primary-dark px-2 py-1 whitespace-nowrap">
-                              Sem {m.semester}, {m.year}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex justify-end">
-                      <button className="btn btn-outline btn-sm" onClick={() => openDocModal(ta)}>View documents</button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      ) : (
+      {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
           {tas.map(ta => (
             <div key={ta.userId} className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-0 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
@@ -253,7 +171,7 @@ const CSEofficeDashboard = () => {
             </div>
           ))}
         </div>
-      )}
+      }
 
       {docModal?.open && docModal.ta && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">

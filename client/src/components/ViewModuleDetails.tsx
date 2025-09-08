@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../api/axiosConfig";
-import { FaChevronRight, FaTimes, FaUserGraduate } from "react-icons/fa";
+import { FaTimes, FaUserGraduate } from "react-icons/fa";
 
 interface ApprovedTA { userId: string; name: string; indexNumber: string; documents?: any; docStatus?: 'pending' | 'submitted' }
 interface ModuleWithApproved {
@@ -15,22 +15,13 @@ interface ModuleWithApproved {
 }
 
 const ViewModuleDetails: React.FC = () => {
-  const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
-  const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
+  // card view only
   const [modules, setModules] = useState<ModuleWithApproved[]>([]);
   const [docModal, setDocModal] = useState<{ open: boolean; ta?: ApprovedTA }>()
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const toggleModuleExpansion = (moduleIndex: number) => {
-    const newExpanded = new Set(expandedModules);
-    if (newExpanded.has(moduleIndex)) {
-      newExpanded.delete(moduleIndex);
-    } else {
-      newExpanded.add(moduleIndex);
-    }
-    setExpandedModules(newExpanded);
-  };
+  // list view removed
 
   const fetchApprovedModules = async () => {
     try {
@@ -124,7 +115,7 @@ const ViewModuleDetails: React.FC = () => {
     );
   };
 
-  const renderTAItem = (ta: ApprovedTA, moduleIndex: number, taIndex: number) => {
+  const renderTAItem = (ta: ApprovedTA, _moduleIndex: number, taIndex: number) => {
     const canShowDocs = ta.docStatus === 'submitted';
 
     return (
@@ -192,75 +183,9 @@ const ViewModuleDetails: React.FC = () => {
           <h1 className="text-3xl font-bold font-montserrat mb-2">View Module Details</h1>
           <p className="text-text-secondary font-raleway">Overview of assigned modules and teaching assistant status</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <button 
-            className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`} 
-            onClick={() => setViewMode('list')}
-          >
-            List view
-          </button>
-          <button 
-            className={`btn ${viewMode === 'card' ? 'btn-primary' : 'btn-outline'}`} 
-            onClick={() => setViewMode('card')}
-          >
-            Card view
-          </button>
-        </div>
+        <div className="flex items-center space-x-2" />
       </div>
-
-      {viewMode === 'list' ? (
-        <div className="flex bg-bg-card flex-col items-center rounded-sm p-2 w-full">
-          <div className="w-full space-y-4">
-            {modules.map((module, moduleIndex) => {
-              const isOpen = expandedModules.has(moduleIndex);
-              return (
-                <div key={moduleIndex} 
-                  className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-0 bg-bg-card shadow-sm hover:shadow-md transition-shadow"
-                >
-                  {/* Module Header */}
-                  <div className="flex w-full items-center justify-between px-4 py-3">
-                    <div className="flex items-center">
-                      <FaChevronRight
-                        className={`p-1 h-6 w-6 rounded-full hover:bg-primary/10 text-text-secondary cursor-pointer transition-transform ease-in-out duration-100 ${isOpen ? 'rotate-90' : ''}`}
-                        onClick={() => toggleModuleExpansion(moduleIndex)}
-                      />
-                      <div className="flex flex-col ml-3">
-                        <div className="flex items-center space-x-3">
-                          <h2 className="text-text-primary font-semibold text-base">{module.moduleCode}</h2>
-                          <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
-                            {module.semester} {module.year}
-                          </span>
-                        </div>
-                        <p className="text-text-primary text-sm mt-1">{module.moduleName}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <div className="text-xs text-text-secondary">TA Hours</div>
-                        <div className="text-sm font-semibold text-text-primary">{module.requiredTAHours}h</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-text-secondary">Approved TAs</div>
-                        <div className="text-sm font-semibold text-text-primary">{module.approvedTAs.length}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="w-full h-px bg-border-default"></div>
-
-                  {/* Expanded Content */}
-                  <div className={`panel w-full ${isOpen ? 'panel-open' : 'panel-closed'} p-4 space-y-4`}>
-                    <div className="space-y-3">
-                      {module.approvedTAs.map((ta, taIndex) => renderTAItem(ta, moduleIndex, taIndex))}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : (
+      {
         // Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
           {modules.map((module, moduleIndex) => (
@@ -300,7 +225,7 @@ const ViewModuleDetails: React.FC = () => {
             </div>
           ))}
         </div>
-      )}
+      }
 
       {renderDocModal()}
     </div>
