@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../api/axiosConfig";
-import { FaChevronRight } from "react-icons/fa";
+import { FaChevronRight, FaTimes, FaUserGraduate } from "react-icons/fa";
 
 interface ApprovedTA { userId: string; name: string; indexNumber: string; documents?: any; docStatus?: 'pending' | 'submitted' }
 interface ModuleWithApproved {
@@ -18,6 +18,7 @@ const ViewModuleDetails: React.FC = () => {
   const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
   const [modules, setModules] = useState<ModuleWithApproved[]>([]);
+  const [docModal, setDocModal] = useState<{ open: boolean; ta?: ApprovedTA }>()
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +71,9 @@ const ViewModuleDetails: React.FC = () => {
 
   // Removed hasMissingDocs; visibility is based on docStatus
 
+  const openDocModal = (ta: ApprovedTA) => setDocModal({ open: true, ta });
+  const closeDocModal = () => setDocModal({ open: false });
+
   const renderDocRow = (label: string, doc?: any) => {
     if (!doc) return null;
     
@@ -119,6 +123,67 @@ const ViewModuleDetails: React.FC = () => {
       </div>
     );
   };
+
+  const renderTAItem = (ta: ApprovedTA, moduleIndex: number, taIndex: number) => {
+    const canShowDocs = ta.docStatus === 'submitted';
+
+    return (
+      <div key={taIndex} className="relative bg-bg-page rounded-lg border border-border-default p-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="flex flex-col">
+              <span className="font-medium text-text-primary">{ta.name}</span>
+              <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
+            </div>
+          </div>
+          {!canShowDocs && (
+            <span className="badge badge-pending">Not submitted</span>
+          )}
+        </div>
+
+        {canShowDocs && (
+          <button
+            onClick={() => openDocModal(ta)}
+            className="absolute bottom-2 right-2 btn btn-outline btn-xs"
+          >
+            View more
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const renderDocModal = () => {
+    if (!docModal?.open || !docModal.ta) return null;
+    const ta = docModal.ta;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/40" onClick={closeDocModal}></div>
+        <div role="dialog" aria-modal="true" className="relative w-full max-w-2xl mx-4 bg-white rounded-xl shadow-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border-default bg-bg-card">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-primary/10 text-primary-dark flex items-center justify-center">
+                <FaUserGraduate />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-base font-semibold text-text-primary">{ta.name}</span>
+                <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
+              </div>
+            </div>
+            <button aria-label="Close" className="h-8 w-8 rounded-md border border-border-default hover:bg-bg-page text-text-secondary flex items-center justify-center" onClick={closeDocModal}>
+              <FaTimes />
+            </button>
+          </div>
+          <div className="p-5 max-h-[70vh] overflow-y-auto space-y-2 bg-white">
+            {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
+            {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
+            {renderDocRow('CV', ta.documents?.cv)}
+            {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">
@@ -187,32 +252,7 @@ const ViewModuleDetails: React.FC = () => {
                   {/* Expanded Content */}
                   <div className={`panel w-full ${isOpen ? 'panel-open' : 'panel-closed'} p-4 space-y-4`}>
                     <div className="space-y-3">
-                      {module.approvedTAs.map((ta, taIndex) => (
-                        <div key={taIndex} className="bg-bg-page rounded-lg border border-border-default p-3">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center space-x-3">
-                              <div className="flex flex-col">
-                                <span className="font-medium text-text-primary">{ta.name}</span>
-                                <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
-                              </div>
-                            </div>
-                            {ta.docStatus !== 'submitted' ? (
-                              <span className="badge badge-pending">Not submitted</span>
-                            ) : (
-                              <details>
-                                <summary className="btn btn-outline btn-xs">View more</summary>
-                                <div className="mt-3 grid grid-cols-2 gap-2">
-                                  {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
-                                  {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
-                                  {renderDocRow('CV', ta.documents?.cv)}
-                                  {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
-                                </div>
-                              </details>
-                            )}
-                          </div>
-                          {/* Document Grid is shown inside details when submitted */}
-                        </div>
-                      ))}
+                      {module.approvedTAs.map((ta, taIndex) => renderTAItem(ta, moduleIndex, taIndex))}
                     </div>
                   </div>
                 </div>
@@ -254,36 +294,15 @@ const ViewModuleDetails: React.FC = () => {
 
                 {/* TA List */}
                 <div className="space-y-3">
-                  {module.approvedTAs.map((ta, taIndex) => (
-                    <div key={taIndex} className="bg-bg-page rounded-lg border border-border-default p-3">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-text-primary">{ta.name}</span>
-                          <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
-                        </div>
-                        {ta.docStatus !== 'submitted' ? (
-                          <span className="badge badge-pending">Not submitted</span>
-                        ) : (
-                          <details>
-                            <summary className="btn btn-outline btn-xs">View more</summary>
-                            <div className="mt-3 grid grid-cols-2 gap-2">
-                              {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
-                              {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
-                              {renderDocRow('CV', ta.documents?.cv)}
-                              {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
-                            </div>
-                          </details>
-                        )}
-                      </div>
-                      {/* Document Grid is shown inside details when submitted */}
-                    </div>
-                  ))}
+                  {module.approvedTAs.map((ta, taIndex) => renderTAItem(ta, moduleIndex, taIndex))}
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {renderDocModal()}
     </div>
   );
 };
