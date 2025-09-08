@@ -2,6 +2,17 @@ const mongoose = require('mongoose')
 
 // Schema to capture TA Document Submission details
 // Includes core identity/banking fields and document upload metadata
+const normalizeFileInput = (value) => {
+    if (!value) return null;
+    if (typeof value === 'string') {
+        return { submitted: true, fileUrl: value };
+    }
+    if (typeof value === 'object') {
+        return value;
+    }
+    return null;
+};
+
 const fileMetaSchema = new mongoose.Schema({
     submitted: { type: Boolean, default: false },
     fileUrl: { type: String },
@@ -23,13 +34,14 @@ const TaDocumentSubmissionSchema = new mongoose.Schema ({
     bank: { type: String },
     branch: { type: String },
     accountNumber: { type: String },
+    status: { type: String, enum: ['pending', 'submitted'], default: 'pending' },
 
     // Documents
     documents: {
-        bankPassbookCopy: { type: fileMetaSchema, default: null },
-        nicCopy: { type: fileMetaSchema, default: null },
-        cv: { type: fileMetaSchema, default: null },
-        degreeCertificate: { type: fileMetaSchema, default: null }
+        bankPassbookCopy: { type: fileMetaSchema, default: null, set: normalizeFileInput },
+        nicCopy: { type: fileMetaSchema, default: null, set: normalizeFileInput },
+        cv: { type: fileMetaSchema, default: null, set: normalizeFileInput },
+        degreeCertificate: { type: fileMetaSchema, default: null, set: normalizeFileInput }
     }
 }, { timestamps: true })
 

@@ -376,8 +376,14 @@ const viewModuleDetails = async (req, res) => {
 
     const userMap = users.reduce((acc, u) => { acc[u._id] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
 
-    const docSubs = await TaDocumentSubmission.find({ userId: { $in: approvedUserIds } }).select('userId documents');
-    const docMap = docSubs.reduce((acc, d) => { acc[d.userId] = d.documents || null; return acc; }, {});
+    // TaDocumentSubmission.userId is stored as String, so convert approved user ObjectIds to strings
+    const approvedUserIdStrings = approvedUserIds.map(id => id.toString());
+    console.log("approvedUserIdStrings", approvedUserIdStrings);
+
+    const docSubs = await TaDocumentSubmission.find({ userId: { $in: approvedUserIdStrings } }).select('userId documents status').lean();
+    console.log("docSubs", docSubs);
+    
+    const docMap = docSubs.reduce((acc, d) => { acc[d.userId] = { documents: d.documents || null, status: d.status || 'pending' }; return acc; }, {});
 
     // Count ALL applications per module using aggregation (more robust)
     const countsAll = await TaApplication.aggregate([
@@ -399,9 +405,19 @@ const viewModuleDetails = async (req, res) => {
         const modId = m._id.toString();
         const approvedApps = approvedByModule.get(modId) || [];
         const approvedTAs = approvedApps.map(a => {
-          const docs = docMap[a.userId] || {};
+          const userIdStr = a.userId?.toString?.() || String(a.userId);
+          const docEntry = docMap[userIdStr] || { documents: {}, status: 'pending' };
+          const docs = docEntry.documents || {};
           const normalize = (d) => {
             if (!d) return { submitted: false };
+            if (typeof d === 'string') {
+              return {
+                submitted: true,
+                fileUrl: d,
+                fileName: undefined,
+                uploadedAt: undefined
+              }
+            }
             return {
               submitted: Boolean(d.submitted),
               fileUrl: d.fileUrl,
@@ -427,6 +443,7 @@ const viewModuleDetails = async (req, res) => {
             name: userMap[a.userId]?.name || 'Unknown',
             indexNumber: userMap[a.userId]?.indexNumber || 'N/A',
             documents,
+            docStatus: docEntry.status,
             documentSummary
           };
         });

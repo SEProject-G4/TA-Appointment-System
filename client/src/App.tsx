@@ -11,6 +11,8 @@ import HandleTARequests from "./components/HandleTARequests";
 import Navbar from "./components/Navbar";
 import HomePage from "./pages/HomePage";
 
+import CSEofficeDashboard from "./pages/CSEofficeDashboard";
+
 import NewModule from "./pages/NewModule";
 import AddUser from "./pages/AddUser";
 
@@ -94,6 +96,9 @@ function App() {
               <Route path="lec-view-module-details" element={<ViewModuleDetails />}  />
               <Route path="lec-edit-module-details" element={<EditModuleDetails />} />
               <Route path="lec-handle-ta-requests" element={<HandleTARequests />} />
+
+              {/* CSE Office Routes */}
+              <Route path="cse-office-dashboard" element={<CSEofficeDashboard />} />
 
               {/* Fallback redirect */}
               <Route path="*" element={<Navigate to="/login" replace />} />

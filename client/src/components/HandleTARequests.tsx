@@ -2,20 +2,7 @@ import React, { useState, useEffect } from 'react'
 import axiosInstance from '../api/axiosConfig'
 import { FaChevronRight, FaUserGraduate, FaClipboardList } from 'react-icons/fa'
 
-interface TAApplication {
-  applicationId: string;
-  userId: string;
-  moduleId: string;
-  moduleCode: string;
-  moduleName: string;
-  semester: string;
-  year: string;
-  requiredTACount: number;
-  status: string;
-  studentName: string;
-  indexNumber: string;
-  appliedAt: string;
-}
+// removed unused TAApplication interface
 
 interface ModuleGroup {
   moduleCode: string;
@@ -251,7 +238,7 @@ const HandleTARequests = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingActions, setProcessingActions] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
+  // card view only
 
   // Fetch TA applications from backend
   const fetchTAApplications = async () => {
@@ -376,32 +363,10 @@ const HandleTARequests = () => {
           <h1 className="text-3xl font-bold font-montserrat mb-2">Handle TA Requests</h1>
           <p className="text-text-secondary font-raleway">Review and manage TA applications for your modules</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <button className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode('list')}>List view</button>
-          <button className={`btn ${viewMode === 'card' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode('card')}>Card view</button>
-        </div>
+        <div className="flex items-center space-x-2" />
       </div>
       
-      {viewMode === 'list' ? (
-        <div className="flex bg-bg-card flex-col items-center rounded-sm p-2 w-full">
-          <div className="w-full space-y-4">
-        {modules.map((m, idx) => (
-          <TARequestCard
-            key={`${m.moduleCode}-${idx}`}
-            moduleCode={m.moduleCode}
-            moduleName={m.moduleName}
-            semester={m.semester}
-            year={m.year}
-            totalRequiredTAs={m.totalRequiredTAs}
-            appliedTAs={m.appliedTAs}
-            onAccept={handleAccept}
-            onReject={handleReject}
-                processingActions={processingActions}
-          />
-        ))}
-      </div>
-        </div>
-      ) : (
+      {
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {modules.map((m, idx) => (
             <TARequestCard
@@ -419,7 +384,7 @@ const HandleTARequests = () => {
             />
           ))}
         </div>
-      )}
+      }
     </div>
   )
 }
