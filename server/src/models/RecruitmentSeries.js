@@ -12,7 +12,10 @@ const recruitmentSeriesSchema = new mongoose.Schema({
   postgradMailingList: [
     { type: mongoose.Schema.Types.ObjectId, ref: "UserGroup" },
   ],
-  status: { type: String, enum: ['initialised', 'published', 'archived'], default: 'initialised' }
+  status: { type: String, enum: ['initialised', 'published', 'archived'], default: 'initialised' },
+  moduleCount: { type: Number, default: 0 },
+  undergraduateTAPositionsCount: { type: Number, default: 0 },
+  postgraduateTAPositionsCount: { type: Number, default: 0 },
 });
 
 module.exports = mongoose.model("RecruitmentSeries", recruitmentSeriesSchema);

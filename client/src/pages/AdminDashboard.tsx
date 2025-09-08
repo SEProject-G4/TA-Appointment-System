@@ -21,6 +21,9 @@ interface RecruitmentSeriesData {
   undergradMailingList: UserGroup[];
   postgradMailingList: UserGroup[];
   status: "initialised" | "published" | "archived";
+  moduleCount: number;
+  undergraduateTAPositionsCount: number;
+  postgraduateTAPositionsCount: number;
 }
 
 const AdminDashboard: React.FC = () => {

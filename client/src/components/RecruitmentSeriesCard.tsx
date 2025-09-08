@@ -30,6 +30,9 @@ interface RecruitmentSeriesCardProps {
   undergradMailingList: UserGroup[];
   postgradMailingList: UserGroup[];
   status: "initialised" | "published" | "archived";
+  moduleCount: number;
+  undergraduateTAPositionsCount: number;
+  postgraduateTAPositionsCount: number;
   className?: string;
 }
 
@@ -141,6 +144,9 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
   undergradMailingList,
   postgradMailingList,
   status,
+  moduleCount,
+  undergraduateTAPositionsCount,
+  postgraduateTAPositionsCount,
   className,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -370,8 +376,8 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
             </div>
           </div>
       </div>
-      <p className="mt-3 mr-4 w-full text-right text-xs text-text-secondary font-semibold">
-        10 modules, 20 undergraduate TA positions, 10 postgraduate TA positions
+      <p className="mt-3 mr-4 w-full text-right text-sm text-text-secondary font-semibold">
+        {moduleCount} modules, {undergraduateTAPositionsCount} undergraduate TA positions, {postgraduateTAPositionsCount} postgraduate TA positions
       </p>
     </div>
   );

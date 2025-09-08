@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
   displayName: {
     type: String,
     required: function () {
-      return this.role === "undergraduate" || this.role === "postgraduate";
+      return this.role === "lecturer" || this.role === "hod";
     },
     default: undefined,
   },
@@ -52,9 +52,6 @@ const userSchema = new mongoose.Schema({
     ref: "UserGroup",
     required: true,
     sparse: true,
-    required: function () {
-      return this.role === "undergraduate" || this.role === "postgraduate";
-    },
   },
   firstLogin: {
     type: Boolean,

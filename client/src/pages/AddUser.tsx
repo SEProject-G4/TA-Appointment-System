@@ -232,6 +232,7 @@ function AddUser() {
       const responseData = response.data;
       if (response.status === 201) {
         setDialogMessage(responseData.message);
+        fetchUserGroups(); 
       } else {
         setDialogMessage(responseData.message || "Failed to add users.");
       }
