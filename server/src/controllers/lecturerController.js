@@ -12,11 +12,11 @@ const getMyModules = async (req, res) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const coordinatorGoogleId = String(req.user._id);
+    const coordinatorId = req.user._id;
 
     // First get all modules where user is coordinator
     const modules = await ModuleDetails
-      .find({ coordinators: coordinatorGoogleId })
+      .find({ coordinators: coordinatorId })
       .sort({ createdAt: -1 });
 
     // Get unique recruitment series IDs
@@ -29,12 +29,12 @@ const getMyModules = async (req, res) => {
     }).select('_id');
 
     // Filter modules to only those with active recruitment series
-    const activeSeriesIds = recruitmentSeries.map(rs => rs._id.toString());
+    const activeSeriesIds = recruitmentSeries.map(rs => rs._id);
     const activeModules = modules.filter(module => 
-      activeSeriesIds.includes(module.recruitmentSeriesId)
+      activeSeriesIds.some(activeId => activeId.equals(module.recruitmentSeriesId))
     );
 
-    console.log('lecturer getMyModules -> matched', activeModules.length, 'active modules for', coordinatorGoogleId);
+    console.log('lecturer getMyModules -> matched', activeModules.length, 'active modules for', coordinatorId);
 
     return res.status(200).json(activeModules);
   } catch (error) {
@@ -91,19 +91,21 @@ const handleRequests = async (req, res) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const coordinatorGoogleId = String(req.user._id);
+    const coordinatorId = req.user._id;
 
     // First, get all modules where the coordinator is responsible
     const coordinatorModulesAll = await ModuleDetails.find({
-      coordinators: coordinatorGoogleId
+      coordinators: coordinatorId
     }).select('_id moduleCode moduleName semester year requiredTACount recruitmentSeriesId');
-    console.log('edit modules -> matched', coordinatorModulesAll.length, 'modules for', coordinatorGoogleId);
+    console.log('edit modules -> matched', coordinatorModulesAll.length, 'modules for', coordinatorId);
 
     // Filter to only modules whose recruitment series is initialised
     const rsIds = [...new Set(coordinatorModulesAll.map(m => m.recruitmentSeriesId))];
     const activeSeries = await RecruitmentSeries.find({ _id: { $in: rsIds }, status: 'initialised' }).select('_id');
-    const activeSeriesIds = new Set(activeSeries.map(rs => rs._id.toString()));
-    const coordinatorModules = coordinatorModulesAll.filter(m => activeSeriesIds.has(String(m.recruitmentSeriesId)));
+    const activeSeriesIds = activeSeries.map(rs => rs._id);
+    const coordinatorModules = coordinatorModulesAll.filter(m => 
+      activeSeriesIds.some(activeId => activeId.equals(m.recruitmentSeriesId))
+    );
     console.log('handleRequests -> active modules after RS filter', coordinatorModules.length);
 
     if (coordinatorModules.length === 0) {
@@ -214,7 +216,7 @@ const handleRequests = async (req, res) => {
 
     const groupedModules = Array.from(moduleMap.values());
 
-    console.log('lecturer handleRequests -> grouped modules', groupedModules.length, 'for', coordinatorGoogleId);
+    console.log('lecturer handleRequests -> grouped modules', groupedModules.length, 'for', coordinatorId);
 
     return res.status(200).json({
       message: 'TA applications retrieved successfully',
@@ -234,9 +236,9 @@ const acceptApplication = async (req, res) => {
     }
 
     const { applicationId } = req.params;
-    const coordinatorGoogleId = String(req.user._id);
+    const coordinatorId = req.user._id;
     console.log("applicationId", applicationId);
-    console.log("coordinatorGoogleId", coordinatorGoogleId);
+    console.log("coordinatorId", coordinatorId);
 
     // Find the application
     const application = await TaApplication.findById(applicationId);
@@ -245,15 +247,12 @@ const acceptApplication = async (req, res) => {
     }
     console.log("application", application);
 
-    // Verify the coordinator is responsible for this module (handle moduleId/moduleID variants)
+    // Verify the coordinator is responsible for this module
     const applicationModuleId = application.moduleId;
     console.log("applicationModuleId", applicationModuleId);
 
     const module = await ModuleDetails.findById(applicationModuleId);
-    const coordinatorIds = [String(req.user._id || '')].filter(Boolean);
-    const moduleCoordinatorIds = (module?.coordinators || []).map(id => String(id));
-    const isAuthorized = coordinatorIds.some(id => moduleCoordinatorIds.includes(id));
-    if (!module || !isAuthorized) {
+    if (!module || !module.coordinators.includes(req.user._id)) {
       return res.status(403).json({ error: 'Not authorized to manage this application' });
     }
 
@@ -261,7 +260,7 @@ const acceptApplication = async (req, res) => {
     application.status = 'accepted';
     await application.save();
 
-    console.log('lecturer acceptApplication -> accepted application', applicationId, 'for', coordinatorGoogleId);
+    console.log('lecturer acceptApplication -> accepted application', applicationId, 'for', coordinatorId);
 
     return res.status(200).json({ 
       message: 'Application accepted successfully',
@@ -281,7 +280,7 @@ const rejectApplication = async (req, res) => {
     }
 
     const { applicationId } = req.params;
-    const coordinatorGoogleId = String(req.user._id);
+    const coordinatorId = req.user._id;
 
     // Find the application
     const application = await TaApplication.findById(applicationId);
@@ -289,13 +288,10 @@ const rejectApplication = async (req, res) => {
       return res.status(404).json({ error: 'Application not found' });
     }
 
-    // Verify the coordinator is responsible for this module (handle moduleId/moduleID variants)
+    // Verify the coordinator is responsible for this module
     const applicationModuleId = application.moduleId;
     const module = await ModuleDetails.findById(applicationModuleId);
-    const coordinatorIds = [String(req.user._id || '')].filter(Boolean);
-    const moduleCoordinatorIds = (module?.coordinators || []).map(id => String(id));
-    const isAuthorized = coordinatorIds.some(id => moduleCoordinatorIds.includes(id));
-    if (!module || !isAuthorized) {
+    if (!module || !module.coordinators.includes(req.user._id)) {
       return res.status(403).json({ error: 'Not authorized to manage this application' });
     }
 
@@ -303,7 +299,7 @@ const rejectApplication = async (req, res) => {
     application.status = 'rejected';
     await application.save();
 
-    console.log('lecturer rejectApplication -> rejected application', applicationId, 'for', coordinatorGoogleId);
+    console.log('lecturer rejectApplication -> rejected application', applicationId, 'for', coordinatorId);
 
     return res.status(200).json({ 
       message: 'Application rejected successfully',
@@ -324,19 +320,21 @@ const viewModuleDetails = async (req, res) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const coordinatorGoogleId = String(req.user._id);
+    const coordinatorId = req.user._id;
 
     // Get modules coordinated by the lecturer
     const coordinatorModulesAll = await ModuleDetails.find({
-      coordinators: coordinatorGoogleId
+      coordinators: coordinatorId
     }).select('_id moduleCode moduleName semester year requiredTACount requiredTAHours requirements recruitmentSeriesId');
     console.log("coordinatorModules (all)", coordinatorModulesAll);
 
     // Filter modules to those whose recruitment series is initialised
     const seriesIds = [...new Set(coordinatorModulesAll.map(m => m.recruitmentSeriesId))];
     const activeSeriesDocs = await RecruitmentSeries.find({ _id: { $in: seriesIds }, status: 'initialised' }).select('_id');
-    const activeSeriesIdSet = new Set(activeSeriesDocs.map(s => s._id.toString()));
-    const coordinatorModules = coordinatorModulesAll.filter(m => activeSeriesIdSet.has(String(m.recruitmentSeriesId)));
+    const activeSeriesIds = activeSeriesDocs.map(s => s._id);
+    const coordinatorModules = coordinatorModulesAll.filter(m => 
+      activeSeriesIds.some(activeId => activeId.equals(m.recruitmentSeriesId))
+    );
     console.log('viewModuleDetails -> active modules after RS filter', coordinatorModules.length);
 
     if (coordinatorModules.length === 0) {
