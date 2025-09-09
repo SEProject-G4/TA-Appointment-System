@@ -197,7 +197,7 @@ const ViewModuleDetails: React.FC = () => {
                   <div className="flex items-center space-x-3">
                     <h2 className="text-text-primary font-semibold text-base">{module.moduleCode}</h2>
                     <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
-                      {module.semester} {module.year}
+                      Semester {module.semester} {module.year}
                     </span>
                   </div>
                   <p className="text-text-primary text-sm mt-1">{module.moduleName}</p>

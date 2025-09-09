@@ -193,7 +193,7 @@ const EditModuleDetails: React.FC = () => {
                     <div className="flex items-center space-x-3">
                       <h2 className="text-text-primary font-semibold text-base">{m.moduleCode}</h2>
                       <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
-                        {m.semester} {m.year}
+                        Semester {m.semester} {m.year}
                             </span>
                           </div>
                     <p className="text-text-primary text-sm mt-1">{m.moduleName}</p>
@@ -240,11 +240,11 @@ const EditModuleDetails: React.FC = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="bg-white rounded-lg p-3 border border-border-default">
                             <div className="text-xs text-text-secondary">Required TA Hours</div>
-                            <div className="text-text-primary font-semibold">{d?.requiredTAHoursPerWeek || "0"} {((d?.requiredTAHoursPerWeek || 0) === 1 ? 'hour' : 'hours')} per week</div>
+                            <div className="text-text-primary text-sm">{d?.requiredTAHoursPerWeek || "0"} {((d?.requiredTAHoursPerWeek || 0) === 1 ? 'hour' : 'hours')} per week</div>
                           </div>
                           <div className="bg-white rounded-lg p-3 border border-border-default">
                             <div className="text-xs text-text-secondary">Required TAs</div>
-                            <div className="text-text-primary font-semibold">{d?.numberOfRequiredTAs || "0"} {((d?.numberOfRequiredTAs || 0) === 1 ? 'teaching assistant' : 'teaching assistants')}</div>
+                            <div className="text-text-primary text-sm">{d?.numberOfRequiredTAs || "0"} {((d?.numberOfRequiredTAs || 0) === 1 ? 'Teaching Asistant' : 'Teaching Assistants')}</div>
                         </div>
                           <div className="bg-white rounded-lg p-3 border border-border-default sm:col-span-2">
                             <div className="text-xs text-text-secondary mb-1">Requirements</div>
@@ -258,7 +258,7 @@ const EditModuleDetails: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-text-primary mb-2">
-                          Required TA Hours per Week
+                          TA Hours per Week
                         </label>
                         <input
                           type="number"

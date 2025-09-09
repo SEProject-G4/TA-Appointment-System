@@ -13,7 +13,7 @@ const moduleDetailsSchema = new mongoose.Schema(
       trim: true,
     },
     recruitmentSeriesId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
       required: true,
       trim: true,
     },
@@ -29,7 +29,7 @@ const moduleDetailsSchema = new mongoose.Schema(
     },
     // Array of Google ID strings for coordinators
     coordinators: {
-      type: [String],
+      type: [mongoose.Schema.Types.ObjectId],
       required: true,
       default: [],
     },

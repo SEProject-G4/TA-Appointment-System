@@ -60,7 +60,7 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
           <div className="flex items-center space-x-3">
             <h3 className="text-lg font-semibold text-text-primary">{moduleCode}</h3>
             <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
-              {semester} {year}
+              Semester {semester} {year}
             </span>
           </div>
           <p className="text-text-primary text-sm">{moduleName}</p>
