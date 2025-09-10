@@ -201,7 +201,7 @@ const handleRequests = async (req, res) => {
       group.totalApplications += 1;
       const statusLower = String(app.status || '').toLowerCase();
       if (statusLower === 'pending') group.pendingCount += 1;
-      else if (statusLower === 'accepted') group.acceptedCount += 1;
+      else if (statusLower === 'approved') group.acceptedCount += 1;
       else if (statusLower === 'rejected') group.rejectedCount += 1;
 
       group.applications.push({
@@ -257,7 +257,7 @@ const acceptApplication = async (req, res) => {
     }
 
     // Update application status
-    application.status = 'accepted';
+    application.status = 'approved';
     await application.save();
 
     console.log('lecturer acceptApplication -> accepted application', applicationId, 'for', coordinatorId);
@@ -352,7 +352,7 @@ const viewModuleDetails = async (req, res) => {
     const approvedByModule = new Map();
     for (const app of applications) {
       const statusLower = String(app.status || '').toLowerCase();
-      if (statusLower === 'accepted') {
+      if (statusLower === 'approved') {
         const key = app.moduleId.toString();
         if (!approvedByModule.has(key)) approvedByModule.set(key, []);
         approvedByModule.get(key).push(app);
@@ -367,7 +367,7 @@ const viewModuleDetails = async (req, res) => {
     }
 
     // Collect userIds from approved applications to fetch user + docs
-    const approvedUserIds = [...new Set(applications.filter(a => String(a.status || '').toLowerCase() === 'accepted').map(a => a.userId))];
+    const approvedUserIds = [...new Set(applications.filter(a => String(a.status || '').toLowerCase() === 'approved').map(a => a.userId))];
 
     const users = await User.find({ _id: { $in: approvedUserIds } }).select('Id name indexNumber');
     console.log("users", users);

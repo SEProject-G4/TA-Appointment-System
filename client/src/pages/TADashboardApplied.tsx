@@ -60,7 +60,7 @@ function TADashboardApplied() {
             />
             <TAStatCard
               statName="Accepted Positions"
-              statValue={applications.filter(app => app.status === "accepted").length}
+              statValue={applications.filter(app => app.status === "approved").length}
               icon={Trophy}
             />
             <TAStatCard
