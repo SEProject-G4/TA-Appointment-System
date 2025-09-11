@@ -3,13 +3,13 @@ import React from 'react';
 interface TACardSummaryProps {
   moduleCode: string;
   moduleName: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'accepted' | 'rejected';
   onViewMore: () => void;
 }
 
 const getStatusStyle = (status: string) => {
   switch (status) {
-    case 'approved':
+    case 'accepted':
       return 'bg-green-100 text-green-700';
     case 'rejected':
       return 'bg-red-100 text-red-700';

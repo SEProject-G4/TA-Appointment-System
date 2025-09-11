@@ -16,7 +16,7 @@ const taApplicationSchema = new mongoose.Schema({
         type: String,
         required: true,
         default: "pending",
-        enum: ["pending", "approved", "rejected"]
+        enum: ["pending", "accepted", "rejected"]
     }
 }, { timestamps: true });
 
