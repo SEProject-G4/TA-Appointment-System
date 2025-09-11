@@ -158,7 +158,7 @@ const CSEofficeDashboard = () => {
                           <span className="text-text-secondary">{m.moduleName}</span>
                         </div>
                         <span className="text-[11px] md:text-xs rounded-full bg-primary/10 text-primary-dark px-2 py-1 whitespace-nowrap">
-                          Sem {m.semester}, {m.year}
+                          Semester {m.semester} {m.year}
                         </span>
                       </div>
                     ))}

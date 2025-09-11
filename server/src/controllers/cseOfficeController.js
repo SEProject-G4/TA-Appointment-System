@@ -127,6 +127,7 @@ const viewTADocuments = async (req, res) => {
         // 2) Modules in active series
         const modules = await ModuleDetails.find({ recruitmentSeriesId: { $in: [...activeSeriesIds] } })
             .select('_id moduleCode moduleName semester year recruitmentSeriesId');
+        console.log("modules", modules);
 
         if (!modules || modules.length === 0) {
             return res.status(200).json({ tas: [] });
@@ -138,8 +139,9 @@ const viewTADocuments = async (req, res) => {
         // 3) Accepted applications in these modules
         const applications = await TaApplication.find({
             moduleId: { $in: moduleIdObjects },
-            status: 'accepted'
+            status: 'approved'
         }).lean();
+        console.log("applications", applications);
 
         if (applications.length === 0) {
             return res.status(200).json({ tas: [] });
