@@ -41,14 +41,31 @@ const moduleDetailsSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    // Lecturer fields can be filled later
     requiredTAHours: {
       type: Number,
       required: false,
       default: null,
       min: 0,
     },
-    requiredTACount: {
+    requiredUndergraduateTACount: {
+      type: Number,
+      required: false,
+      default: null,
+      min: 0,
+    },
+    requiredPostgraduateTACount: {
+      type: Number,
+      required: false,
+      default: null,
+      min: 0,
+    },
+    appliedUndergraduateCount: {
+      type: Number,
+      required: false,
+      default: null,
+      min: 0,
+    },
+    appliedPostgraduateCount: {
       type: Number,
       required: false,
       default: null,
@@ -63,8 +80,8 @@ const moduleDetailsSchema = new mongoose.Schema(
     moduleStatus: {
       type: String,
       required: true,
-      default: "pending",
-      enum: ["pending", "submitted"],
+      default: "initialised",
+      enum: ["initialised", "pending changes", "changes submitted", "advertised", "full", "getting documents", "closed"],
     },
   },
   { timestamps: true }
