@@ -75,7 +75,7 @@ const NewModule: React.FC = () => {
     const response = await axiosInstance.get("/user-management/lecturers");
     const data = response.data;
     setAvailableLecturers(data.map((lecturer: any) => ({
-      id: lecturer.id,
+      id: lecturer._id,
       label: lecturer.displayName,
     })));
 

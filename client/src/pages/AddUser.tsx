@@ -51,8 +51,6 @@ function AddUser() {
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [allUserGroups, setAllUserGroups] = useState<UserGroup[]>([
-    { _id: "1", name: "Undergrads In22", userCount: 200 },
-    { _id: "2", name: "Postgrads In22", userCount: 15 },
   ]);
   const userGroups = allUserGroups.filter((group) =>
     group.name.toLowerCase().includes(searchTerm.toLowerCase())
