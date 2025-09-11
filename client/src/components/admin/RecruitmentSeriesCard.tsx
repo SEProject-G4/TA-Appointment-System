@@ -10,8 +10,8 @@ import {
 } from "react-icons/ri";
 
 import RSModuleCard from "./RSModuleCard";
-import axiosInstance from "../api/axiosConfig";
-import Loader from "./Loader";
+import axiosInstance from "../../api/axiosConfig";
+import Loader from "../common/Loader";
 import { FaB } from "react-icons/fa6";
 
 interface UserGroup {

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import UsersGroupCard from "../components/UsersGroupCard";
+import UsersGroupCard from "../../components/admin/UsersGroupCard";
 
 import { FaBoxOpen } from "react-icons/fa";
 
-import axiosInstance from "../api/axiosConfig";
-import Loader from "../components/Loader";
-import { useToast } from "../contexts/ToastContext";
+import axiosInstance from "../../api/axiosConfig";
+import Loader from "../../components/common/Loader";
+import { useToast } from "../../contexts/ToastContext";
 
 interface UserGroup {
   _id: string;

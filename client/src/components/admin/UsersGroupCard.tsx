@@ -6,10 +6,10 @@ import { Checkbox } from "@headlessui/react";
 import { BiEdit } from "react-icons/bi";
 import { AiOutlineDelete } from "react-icons/ai";
 
-import axiosInstance from "../api/axiosConfig";
-import Loader from "./Loader";
-import { useToast } from "../contexts/ToastContext";
-import { useModal } from "../contexts/ModalProvider";
+import axiosInstance from "../../api/axiosConfig";
+import Loader from "../common/Loader";
+import { useToast } from "../../contexts/ToastContext";
+import { useModal } from "../../contexts/ModalProvider";
 
 interface UndergraduateUser {
   _id: string;

@@ -11,8 +11,8 @@ import {
 
 import { MdClose } from "react-icons/md";
 import { FaChevronDown } from "react-icons/fa";
-import axiosInstance from "../api/axiosConfig";
-import { useToast } from "../contexts/ToastContext";
+import axiosInstance from "../../api/axiosConfig";
+import { useToast } from "../../contexts/ToastContext";
 
 interface UserGroup {
   _id: string;

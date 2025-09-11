@@ -15,11 +15,11 @@ import {
   TabPanel,
   TabPanels,
 } from "@headlessui/react";
-import AutoSelect, { type Option } from "../components/AutoSelect";
+import AutoSelect, { type Option } from "../../components/common/AutoSelect";
 // import { HiOutlineLink } from "react-icons/hi";
 
-import { useToast } from "../contexts/ToastContext";
-import axiosInstance from "../api/axiosConfig";
+import { useToast } from "../../contexts/ToastContext";
+import axiosInstance from "../../api/axiosConfig";
 
 import "./NewModule.css";
 

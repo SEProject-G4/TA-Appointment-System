@@ -1,6 +1,6 @@
 import React, { useState, createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
-import Modal from '../components/Modal';
+import Modal from '../components/common/Modal';
 
 // Define the shape of the modal options object
 interface ModalOptions {

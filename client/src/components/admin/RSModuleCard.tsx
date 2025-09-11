@@ -6,7 +6,7 @@ import { FiClock } from "react-icons/fi";
 import { FaUserGraduate } from "react-icons/fa";
 
 import { Checkbox } from "@headlessui/react";
-import CircularProgress from "./CircularProgressBar";
+import CircularProgress from "../common/CircularProgressBar";
 import { useNavigate } from "react-router-dom";
 
 interface RSModuleCardProps {

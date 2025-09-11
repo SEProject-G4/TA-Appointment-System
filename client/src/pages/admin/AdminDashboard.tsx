@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import RSCard from "../components/RecruitmentSeriesCard";
+import { useAuth } from "../../contexts/AuthContext";
+import RSCard from "../../components/admin/RecruitmentSeriesCard";
 import { LuCirclePlus } from "react-icons/lu";
 import { FaBoxOpen } from "react-icons/fa";
-import axiosInstance from "../api/axiosConfig";
+import axiosInstance from "../../api/axiosConfig";
 
 interface UserGroup {
   _id: string;

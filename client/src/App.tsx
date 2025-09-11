@@ -3,17 +3,17 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { ModalProvider } from "./contexts/ModalProvider";
 import { useState, useRef, useEffect } from "react";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "./components/common/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
-import AdminDashboard from "./pages/AdminDashboard";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import LecturerDashboard from "./pages/LecturerDashboard";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/common/Navbar";
 import HomePage from "./pages/HomePage";
 
-import NewModule from "./pages/NewModule";
-import NewRecruitmentSeries from "./pages/NewRecruitmentSeries";
-import AddUser from "./pages/AddUser";
-import UndergraduateUsers from "./pages/UndergraduateUsers";
+import NewModule from "./pages/admin/NewModule";
+import NewRecruitmentSeries from "./pages/admin/NewRecruitmentSeries";
+import AddUser from "./pages/admin/AddUser";
+import UndergraduateUsers from "./pages/admin/UndergraduateUsers";
 
 import TADashboardApplied from "./pages/TADashboardApplied";
 import TADashboardAccepted from "./pages/TADashboardAccepted";

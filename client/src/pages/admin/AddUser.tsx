@@ -21,7 +21,7 @@ import {
   Radio,
   RadioGroup,
 } from "@headlessui/react";
-import axiosInstance from "../api/axiosConfig";
+import axiosInstance from "../../api/axiosConfig";
 
 interface User {
   email: string;

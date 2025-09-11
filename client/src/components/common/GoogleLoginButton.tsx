@@ -1,5 +1,5 @@
 import React from "react";
-import { loginWithGoogle } from "../api/authApi";
+import { loginWithGoogle } from "../../api/authApi";
 import { FaGoogle } from 'react-icons/fa';
 
 interface GoogleLoginButtonProps {
