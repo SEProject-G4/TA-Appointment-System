@@ -75,7 +75,7 @@ const getAcceptedModules = async (req, res)=>{
   const userId = req.query.userId;
 
   try {
-    const applications = await TaApplication.find({ userId , status: 'approved'}).populate('moduleId');
+    const applications = await TaApplication.find({ userId , status: 'accepted'}).populate('moduleId');
     const coordinatorIds = applications.flatMap(app => app.moduleId.coordinators); //may have repititions
     const coordinators = await User.find({ googleId: { $in: coordinatorIds } });
     const coordinatorMap = coordinators.reduce((map, user) => {

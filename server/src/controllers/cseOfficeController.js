@@ -139,7 +139,7 @@ const viewTADocuments = async (req, res) => {
         // 3) Accepted applications in these modules
         const applications = await TaApplication.find({
             moduleId: { $in: moduleIdObjects },
-            status: 'approved'
+            status: 'accepted'
         }).lean();
         console.log("applications", applications);
 
