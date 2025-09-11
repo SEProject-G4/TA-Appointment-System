@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { ModalProvider } from "./contexts/ModalProvider";
 import { useState, useRef, useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
@@ -12,6 +13,7 @@ import HomePage from "./pages/HomePage";
 import NewModule from "./pages/NewModule";
 import NewRecruitmentSeries from "./pages/NewRecruitmentSeries";
 import AddUser from "./pages/AddUser";
+import UndergraduateUsers from "./pages/UndergraduateUsers";
 
 import TADashboardApplied from "./pages/TADashboardApplied";
 import TADashboardAccepted from "./pages/TADashboardAccepted";
@@ -34,6 +36,7 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
+      <ModalProvider>
       <div className="w-screen h-screen overflow-hidden">
         <Navbar ref={navbarRef} />
         <div
@@ -64,6 +67,14 @@ function App() {
                 element={
                   <ProtectedRoute roles="admin">
                     <AddUser />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="manage-users/undergraduates"
+                element={
+                  <ProtectedRoute roles="admin">
+                    <UndergraduateUsers />
                   </ProtectedRoute>
                 }
               />
@@ -107,6 +118,7 @@ function App() {
           </Routes>
         </div>
       </div>
+      </ModalProvider>
       </ToastProvider>
     </AuthProvider>
   );

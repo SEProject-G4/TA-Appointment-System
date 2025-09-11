@@ -1,6 +1,7 @@
 import "./AddUser.css";
 
-import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
+import React, { use, useEffect, useState } from "react";
 import { FaCircleCheck } from "react-icons/fa6";
 import { AiOutlineCloseCircle } from "react-icons/ai";
 import { FaUpload, FaMinus } from "react-icons/fa";
@@ -50,8 +51,7 @@ function AddUser() {
     null
   );
   const [searchTerm, setSearchTerm] = useState("");
-  const [allUserGroups, setAllUserGroups] = useState<UserGroup[]>([
-  ]);
+  const [allUserGroups, setAllUserGroups] = useState<UserGroup[]>([]);
   const userGroups = allUserGroups.filter((group) =>
     group.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -180,9 +180,11 @@ function AddUser() {
     event.preventDefault();
 
     // Validate all users and collect errors
-    const errors: { email?: string; indexNumber?: string; displayName?: string }[] = users.map(
-      (user) => ({})
-    );
+    const errors: {
+      email?: string;
+      indexNumber?: string;
+      displayName?: string;
+    }[] = users.map((user) => ({}));
     let hasError = false;
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
@@ -199,7 +201,7 @@ function AddUser() {
           hasError = true;
         }
       }
-      if (userRole === 'lecturer' || userRole === 'hod') {
+      if (userRole === "lecturer" || userRole === "hod") {
         if (!user.displayName) {
           errors[i].displayName = "Display Name is required.";
           hasError = true;
@@ -230,7 +232,10 @@ function AddUser() {
       const responseData = response.data;
       if (response.status === 201) {
         setDialogMessage(responseData.message);
-        fetchUserGroups(); 
+        setUsers([{ email: "" }]);
+        setInputErrors([]);
+        setSelectedUserGroup(null);
+        fetchUserGroups();
       } else {
         setDialogMessage(responseData.message || "Failed to add users.");
       }
@@ -243,9 +248,20 @@ function AddUser() {
     }
   };
 
+  const location = useLocation();
+  const state = location.state as
+    | { groupId?: string; role?: string }
+    | undefined;
+
   useEffect(() => {
     fetchUserGroups();
   }, [userRole]);
+
+  useEffect(() => {
+    if (state && state.groupId && state.role) {
+      setUserRole(state.role);
+    }
+  }, [state]);
 
   return (
     <div className="flex flex-col w-full bg-bg-page px-20 items-start p-4">
@@ -321,7 +337,8 @@ function AddUser() {
                                 )}
                               </div>
                             )}
-                            {(userRole === "lecturer" || userRole === "hod") && (
+                            {(userRole === "lecturer" ||
+                              userRole === "hod") && (
                               <div className="flex-1 flex flex-col">
                                 <input
                                   type="text"
