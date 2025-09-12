@@ -14,9 +14,14 @@ const getMyModules = async (req, res) => {
 
     const coordinatorId = req.user._id;
 
-    // First get all modules where user is coordinator
+    // Get all modules where user is coordinator with either status
     const modules = await ModuleDetails
-      .find({ coordinators: coordinatorId })
+      .find({ 
+        coordinators: coordinatorId,
+        moduleStatus: { 
+          $in: ['pending changes', 'changes submitted'] 
+        }
+      })
       .sort({ createdAt: -1 });
 
     // Get unique recruitment series IDs
@@ -34,9 +39,19 @@ const getMyModules = async (req, res) => {
       activeSeriesIds.some(activeId => activeId.equals(module.recruitmentSeriesId))
     );
 
-    console.log('lecturer getMyModules -> matched', activeModules.length, 'active modules for', coordinatorId);
+    // Group modules by status
+    const groupedModules = {
+      pendingChanges: activeModules.filter(m => m.moduleStatus === 'pending changes'),
+      changesSubmitted: activeModules.filter(m => m.moduleStatus === 'changes submitted')
+    };
 
-    return res.status(200).json(activeModules);
+    console.log('lecturer getMyModules -> matched', 
+      groupedModules.pendingChanges.length, 'pending changes and',
+      groupedModules.changesSubmitted.length, 'changes submitted modules for', 
+      coordinatorId
+    );
+
+    return res.status(200).json(groupedModules);
   } catch (error) {
     console.error('Error fetching lecturer modules:', error);
     return res.status(500).json({ error: 'Failed to fetch modules for coordinator' });
@@ -50,7 +65,7 @@ const editModuleRequirments = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { requiredTAHours, requiredTACount, requirements, moduleStatus } = req.body;
+    const { requiredTAHours, requiredTACount, requirements } = req.body;
 
     // Verify the lecturer is a coordinator for this module
     const moduleDoc = await ModuleDetails.findById(id);
@@ -62,7 +77,12 @@ const editModuleRequirments = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to edit this module' });
     }
 
-    // Update the lecturer fields including moduleStatus
+    // Verify the module is in "pending changes" status
+    if (moduleDoc.moduleStatus !== 'pending changes') {
+      return res.status(400).json({ error: 'Module is not in pending changes status' });
+    }
+
+    // Update the module fields and set status to "changes submitted"
     const updatedModule = await ModuleDetails.findByIdAndUpdate(
       id,
       {
@@ -70,7 +90,7 @@ const editModuleRequirments = async (req, res) => {
           requiredTAHours,
           requiredTACount,
           requirements,
-          moduleStatus: 'submitted', // Automatically set to submitted
+          moduleStatus: 'changes submitted', // Set to changes submitted
           updatedBy: req.user._id,
         },
       },

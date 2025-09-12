@@ -30,6 +30,12 @@ const EditModuleDetails: React.FC = () => {
     moduleStatus?: string;
   };
 
+  // Update the type definition to match the backend response
+  type ModulesResponse = {
+    pendingChanges: ModuleFromApi[];
+    changesSubmitted: ModuleFromApi[];
+  };
+
   const [modules, setModules] = useState<ModuleFromApi[]>([]);
   const [moduleEdits, setModuleEdits] = useState<
     Record<string, ModuleEditData>
@@ -37,7 +43,7 @@ const EditModuleDetails: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [updating, setUpdating] = useState<Record<string, boolean>>({});
-  const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
+  const [changesSubmitted, setChangesSubmitted] = useState<Record<string, boolean>>({});
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingModuleId, setPendingModuleId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Record<string, boolean>>({});
@@ -56,14 +62,20 @@ const EditModuleDetails: React.FC = () => {
       try {
         setLoading(true);
         setError("");
-        const res = await axiosInstance.get<ModuleFromApi[]>(
-          "/lecturer/modules"
-        );
-        const list = res.data || [];
-        setModules(list);
+        const res = await axiosInstance.get<ModulesResponse>("/lecturer/modules");
+        
+        // Combine both arrays of modules
+        const allModules = [
+          ...res.data.pendingChanges,
+          ...res.data.changesSubmitted
+        ];
+        
+        setModules(allModules);
+        
         const mapped: Record<string, ModuleEditData> = {};
         const initialEditing: Record<string, boolean> = {};
-        for (const m of list) {
+        
+        for (const m of allModules) {
           mapped[m._id] = {
             moduleCode: m.moduleCode,
             moduleName: m.moduleName,
@@ -78,14 +90,15 @@ const EditModuleDetails: React.FC = () => {
           // Initially show read-only view for all modules
           initialEditing[m._id] = false;
 
-          if (m.moduleStatus === "submitted") {
-            setSubmitted((prev) => ({ ...prev, [m._id]: true }));
+          if (m.moduleStatus === "changes submitted") {
+            setChangesSubmitted((prev) => ({ ...prev, [m._id]: true }));
           }
         }
         setModuleEdits(mapped);
         setEditing(initialEditing);
-        // list view removed
+        
       } catch (e) {
+        console.error("Error loading modules:", e);
         setError("Failed to load your modules");
       } finally {
         setLoading(false);
@@ -134,7 +147,7 @@ const EditModuleDetails: React.FC = () => {
         payload
       );
 
-      setSubmitted((prev) => ({ ...prev, [pendingModuleId]: true }));
+      setChangesSubmitted((prev) => ({ ...prev, [pendingModuleId]: true }));
       // Exit editing mode after successful submit
       setEditing((prev) => ({ ...prev, [pendingModuleId]: false }));
 
@@ -181,7 +194,7 @@ const EditModuleDetails: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full">
           {modules.map((m) => {
             const d = moduleEdits[m._id];
-            const isSubmitted = submitted[m._id] || m.moduleStatus === "submitted";
+            const isSubmitted = changesSubmitted[m._id] || m.moduleStatus === "changes submitted";
             const isEditing = editing[m._id];
             return (
               <div
@@ -199,7 +212,7 @@ const EditModuleDetails: React.FC = () => {
                     <p className="text-text-primary text-sm mt-1">{m.moduleName}</p>
                             </div>
                   {isSubmitted ? (
-                    <span className="badge badge-accepted">Submitted</span>
+                    <span className="badge badge-accepted">Changes Submitted</span>
                   ) : (
                     <button
                       type="button"
