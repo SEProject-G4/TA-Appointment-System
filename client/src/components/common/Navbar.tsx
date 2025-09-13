@@ -1,6 +1,6 @@
 import React from "react";
 import { FaCog, FaUser, FaSignOutAlt } from "react-icons/fa";
-import CSELogo from "../assets/images/cse-logo.png";
+import CSELogo from "../../assets/images/cse-logo.png";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 

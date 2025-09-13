@@ -74,7 +74,7 @@ const moduleDetailsSchema = new mongoose.Schema({
         type: String,
         required: true,
         default: "initialised",
-        enum: ["initialised", "pending", "submitted"]
+        enum: ["initialised", "pending changes", "changes submitted","advertised", "full", "getting documents", "closed"]
     }
 }, { timestamps: true });
 

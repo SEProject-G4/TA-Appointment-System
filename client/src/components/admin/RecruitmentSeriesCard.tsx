@@ -46,7 +46,7 @@ interface TimelineProps {
 }
 
 interface ModuleDetails {
-  id: string;
+  _id: string;
   moduleCode: string;
   moduleName: string;
   semester: number;
@@ -149,10 +149,14 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
   postgraduateTAPositionsCount,
   className,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(status === "initialised" || status === "published");
   const [moduleDetails, setModuleDetails] = useState<ModuleDetails[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
+
+  const refreshModuleDetails = () => {
+    setHasFetched(false);
+  };
 
   const fetchModuleDetails = async () => {
     setIsLoading(true);
@@ -315,28 +319,28 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
               <div className="flex px-4 pb-3 gap-x-2 overflow-x-hidden flex-wrap gap-y-2">
                 {moduleDetails.map((module) => (
                   <RSModuleCard
-                    key={module.id}
-                    id={module.id}
+                    key={module._id}
+                    _id={module._id}
                     moduleCode={module.moduleCode}
                     moduleName={module.moduleName}
                     semester={module.semester}
-                    status={module.moduleStatus}
+                    moduleStatus={module.moduleStatus}
                     coordinators={module.coordinators}
                     requiredTAHours={module.requiredTAHours}
                     requiredUndergraduateTACount={
                       module.requiredUndergraduateTACount
-                      
                     }
-                    appliedUndergraduateTACount={
+                    appliedUndergraduateCount={
                       module.appliedUndergraduateCount
                     }
                     requiredPostgraduateTACount={
                       module.requiredPostgraduateTACount
                     }
-                    appliedPostgraduateTACount={module.appliedPostgraduateCount}
+                    appliedPostgraduateCount={module.appliedPostgraduateCount}
                     requirements={module.requirements}
                     documentDueDate={module.documentDueDate.toLocaleString()}
                     applicationDueDate={module.applicationDueDate.toLocaleString()}
+                    refreshPage={refreshModuleDetails}
                   />
                 ))}
                 </div>

@@ -121,9 +121,68 @@ const getModuleDetailsBySeriesId = async (req, res) => {
     }
 };
 
+const changeModuleStatus = async (req, res) => {
+    try {
+        const moduleId = req.params.moduleId;
+        const newStatus = req.body.status;
+
+        // Find the module by ID
+        const module = await ModuleDetails.findById(moduleId);
+        if (!module) {
+            return res.status(404).json({ error: "Module not found" });
+        }
+
+        // Update the module status
+        module.moduleStatus = newStatus;
+        await module.save();
+
+        res.status(200).json(module);
+    } catch (error) {
+        console.error("Error changing module status:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+const getModuleDetailsById = async (req, res) => {
+    try {
+        const moduleId = req.params.moduleId;
+        const module = await ModuleDetails.findById(moduleId);
+        if (!module) {
+            return res.status(404).json({ error: "Module not found" });
+        }
+
+        const coordinatorDetails = await Promise.all(
+            module.coordinators.map(async (coordinatorId) => {
+                const user = await User.findById(coordinatorId, "displayName email profilePicture");
+                if (user) {
+                    return { 
+                        id: user._id,
+                        displayName: user.displayName,
+                        email: user.email,
+                        profilePicture: user.profilePicture
+                    };
+                }
+                return null;
+            })
+        );
+
+        const populatedModuleDetails = {
+            ...module._doc,
+            coordinators: coordinatorDetails.filter(c => c !== null)
+        };
+        
+    res.status(200).json(populatedModuleDetails);
+} catch (error) {
+    console.error("Error fetching module details:", error);
+    res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 module.exports = {
     createRecruitmentSeries,
     getAllRecruitmentSeries,
     addModuleToRecruitmentSeries,
-    getModuleDetailsBySeriesId
+    getModuleDetailsBySeriesId,
+    getModuleDetailsById,
+    changeModuleStatus,
 };
