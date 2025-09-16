@@ -21,7 +21,7 @@ interface RecruitmentSeriesData {
   postgradHourLimit: number;
   undergradMailingList: UserGroup[];
   postgradMailingList: UserGroup[];
-  status: "initialised" | "published" | "archived";
+  status: "initialised" | "active" | "archived";
   moduleCount: number;
   undergraduateTAPositionsCount: number;
   postgraduateTAPositionsCount: number;
@@ -49,7 +49,7 @@ const AdminDashboard: React.FC = () => {
     (series) => series.status === "initialised"
   );
   const publishedSeries = recruitmentSeriesList.filter(
-    (series) => series.status === "published"
+    (series) => series.status === "active"
   );
   const archivedSeries = recruitmentSeriesList.filter(
     (series) => series.status === "archived"
