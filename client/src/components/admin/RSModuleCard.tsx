@@ -97,12 +97,12 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   refreshPage,
 }) => {
   const [marked, setMarked] = useState(false);
-  const [fetchedModuleData, setFetchedModuleData] = useState<ModuleDetails | null>(null);
+  const [fetchedModuleData, setFetchedModuleData] =
+    useState<ModuleDetails | null>(null);
 
-  
   const navigate = useNavigate();
   const { showToast } = useToast();
-  
+
   const fetchModuleDetails = async (_id: string) => {
     try {
       const response = await axiosInstance.get(`/modules/${_id}`);
@@ -110,13 +110,12 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     } catch (error) {
       console.error("Error fetching module details:", error);
       showToast("Failed to fetch module details", "error");
-    } 
+    }
   };
 
-  const updateModuleStatus = async (id:string, newStatus: string) => {
+  const updateModuleStatus = async (id: string, newStatus: string) => {
     console.log(`Updating module ${id} status to ${newStatus}`);
-    try{
-      
+    try {
       await axiosInstance.put(`/modules/${id}/change-status`, {
         status: newStatus,
       });
@@ -126,26 +125,152 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
       showToast("Failed to update module status", "error");
     }
   };
-  
-  const data = fetchedModuleData ? fetchedModuleData : {
-    _id,
-    moduleCode,
-    moduleName,
-    semester,
-    moduleStatus,
-    coordinators,
-    requiredTAHours,
-    requiredUndergraduateTACount,
-    requiredPostgraduateTACount,
-    appliedUndergraduateCount,
-    appliedPostgraduateCount,
-    requirements,
-    documentDueDate,
-    applicationDueDate,
+
+  const handleEditModule = (moduleData: ModuleDetails) => {
+    navigate(`/edit-module/${moduleData._id}`, { state: { moduleData } });
   };
 
+  const notifyCoordinators = (moduleData: ModuleDetails) => {
+    // Implementation for notifying coordinators
+    updateModuleStatus(moduleData._id, "pending changes");
+  };
+
+  const handleDeleteModule = (moduleData: ModuleDetails) => {
+    // Implementation for deleting a module
+  };
+
+  const handleAdvertiseModule = (moduleData: ModuleDetails) => {
+    // Implementation for advertising a module
+    updateModuleStatus(moduleData._id, "advertised");
+  };
+
+  const handleViewApplications = (moduleData: ModuleDetails) => {
+    // Implementation for viewing applications
+  };
+
+  const handleSendforApproval = (moduleData: ModuleDetails) => {
+    // Implementation for sending module for approval
+  };
+
+  const handleCopyModule = (moduleData: ModuleDetails) => {
+    // Implementation for copying a module
+  };
+
+  const getActionButtonsOnStatus = (status: string) => {
+    switch (status) {
+      case "initialised":
+        return [
+          {
+            label: "Edit",
+            action: handleEditModule,
+            className:
+              "outline-text-secondary text-text-primary hover:bg-text-secondary hover:text-text-inverted",
+          },
+          {
+            label: "Notify Coordinators",
+            action: notifyCoordinators,
+            className:
+              "outline-primary text-text-inverted bg-primary hover:bg-primary-light",
+          },
+        ];
+      case "pending changes":
+        return [
+          {
+            label: "Edit",
+            action: handleEditModule,
+            className:
+              "outline-primary-dark text-text-primary hover:bg-primary/10 hover:text-primary-dark",
+          },
+        ];
+      case "changes submitted":
+        return [
+          {
+            label: "Edit",
+            action: handleEditModule,
+            className:
+              "outline-primary-dark text-text-primary hover:bg-primary/10 hover:text-primary-dark",
+          },
+          {
+            label: "Advertise",
+            action: handleAdvertiseModule,
+            className:
+              "outline-primary text-text-inverted bg-primary hover:bg-primary-light",
+          },
+        ];
+      case "advertised":
+        return [
+          {
+            label: "View Applications",
+            action: handleViewApplications,
+            className:
+              "outline-primary-dark text-text-primary hover:bg-primary/10 hover:text-primary-dark",
+          },
+        ];
+      case "full":
+        return [
+          {
+            label: "View Applications",
+            action: handleViewApplications,
+            className:
+              "outline-primary-dark text-text-primary hover:bg-primary/10 hover:text-primary-dark",
+          },
+          {
+            label: "Send for Approval",
+            action: handleSendforApproval,
+            className:
+              "outline-primary text-text-inverted bg-primary hover:bg-primary-light",
+          },
+        ];
+      case "getting-documents":
+        return [
+          {
+            label: "View Applications",
+            action: handleViewApplications,
+            className:
+              "outline-primary-dark text-text-primary hover:bg-primary/10 hover:text-primary-dark",
+          },
+        ];
+      case "closed":
+        return [
+          {
+            label: "Copy Module",
+            action: handleCopyModule,
+            className:
+              "outline-primary text-text-inverted bg-primary hover:bg-primary-light",
+          },
+          {
+            label: "Delete",
+            action: handleDeleteModule,
+            className:
+              "outline-warning text-warning hover:bg-warning hover:text-text-inverted",
+          },
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const data: ModuleDetails = fetchedModuleData
+    ? fetchedModuleData
+    : {
+        _id,
+        moduleCode,
+        moduleName,
+        semester,
+        moduleStatus,
+        coordinators,
+        requiredTAHours,
+        requiredUndergraduateTACount,
+        requiredPostgraduateTACount,
+        appliedUndergraduateCount,
+        appliedPostgraduateCount,
+        requirements,
+        documentDueDate: new Date(documentDueDate),
+        applicationDueDate: new Date(applicationDueDate),
+      };
+
   return (
-    <div className="flex flex-col p-3 gap-y-2 rounded-md drop-shadow-xl bg-bg-card w-[400px]">
+    <div className="hover:shadow-xl flex flex-col p-3 gap-y-2 rounded-md drop-shadow-xl bg-bg-card w-[400px]">
       <div className="flex items-start w-full gap-x-2">
         <Checkbox
           checked={marked}
@@ -175,9 +300,18 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
           )}`}
         >
           {(() => {
-            const words = (data.moduleStatus.charAt(0).toUpperCase() + data.moduleStatus.slice(1)).split(' ');
+            const words = (
+              data.moduleStatus.charAt(0).toUpperCase() +
+              data.moduleStatus.slice(1)
+            ).split(" ");
             if (words.length > 1) {
-              return <>{words[0]}<br />{words.slice(1).join(' ')}</>;
+              return (
+                <>
+                  {words[0]}
+                  <br />
+                  {words.slice(1).join(" ")}
+                </>
+              );
             }
             return words[0];
           })()}
@@ -222,7 +356,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
             {data.coordinators.map((coordinator) => (
               <div key={coordinator.id} className="flex gap-x-2 items-center">
                 <img
-                  src={CommonAvatar}
+                  src={coordinator.profilePicture || CommonAvatar}
                   alt={coordinator.displayName}
                   className="rounded-full size-10"
                 />
@@ -274,7 +408,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
         </div>
       </div>
 
-      <div className="flex w-full gap-x-2 flex-grow items-stretch">
+      <div className="flex w-full gap-x-2 items-stretch">
         <div
           className={`flex flex-1 flex-col items-center gap-y-2 bg-bg-page p-2 rounded-md`}
         >
@@ -298,12 +432,14 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
               </div>
               <CircularProgress
                 percentage={
-                  (data.appliedUndergraduateCount / data.requiredUndergraduateTACount) *
+                  (data.appliedUndergraduateCount /
+                    data.requiredUndergraduateTACount) *
                   100
                 }
                 size="small"
                 color={
-                  data.appliedUndergraduateCount >= data.requiredUndergraduateTACount
+                  data.appliedUndergraduateCount >=
+                  data.requiredUndergraduateTACount
                     ? "green"
                     : "blue"
                 }
@@ -346,14 +482,16 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
               </div>
               <CircularProgress
                 percentage={
-                  (data.appliedPostgraduateCount / data.requiredPostgraduateTACount) *
+                  (data.appliedPostgraduateCount /
+                    data.requiredPostgraduateTACount) *
                   100
                 }
                 size="small"
                 color={
                   data.requiredPostgraduateTACount === 0
                     ? "gray"
-                    : data.appliedPostgraduateCount >= data.requiredPostgraduateTACount
+                    : data.appliedPostgraduateCount >=
+                      data.requiredPostgraduateTACount
                     ? "green"
                     : "blue"
                 }
@@ -372,25 +510,16 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center w-full gap-x-2 p-2">
-        <div
-          className="text-center rounded-lg p-1 hover:bg-primary-dark hover:text-text-inverted flex-1 outline-2 outline outline-primary text-primary cursor-pointer"
-          onClick={() => navigate(`/module-recruitment/${_id}`)}
-        >
-          More Details
-        </div>
-        {moduleStatus === "changes submitted" && (
-          <div
-            className="text-center rounded-lg p-1 bg-primary hover:bg-primary-light text-text-inverted flex-1 cursor-pointer"
-            onClick={() => {
-              updateModuleStatus(_id, "advertised").then(() => {
-                fetchModuleDetails(_id);
-              });
-            }}
+      <div className="flex flex-grow justify-end flex-col items-center w-full gap-y-2 p-2">
+        {getActionButtonsOnStatus(data.moduleStatus ).map((button, index) => (
+          <button 
+            key={index}
+            className={`w-full py-1.5 rounded-md font-semibold text-sm outline outline-1 ${button.className}`}
+            onClick={() => button.action(data)}
           >
-            Advertise
-          </div>
-        )}
+            {button.label}
+          </button>
+        ))}
       </div>
     </div>
   );

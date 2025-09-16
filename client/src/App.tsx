@@ -11,6 +11,7 @@ import Navbar from "./components/common/Navbar";
 import HomePage from "./pages/HomePage";
 
 import NewModule from "./pages/admin/NewModule";
+import EditModule from "./pages/admin/EditModule";
 import NewRecruitmentSeries from "./pages/admin/NewRecruitmentSeries";
 import AddUser from "./pages/admin/AddUser";
 import UndergraduateUsers from "./pages/admin/UndergraduateUsers";
@@ -88,14 +89,23 @@ function App() {
                 }
               />
 
-              <Route
-                path="/recruitment-series/create"
-                element={
-                  <ProtectedRoute roles="admin">
-                    <NewRecruitmentSeries />
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/recruitment-series/create"
+                  element={
+                    <ProtectedRoute roles="admin">
+                      <NewRecruitmentSeries />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/edit-module/:moduleId"
+                  element={
+                    <ProtectedRoute roles="admin">
+                      <EditModule />
+                    </ProtectedRoute>
+                  }
+                />
 
               {/* TA Routes */}
               <Route path="ta-dashboard" element={<TADashboard />} />
