@@ -12,6 +12,7 @@ function TADashboard() {
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const userId = user?.id; //handle this error when user is null
+  const userRole = user?.role;
 
   const applyForTA = async (moduleId: string, userId: string) => {
     try {
@@ -80,7 +81,7 @@ function TADashboard() {
             <div className="p-3 rounded-xl bg-primary/10">
               <GraduationCap className="w-8 h-8 text-text-primary" />
             </div>
-            <h1 className="text-4xl font-bold ">TA Application Portal</h1>
+            <h1 className="text-4xl font-bold ">{userRole} - TA Application Portal</h1>
           </div>
           <p className="max-w-2xl mx-auto text-lg text-text-secondary">
             Apply for Teaching Assistant positions across various computer
@@ -102,7 +103,7 @@ function TADashboard() {
           />
           <TAStatCard
             statName="Remaining TA Hours Per Week"
-            statValue={10}
+            statValue={userRole === "undergraduate" ? 6 : 10} // Example static values
             icon={Newspaper}
           />
         </div>
@@ -117,12 +118,12 @@ function TADashboard() {
           modules.map((module) => (
             <TARequestCard
               key={module.moduleCode}
-              moduleCode={`${module.year} ${module.semester} ${module.moduleCode}`}
+              moduleCode={`Sem ${module.semester} ${module.moduleCode}`}
               moduleName={module.moduleName}
               coordinators={module.coordinators}
               requiredTAHours={module.requiredTAHours}
-              requiredTANumber={module.requiredTACount}
-              appliedTANumber={1}
+              requiredTANumber={userRole === "undergraduate" ? module.requiredUndergraduateTACount : module.requiredPostgraduateTACount}
+              appliedTANumber={userRole === "undergraduate" ? module.appliedUndergraduateCount : module.appliedPostgraduateCount}
               requirements={[module.requirements]}
               documentDueDate={module.documentDueDate.split("T")[0]}
               applicationDueDate={module.applicationDueDate.split("T")[0]}
