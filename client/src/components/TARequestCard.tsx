@@ -45,7 +45,7 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
       alert("Application submitted successfully!");
     } catch (error) {
       console.error("Error submitting application:", error);
-      alert("Error submitting application.");
+      alert("Error submitting application:", error.message);
     } finally {
       setLoading(false);
     }

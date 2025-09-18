@@ -3,19 +3,20 @@ const app = require("../app");
 const ModuleDetails = require("../models/ModuleDetails");
 const TaApplication = require("../models/TaApplication");
 const User = require("../models/User");
-const authController = require("./authController");
 const RecruitmentSeries = require("../models/recruitmentSeries");
+const AppliedModules = require("../models/AppliedModules");
 
+// fetching all the available modules that have been advertised by admin for the active recruitment series
 const getAllRequests = async (req, res) => {
-  const userId = req.query.userId;  //fetch userID from query parameters
+  const userId = req.query.userId; //fetch userID from query parameters
 
   try {
-    const user = await User.findById(userId);  //fetch user object details using userID
-    // console.log(user);
+    const user = await User.findById(userId); //fetch user object details using userID
+    console.log(user);
     const userGroupID = user.userGroup;
     const userRole = user.role;
 
-    let activeRecSeries = [];  //get the active recruitment series for the user based on their role
+    let activeRecSeries = []; //get the active recruitment series for the user based on their role
     if (userRole === "undergraduate") {
       activeRecSeries = await RecruitmentSeries.find(
         { status: "active", undergradMailingList: { $in: [userGroupID] } },
@@ -27,15 +28,16 @@ const getAllRequests = async (req, res) => {
         { _id: 1 }
       );
     }
-    // console.log(userRole, userGroupID, activeRecSeries); 
+    console.log(userRole, userGroupID, activeRecSeries);
     const recSeriesIds = activeRecSeries.map((r) => r._id);
-    // console.log(recSeriesIds);
+    console.log(recSeriesIds);
 
     const modules = await ModuleDetails.find({
-      recruitmentSeriesId: { $in: recSeriesIds, moduleStatus: "advertised" },
+      recruitmentSeriesId: { $in: recSeriesIds },
+      moduleStatus: "advertised"
     }); //fetch the available modules that have been advertised by admin.
-  
-    const allCoordinators = modules.flatMap((module) => module.coordinators);  //get the names of the module co-ordinators
+
+    const allCoordinators = modules.flatMap((module) => module.coordinators); //get the names of the module co-ordinators
     const uniqueCoordinators = [...new Set(allCoordinators)];
     const coordinatorDetails = await User.find(
       { _id: { $in: uniqueCoordinators } },
@@ -61,19 +63,56 @@ const getAllRequests = async (req, res) => {
   }
 };
 
+// Applying for a TA position
 const applyForTA = async (req, res) => {
-  const taApplication = new TaApplication({
-    userId: req.body.userId,
-    moduleId: req.body.moduleId,
-  });
-
+  const { userId, userRole, moduleId, recSeriesId, taHours } = req.body;
+  console.log(userId, userRole, moduleId, recSeriesId, taHours);
   try {
-    await taApplication.save();
-    res.status(201).json({
-      message: "Application submitted successfully",
-      application: taApplication,
+    const taApplication = new TaApplication({
+      userId,
+      moduleId,
     });
+    // create ne TA application
+    await taApplication.save();
+    console.log("application saved successfully", taApplication);
+
+    // update the applied modules collection
+    let appliedModules = await AppliedModules.findOneAndUpdate(
+      {
+        userId,
+        recSeriesId,
+        availableHoursPerWeek: { $gte: taHours },
+      },
+      {
+        $inc: { availableHoursPerWeek: -taHours },
+        $push: { appliedModules: taApplication._id },
+      },
+      { new: true }
+    );
+    if (!appliedModules) {
+      const existing = await AppliedModules.findOne({ userId, recSeriesId });
+      if (existing) {
+        return res.status(400).json({
+          message: "Insufficient available hours to apply for this module",
+        });
+      }
+      appliedModules = new AppliedModules({
+        userId,
+        recSeriesId,
+        appliedModules: [taApplication._id],
+        availableHoursPerWeek:
+          userRole === "undergraduate" ? 6 - taHours : 10 - taHours,
+      });
+      await appliedModules.save();
+      console.log(appliedModules);
+
+      res.status(201).json({
+        message: "Application submitted successfully",
+        application: taApplication,
+      });
+    }
   } catch (error) {
+    console.error("Error submitting application");
     res.status(500).json({ message: "Error submitting application", error });
   }
 };

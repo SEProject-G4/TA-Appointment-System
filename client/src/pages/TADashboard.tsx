@@ -5,61 +5,56 @@ import { GraduationCap, BookOpen, Users, Newspaper } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 
-
 function TADashboard() {
-  const { user } = useAuth( );
-  
+  const { user } = useAuth();
+
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const userId = user?.id; //handle this error when user is null
   const userRole = user?.role;
 
-  const applyForTA = async (moduleId: string, userId: string) => {
+  const applyForTA = async (
+    userId: string,
+    userRole: string,
+    moduleId: string,
+    recSeriesId: string,
+    taHours: number
+  ) => {
     try {
       const response = await axios.post("http://localhost:5000/api/ta/apply", {
-        moduleId,
         userId,
+        userRole,
+        moduleId,
+        recSeriesId,
+        taHours,
       });
       console.log("Application successful:", response.data);
+      return response.data;
     } catch (error) {
       console.error("Error applying for TA position:", error);
+      if (axios.isAxiosError(error)) {
+        console.error(
+          "Error applying for TA position:",
+          error.response?.data || error.message
+        );
+        throw new Error(error.response?.data?.message || error.message); // ✅ rethrow
+      } else {
+        throw error;
+      }
     }
   };
-
-  
-  // useEffect(() => {
-  //   if (!userId) return; // Don't run until we have userId
-
-  //   const fetchApplications = async () => {
-  //     try {
-  //       setLoading(true);
-  //       const response = await axios.get(
-  //         "http://localhost:5000/api/ta/accepted-modules",
-  //         { params: { userId } }
-  //       );
-  //       setApplications(response.data);
-  //       console.log(response.data);
-  //     } catch (error) {
-  //       console.error("error fetching application data", error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchApplications();
-  // }, [userId]);
 
   useEffect(() => {
     if (!user) return; // Wait until user is available
     const fetchModules = async () => {
       try {
-        const response = await axios.get( 
-          "http://localhost:5000/api/ta/requests" ,
-           {
-          params: {
-            userId   //handle this error when user is null
+        const response = await axios.get(
+          "http://localhost:5000/api/ta/requests",
+          {
+            params: {
+              userId, //handle this error when user is null
+            },
           }
-        }
         );
         setModules(response.data);
       } catch (error) {
@@ -81,7 +76,9 @@ function TADashboard() {
             <div className="p-3 rounded-xl bg-primary/10">
               <GraduationCap className="w-8 h-8 text-text-primary" />
             </div>
-            <h1 className="text-4xl font-bold ">{userRole} - TA Application Portal</h1>
+            <h1 className="text-4xl font-bold ">
+              {userRole} - TA Application Portal
+            </h1>
           </div>
           <p className="max-w-2xl mx-auto text-lg text-text-secondary">
             Apply for Teaching Assistant positions across various computer
@@ -97,8 +94,17 @@ function TADashboard() {
             icon={BookOpen}
           />
           <TAStatCard
-            statName="Total TA Positions"
-            statValue={modules.reduce((total, mod) => total + mod.requiredTACount, 0)}
+            statName="Total Available TA Positions"
+            statValue={modules.reduce(
+              (total, mod) =>
+                total +
+                (userRole === "undergraduate"
+                  ? mod.requiredUndergraduateTACount -
+                    mod.appliedUndergraduateCount
+                  : mod.requiredPostgraduateTACount -
+                    mod.appliedPostgraduateCount),
+              0
+            )} // Sum of required TA positions across all modules
             icon={Users}
           />
           <TAStatCard
@@ -122,12 +128,28 @@ function TADashboard() {
               moduleName={module.moduleName}
               coordinators={module.coordinators}
               requiredTAHours={module.requiredTAHours}
-              requiredTANumber={userRole === "undergraduate" ? module.requiredUndergraduateTACount : module.requiredPostgraduateTACount}
-              appliedTANumber={userRole === "undergraduate" ? module.appliedUndergraduateCount : module.appliedPostgraduateCount}
+              requiredTANumber={
+                userRole === "undergraduate"
+                  ? module.requiredUndergraduateTACount
+                  : module.requiredPostgraduateTACount
+              }
+              appliedTANumber={
+                userRole === "undergraduate"
+                  ? module.appliedUndergraduateCount
+                  : module.appliedPostgraduateCount
+              }
               requirements={[module.requirements]}
               documentDueDate={module.documentDueDate.split("T")[0]}
               applicationDueDate={module.applicationDueDate.split("T")[0]}
-              onApply={() => applyForTA(module._id, user.id)}  //----------------------------check what can do if user is null
+              onApply={() =>
+                applyForTA(
+                  user?.id,
+                  user.role,
+                  module._id,
+                  module.recruitmentSeriesId,
+                  module.requiredTAHours
+                )
+              } //----------------------------check what can do if user is null
             />
           ))
         ) : (
@@ -139,4 +161,3 @@ function TADashboard() {
 }
 
 export default TADashboard;
-
