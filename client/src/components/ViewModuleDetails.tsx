@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import axiosInstance from "../api/axiosConfig";
 import { FaTimes, FaUserGraduate } from "react-icons/fa";
 
-interface ApprovedTA { userId: string; name: string; indexNumber: string; documents?: any; docStatus?: 'pending' | 'submitted' }
-interface ModuleWithApproved {
+interface AcceptedTA { userId: string; name: string; indexNumber: string; documents?: any; docStatus?: 'pending' | 'submitted' }
+interface ModuleWithAccepted {
   moduleId: string;
   moduleCode: string;
   moduleName: string;
@@ -11,32 +11,32 @@ interface ModuleWithApproved {
   year: string;
   requiredTAHours: number;
   requiredTACount: number;
-  approvedTAs: ApprovedTA[];
+  acceptedTAs: AcceptedTA[];
 }
 
 const ViewModuleDetails: React.FC = () => {
   // card view only
-  const [modules, setModules] = useState<ModuleWithApproved[]>([]);
-  const [docModal, setDocModal] = useState<{ open: boolean; ta?: ApprovedTA }>()
+  const [modules, setModules] = useState<ModuleWithAccepted[]>([]);
+  const [docModal, setDocModal] = useState<{ open: boolean; ta?: AcceptedTA }>()
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // list view removed
 
-  const fetchApprovedModules = async () => {
+  const fetchAcceptedModules = async () => {
     try {
       setLoading(true);
       setError(null);
       const res = await axiosInstance.get('/lecturer/modules/with-ta-requests');
       setModules(res.data.modules || []);
     } catch (e: any) {
-      setError(e.response?.data?.error || 'Failed to load approved modules');
+      setError(e.response?.data?.error || 'Failed to load accepted modules');
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { fetchApprovedModules(); }, []);
+  useEffect(() => { fetchAcceptedModules(); }, []);
 
   if (loading) {
     return (
@@ -54,7 +54,7 @@ const ViewModuleDetails: React.FC = () => {
         <div className="bg-error/10 border border-error/20 rounded-lg p-6 w-full">
           <h3 className="text-error font-semibold mb-2">Error</h3>
           <p className="text-text-secondary mb-4">{error}</p>
-          <button className="btn btn-primary" onClick={fetchApprovedModules}>Try again</button>
+          <button className="btn btn-primary" onClick={fetchAcceptedModules}>Try again</button>
         </div>
       </div>
     );
@@ -62,7 +62,7 @@ const ViewModuleDetails: React.FC = () => {
 
   // Removed hasMissingDocs; visibility is based on docStatus
 
-  const openDocModal = (ta: ApprovedTA) => setDocModal({ open: true, ta });
+  const openDocModal = (ta: AcceptedTA) => setDocModal({ open: true, ta });
   const closeDocModal = () => setDocModal({ open: false });
 
   const renderDocRow = (label: string, doc?: any) => {
@@ -115,7 +115,7 @@ const ViewModuleDetails: React.FC = () => {
     );
   };
 
-  const renderTAItem = (ta: ApprovedTA, _moduleIndex: number, taIndex: number) => {
+  const renderTAItem = (ta: AcceptedTA, _moduleIndex: number, taIndex: number) => {
     const canShowDocs = ta.docStatus === 'submitted';
 
     return (
@@ -212,14 +212,14 @@ const ViewModuleDetails: React.FC = () => {
                     <div className="text-sm font-semibold text-text-primary">{module.requiredTAHours}h</div>
                   </div>
                   <div className="bg-bg-page rounded-lg p-3 border border-border-default">
-                    <div className="text-xs text-text-secondary">Approved TAs</div>
-                    <div className="text-sm font-semibold text-text-primary">{module.approvedTAs.length}</div>
+                    <div className="text-xs text-text-secondary">Accepted TAs</div>
+                    <div className="text-sm font-semibold text-text-primary">{module.acceptedTAs.length}</div>
                   </div>
                 </div>
 
                 {/* TA List */}
                 <div className="space-y-3">
-                  {module.approvedTAs.map((ta, taIndex) => renderTAItem(ta, moduleIndex, taIndex))}
+                  {module.acceptedTAs.map((ta, taIndex) => renderTAItem(ta, moduleIndex, taIndex))}
                 </div>
               </div>
             </div>

@@ -37,7 +37,7 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
             <MdMoreVert className="rounded-full cursor-pointer hover:bg-accent-light/20 font-semibold h-6 w-6 p-0.5" />
           </div>
 
-          <p className="text-sm text-text-secondary">20 approved TAs</p>
+          <p className="text-sm text-text-secondary">20 accepted TAs</p>
           <p className="text-sm text-text-secondary">5 appointed TAs</p>
           <p className="text-sm text-text-secondary">
             6 applications pending results
@@ -65,7 +65,7 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
                 <tbody>
                     <tr>
                         <td>Module 1</td>
-                        <td>Approved</td>
+                        <td>Accepted</td>
                     </tr>
                     <tr>
                         <td>Module 2</td>

@@ -201,7 +201,7 @@ const handleRequests = async (req, res) => {
       group.totalApplications += 1;
       const statusLower = String(app.status || '').toLowerCase();
       if (statusLower === 'pending') group.pendingCount += 1;
-      else if (statusLower === 'approved') group.acceptedCount += 1;
+      else if (statusLower === 'accepted') group.acceptedCount += 1;
       else if (statusLower === 'rejected') group.rejectedCount += 1;
 
       group.applications.push({
@@ -257,7 +257,7 @@ const acceptApplication = async (req, res) => {
     }
 
     // Update application status
-    application.status = 'approved';
+    application.status = 'accepted';
     await application.save();
 
     console.log('lecturer acceptApplication -> accepted application', applicationId, 'for', coordinatorId);
@@ -313,7 +313,7 @@ const rejectApplication = async (req, res) => {
 };
 
 // Returns modules coordinated by logged lecturer that have at least one TA request
-// and includes approved TA details with document info
+// and includes accepted TA details with document info
 const viewModuleDetails = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
@@ -348,17 +348,17 @@ const viewModuleDetails = async (req, res) => {
     const applications = await TaApplication.find({ moduleId: { $in: moduleIdObjects } });
     console.log("TA Applications to view status", applications);
 
-    // Build map of approved applications per module
-    const approvedByModule = new Map();
+    // Build map of accepted applications per module
+    const acceptedByModule = new Map();
     for (const app of applications) {
       const statusLower = String(app.status || '').toLowerCase();
-      if (statusLower === 'approved') {
+      if (statusLower === 'accepted') {
         const key = app.moduleId.toString();
-        if (!approvedByModule.has(key)) approvedByModule.set(key, []);
-        approvedByModule.get(key).push(app);
+        if (!acceptedByModule.has(key)) acceptedByModule.set(key, []);
+        acceptedByModule.get(key).push(app);
       }
     }
-    console.log("approvedByModule", approvedByModule);
+    console.log("acceptedByModule", acceptedByModule);
 
     // If no requests at all, return empty
     const modulesWithAnyRequests = new Set(applications.map(a => a.moduleId.toString()));
@@ -366,19 +366,19 @@ const viewModuleDetails = async (req, res) => {
       return res.status(200).json({ modules: [] });
     }
 
-    // Collect userIds from approved applications to fetch user + docs
-    const approvedUserIds = [...new Set(applications.filter(a => String(a.status || '').toLowerCase() === 'approved').map(a => a.userId))];
+    // Collect userIds from accepted applications to fetch user + docs
+    const acceptedUserIds = [...new Set(applications.filter(a => String(a.status || '').toLowerCase() === 'accepted').map(a => a.userId))];
 
-    const users = await User.find({ _id: { $in: approvedUserIds } }).select('Id name indexNumber');
+    const users = await User.find({ _id: { $in: acceptedUserIds } }).select('Id name indexNumber');
     console.log("users", users);
 
     const userMap = users.reduce((acc, u) => { acc[u._id] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
 
-    // TaDocumentSubmission.userId is stored as String, so convert approved user ObjectIds to strings
-    const approvedUserIdStrings = approvedUserIds.map(id => id.toString());
-    console.log("approvedUserIdStrings", approvedUserIdStrings);
+    // TaDocumentSubmission.userId is stored as String, so convert accepted user ObjectIds to strings
+    const acceptedUserIdStrings = acceptedUserIds.map(id => id.toString());
+    console.log("acceptedUserIdStrings", acceptedUserIdStrings);
 
-    const docSubs = await TaDocumentSubmission.find({ userId: { $in: approvedUserIdStrings } }).select('userId documents status').lean();
+    const docSubs = await TaDocumentSubmission.find({ userId: { $in: acceptedUserIdStrings } }).select('userId documents status').lean();
     console.log("docSubs", docSubs);
     
     const docMap = docSubs.reduce((acc, d) => { acc[d.userId] = { documents: d.documents || null, status: d.status || 'pending' }; return acc; }, {});
@@ -396,13 +396,13 @@ const viewModuleDetails = async (req, res) => {
     }, {});
     console.log("applicationsCountMap", applicationsCountMap);
 
-    // Build response (only modules with at least one APPROVED/accepted application)
+    // Build response (only modules with at least one accepted application)
     const modules = coordinatorModules
-      .filter(m => (approvedByModule.get(m._id.toString()) || []).length > 0)
+      .filter(m => (acceptedByModule.get(m._id.toString()) || []).length > 0)
       .map(m => {
         const modId = m._id.toString();
-        const approvedApps = approvedByModule.get(modId) || [];
-        const approvedTAs = approvedApps.map(a => {
+        const acceptedApps = acceptedByModule.get(modId) || [];
+        const acceptedTAs = acceptedApps.map(a => {
           const userIdStr = a.userId?.toString?.() || String(a.userId);
           const docEntry = docMap[userIdStr] || { documents: {}, status: 'pending' };
           const docs = docEntry.documents || {};
@@ -453,9 +453,9 @@ const viewModuleDetails = async (req, res) => {
           semester: m.semester,
           year: m.year,
           requiredTAHours: m.requiredTAHours,
-          assignedTAsCount: approvedTAs.length,
+          assignedTAsCount: acceptedTAs.length,
           requiredTACount: m.requiredTACount,
-          approvedTAs,
+          acceptedTAs,
           applicationsCount: applicationsCountMap[modId] || 0
         }
       });
