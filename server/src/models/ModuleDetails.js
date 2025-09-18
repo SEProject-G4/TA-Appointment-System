@@ -63,8 +63,8 @@ const moduleDetailsSchema = new mongoose.Schema(
     moduleStatus: {
       type: String,
       required: true,
-      default: "pending",
-      enum: ["pending", "submitted"],
+      default: "pending changes",
+      enum: ["pending changes", "advertised"],
     },
   },
   { timestamps: true }

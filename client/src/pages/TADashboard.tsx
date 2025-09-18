@@ -11,6 +11,7 @@ function TADashboard() {
   
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const userId = user?.id; //handle this error when user is null
 
   const applyForTA = async (moduleId: string, userId: string) => {
     try {
@@ -24,11 +25,40 @@ function TADashboard() {
     }
   };
 
+  
+  // useEffect(() => {
+  //   if (!userId) return; // Don't run until we have userId
+
+  //   const fetchApplications = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const response = await axios.get(
+  //         "http://localhost:5000/api/ta/accepted-modules",
+  //         { params: { userId } }
+  //       );
+  //       setApplications(response.data);
+  //       console.log(response.data);
+  //     } catch (error) {
+  //       console.error("error fetching application data", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchApplications();
+  // }, [userId]);
+
   useEffect(() => {
+    if (!user) return; // Wait until user is available
     const fetchModules = async () => {
       try {
-        const response = await axios.get(
-          "http://localhost:5000/api/ta/requests"
+        const response = await axios.get( 
+          "http://localhost:5000/api/ta/requests" ,
+           {
+          params: {
+            userId   //handle this error when user is null
+          }
+        }
         );
         setModules(response.data);
       } catch (error) {
@@ -39,7 +69,7 @@ function TADashboard() {
     };
 
     fetchModules();
-  }, []);
+  }, [userId]);
 
   return (
     <div className="min-h-screen bg-bg-card text-text-primary">
