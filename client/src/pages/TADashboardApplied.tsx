@@ -11,6 +11,7 @@ function TADashboardApplied() {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const userId = user?.id; //check weather this correct------------------------------
+  const userRole = user?.role;
 
   useEffect(() => {
     if (!userId) return; // Don't run until we have userId
@@ -60,12 +61,16 @@ function TADashboardApplied() {
             />
             <TAStatCard
               statName="Accepted Positions"
-              statValue={applications.filter(app => app.status === "accepted").length}
+              statValue={
+                applications.filter((app) => app.status === "accepted").length
+              }
               icon={Trophy}
             />
             <TAStatCard
               statName="Rejected Positions"
-              statValue={applications.filter(app => app.status === "rejected").length}
+              statValue={
+                applications.filter((app) => app.status === "rejected").length
+              }
               icon={Delete}
             />
           </div>
@@ -89,12 +94,22 @@ function TADashboardApplied() {
                 moduleName={app.moduleId.moduleName}
                 coordinators={app.moduleId.coordinators}
                 requiredTAHours={app.moduleId.requiredTAHours}
-                requiredTANumber={app.moduleId.requiredTACount}
-                appliedTANumber={1}
+                requiredTANumber={
+                  userRole === "undergraduate"
+                    ? app.moduleId.requiredUndergraduateTACount
+                    : app.moduleId.requiredPostgraduateTACount
+                }
+                appliedTANumber={
+                  userRole === "undergraduate"
+                    ? app.moduleId.appliedUndergraduateCount
+                    : app.moduleId.appliedPostgraduateCount
+                }
                 status={app.status}
                 appliedDate={app.createdAt.split("T")[0]}
                 documentDueDate={app.moduleId.documentDueDate.split("T")[0]}
-                applicationDueDate={app.moduleId.applicationDueDate.split("T")[0]}
+                applicationDueDate={
+                  app.moduleId.applicationDueDate.split("T")[0]
+                }
                 requirements={[app.moduleId.requirements]}
               />
             ))

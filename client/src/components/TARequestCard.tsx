@@ -43,14 +43,14 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
       alert("Application submitted successfully!");
     } catch (error) {
       console.error("Error submitting application:", error);
-      alert("Error submitting application:", error.message);
+      alert(`Error submitting application: ${error}`);
     } finally {
       setLoading(false);
     }
   }
   
   return (
-    <div className="w-full p-6 mb-4 transition-all duration-300 border-2 bg-gradient-to-br from-card to-muted/20 border-border/50 hover:shadow-lg hover:-translate-y-1">
+    <div className="w-full p-6 mb-4 duration-300 rounded-md shadow-sm mtransition-all outline-dashed outline-1 bg-bg-card hover:shadow-md">
       {/* Card content goes here */}
       <div className="grid items-center grid-cols-12 gap-6">
         {/* left */}

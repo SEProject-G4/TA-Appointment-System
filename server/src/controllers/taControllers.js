@@ -1,4 +1,4 @@
-const { get, default: mongoose } = require("mongoose");
+const { get, default: mongoose, model } = require("mongoose");
 const app = require("../app");
 const ModuleDetails = require("../models/ModuleDetails");
 const TaApplication = require("../models/TaApplication");
@@ -6,7 +6,7 @@ const User = require("../models/User");
 const RecruitmentSeries = require("../models/recruitmentSeries");
 const AppliedModules = require("../models/AppliedModules");
 
-// fetching all the available modules that have been advertised by admin for the active recruitment series
+// fetching all the available modules that have been advertised by admin for the active recruitment series-------------------------------
 const getAllRequests = async (req, res) => {
   const userId = req.query.userId; //fetch userID from query parameters
 
@@ -73,7 +73,7 @@ const getAllRequests = async (req, res) => {
   }
 };
 
-// Applying for a TA position
+// Applying for a TA position-----------------------------------------------------------------------------------------------------------
 const applyForTA = async (req, res) => {
   const { userId, userRole, moduleId, recSeriesId, taHours } = req.body;
   console.log(userId, userRole, moduleId, recSeriesId, taHours);
@@ -104,15 +104,18 @@ const applyForTA = async (req, res) => {
         {
           _id: moduleId,
           $expr: {
-            $lt: ["$appliedUndergraduateCount", "$requiredUndergraduateTACount"],
+            $lt: [
+              "$appliedUndergraduateCount",
+              "$requiredUndergraduateTACount",
+            ],
           },
-      },
-      {
-        $inc: { appliedUndergraduateCount: 1 },
-
-      },
-      { new: true, session, runValidators: true }
-    );} else if (userRole ==="postgraduate" ){
+        },
+        {
+          $inc: { appliedUndergraduateCount: 1 },
+        },
+        { new: true, session, runValidators: true }
+      );
+    } else if (userRole === "postgraduate") {
       updateModule = await ModuleDetails.findOneAndUpdate(
         {
           _id: moduleId,
@@ -144,107 +147,97 @@ const applyForTA = async (req, res) => {
           $inc: { availableHoursPerWeek: -taHours },
           $push: { appliedModules: taApplication._id },
         },
-        { session}
-      );} else {
-        appliedModules = new AppliedModules({
-          userId,
-          recSeriesId,
-          appliedModules: [taApplication._id],
-          availableHoursPerWeek:
-            userRole === "undergraduate" ? 6 - taHours : 10 - taHours,
-        });
-        await appliedModules.save({ session });
-      }
-        // commit transaction since everything is successful
-        await session.commitTransaction();
-        console.log("Transaction committed.");
-        res.status(201).json({
-          message: "Application submitted successfully",
-          application: taApplication,
-        });
+        { session }
+      );
+    } else {
+      appliedModules = new AppliedModules({
+        userId,
+        recSeriesId,
+        appliedModules: [taApplication._id],
+        availableHoursPerWeek:
+          userRole === "undergraduate" ? 6 - taHours : 10 - taHours,
+      });
+      await appliedModules.save({ session });
+    }
+    // commit transaction since everything is successful
+    await session.commitTransaction();
+    console.log("Transaction committed.");
+    res.status(201).json({
+      message: "Application submitted successfully",
+      application: taApplication,
+    });
   } catch (error) {
     // abort transaction in case of error
     await session.abortTransaction();
     console.error("Transaction aborted due to error:", error);
-    res.status(500).json({ message: error.message || "Error submitting application", error });
-  }finally{
+    res
+      .status(500)
+      .json({
+        message: error.message || "Error submitting application",
+        error,
+      });
+  } finally {
     session.endSession();
     console.log("Session ended");
-  }}; 
-
-    // await taApplication.save()
-    // console.log("application saved successfully", taApplication);
-
-    // update the applied modules collection =1
-    // let appliedModules = await AppliedModules.findOneAndUpdate(
-    //   {
-    //     userId,
-    //     recSeriesId,
-    //     availableHoursPerWeek: { $gte: taHours },
-    //   },
-    //   {
-    //     $inc: { availableHoursPerWeek: -taHours },
-    //     $push: { appliedModules: taApplication._id },
-    //   },
-    //   { new: true }
-    // );
-  //   if (!appliedModules) {
-  //     const existing = await AppliedModules.findOne({ userId, recSeriesId });
-  //     if (existing) {
-  //       return res.status(400).json({
-  //         message: "Insufficient available hours to apply for this module",
-  //       });
-  //     }
-  //     appliedModules = new AppliedModules({
-  //       userId,
-  //       recSeriesId,
-  //       appliedModules: [taApplication._id],
-  //       availableHoursPerWeek:
-  //         userRole === "undergraduate" ? 6 - taHours : 10 - taHours,
-  //     });
-  //     await appliedModules.save();
-  //     console.log(appliedModules);
-
-  //     res.status(201).json({
-  //       message: "Application submitted successfully",
-  //       application: taApplication,
-  //     });
-  //   }
-  // } catch (error) {
-  //   console.error("Error submitting application");
-  //   res.status(500).json({ message: "Error submitting application", error });
-  // }
+  }
+};
 
 
+// get applied modules for a user---------------------------------------------------------------------------------------------------------
 const getAppliedModules = async (req, res) => {
   const userId = req.query.userId;
 
   try {
-    const applications = await TaApplication.find({ userId }).populate(
-      "moduleId"
-    );
-    const coordinatorIds = applications.flatMap(
-      (app) => app.moduleId.coordinators
-    ); //may have repititions
-    const coordinators = await User.find({ googleId: { $in: coordinatorIds } });
+    const user = await User.findById(userId);
+    const userGroupID = user.userGroup;
+    const userRole = user.role;
+
+    let activeRecSeries = [];
+    if (userRole === "undergraduate") {
+      activeRecSeries = await RecruitmentSeries.find(
+        { status: "active", undergradMailingList: { $in: [userGroupID] } },
+        { _id: 1 }
+      );
+    } else if (userRole === "postgraduate") {
+      activeRecSeries = await RecruitmentSeries.find(
+        { status: "active", postgradMailingList: { $in: [userGroupID] } },
+        { _id: 1 }
+      );
+    }
+
+    // fetch AppliedModules with nested populate
+    const appliedModulesDocs = await AppliedModules.find({
+      userId,
+      recSeriesId: { $in: activeRecSeries.map(r => r._id) }
+    }).populate({
+      path: "appliedModules",
+      populate: { path: "moduleId", model: "ModuleDetails" }
+    });
+
+    // flatten into actual TaApplications
+    const allApplications = appliedModulesDocs.flatMap(am => am.appliedModules);
+
+    // collect coordinators
+    const coordinatorIds = allApplications.flatMap(app => app.moduleId.coordinators);
+    const coordinators = await User.find({ _id: { $in: coordinatorIds } });
     const coordinatorMap = coordinators.reduce((map, user) => {
-      map[user.googleId] = user.name;
+      map[user._id] = user.name;
       return map;
     }, {});
-    const updatedApplications = applications.map((app) => ({
+
+    // attach coordinator names to moduleId
+    const updatedApplications = allApplications.map(app => ({
       ...app.toObject(),
       moduleId: {
         ...app.moduleId.toObject(),
-        coordinators: app.moduleId.coordinators.map(
-          (id) => coordinatorMap[id] || "-"
-        ),
-      },
+        coordinators: app.moduleId.coordinators.map(id => coordinatorMap[id] || "-")
+      }
     }));
 
     res.status(200).json(updatedApplications);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching applied modules", error });
     console.error("Error fetching applied modules:", error);
+    res.status(500).json({ message: "Error fetching applied modules", error });
   }
 };
 
