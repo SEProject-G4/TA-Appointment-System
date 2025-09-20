@@ -18,7 +18,7 @@ const appliedModulesSchema = new mongoose.Schema({
   },
     appliedModules: {
     type: [mongoose.Schema.Types.ObjectId],
-    ref: "TaApplications",
+    ref: "TAApplication",
     required: true,
     default: [],
   },
@@ -28,7 +28,7 @@ const appliedModulesSchema = new mongoose.Schema({
     default: false,
   },
   Documents: {
-    type: [mongoose.Schema.Types.ObjectId],
+    type: mongoose.Schema.Types.ObjectId,
     ref: "TaDocumentSubmission"
   },
     

@@ -31,7 +31,6 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
   const progressPercentage = (appliedTANumber / requiredTANumber) * 100;
   const isFullyFilled = appliedTANumber >= requiredTANumber;
   const [loading, setLoading] = useState(false);
-  const [isApplied, setIsApplied] = useState(false);
 
   const handleApply = async() => {
     const confirmApply = window.confirm(
@@ -41,7 +40,6 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
     try{
       setLoading(true);
       await onApply();
-      setIsApplied(true);
       alert("Application submitted successfully!");
     } catch (error) {
       console.error("Error submitting application:", error);
@@ -156,9 +154,9 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
             Apply Now
           </button> */}
             <Button
-            label={isApplied ? "Applied" : "Apply Now"}
+            label= "Apply Now"
             onClick={handleApply}
-            disabled={isApplied || isFullyFilled || loading}
+            disabled={loading}
           >
           </Button>  
         </div>

@@ -31,12 +31,17 @@ const getAllRequests = async (req, res) => {
     console.log(userRole, userGroupID, activeRecSeries);
     const recSeriesIds = activeRecSeries.map((r) => r._id);
     console.log(recSeriesIds);
+    const appliedModules = await AppliedModules.find({ userId, recSeriesId: { $in: recSeriesIds } }, { appliedModules: 1 }).populate('appliedModules'); ;
+    console.log("applied modules",appliedModules);
+    const appliedModulesIds= appliedModules.flatMap(am => am.appliedModules.map(app => app.moduleId));
+    console.log("applied module ids",appliedModulesIds);
 
     const modules = await ModuleDetails.find({
       recruitmentSeriesId: { $in: recSeriesIds },
-      moduleStatus: "advertised"
+      moduleStatus: "advertised",
+      _id: { $nin: appliedModulesIds}
     }); //fetch the available modules that have been advertised by admin.
-
+    
     const allCoordinators = modules.flatMap((module) => module.coordinators); //get the names of the module co-ordinators
     const uniqueCoordinators = [...new Set(allCoordinators)];
     const coordinatorDetails = await User.find(

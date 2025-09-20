@@ -2,8 +2,8 @@ const mongoose = require("mongoose");
 
 const taApplicationSchema = new mongoose.Schema({
     userId:{
-        type: String,
-        ref: "Users",
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
         trim: true,
         required: true
     },

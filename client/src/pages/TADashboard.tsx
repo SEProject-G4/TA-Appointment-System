@@ -10,6 +10,7 @@ function TADashboard() {
 
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0); // New state variable for refresh key
   const userId = user?.id; //handle this error when user is null
   const userRole = user?.role;
 
@@ -41,6 +42,9 @@ function TADashboard() {
       } else {
         throw error;
       }
+    }finally{
+      setRefreshKey((prevKey) => prevKey + 1); // Increment the refresh key to trigger re-fetching
+      console.log("Refresh key updated:", refreshKey);
     }
   };
 
@@ -65,7 +69,7 @@ function TADashboard() {
     };
 
     fetchModules();
-  }, [userId]);
+  }, [userId,refreshKey]);
 
   return (
     <div className="min-h-screen bg-bg-card text-text-primary">
