@@ -1,4 +1,4 @@
-const { get } = require("mongoose");
+const { get, default: mongoose } = require("mongoose");
 const app = require("../app");
 const ModuleDetails = require("../models/ModuleDetails");
 const TaApplication = require("../models/TaApplication");
@@ -31,17 +31,22 @@ const getAllRequests = async (req, res) => {
     console.log(userRole, userGroupID, activeRecSeries);
     const recSeriesIds = activeRecSeries.map((r) => r._id);
     console.log(recSeriesIds);
-    const appliedModules = await AppliedModules.find({ userId, recSeriesId: { $in: recSeriesIds } }, { appliedModules: 1 }).populate('appliedModules'); ;
-    console.log("applied modules",appliedModules);
-    const appliedModulesIds= appliedModules.flatMap(am => am.appliedModules.map(app => app.moduleId));
-    console.log("applied module ids",appliedModulesIds);
+    const appliedModules = await AppliedModules.find(
+      { userId, recSeriesId: { $in: recSeriesIds } },
+      { appliedModules: 1 }
+    ).populate("appliedModules");
+    console.log("applied modules", appliedModules);
+    const appliedModulesIds = appliedModules.flatMap((am) =>
+      am.appliedModules.map((app) => app.moduleId)
+    );
+    console.log("applied module ids", appliedModulesIds);
 
     const modules = await ModuleDetails.find({
       recruitmentSeriesId: { $in: recSeriesIds },
       moduleStatus: "advertised",
-      _id: { $nin: appliedModulesIds}
+      _id: { $nin: appliedModulesIds },
     }); //fetch the available modules that have been advertised by admin.
-    
+
     const allCoordinators = modules.flatMap((module) => module.coordinators); //get the names of the module co-ordinators
     const uniqueCoordinators = [...new Set(allCoordinators)];
     const coordinatorDetails = await User.find(
@@ -72,55 +77,144 @@ const getAllRequests = async (req, res) => {
 const applyForTA = async (req, res) => {
   const { userId, userRole, moduleId, recSeriesId, taHours } = req.body;
   console.log(userId, userRole, moduleId, recSeriesId, taHours);
+
+  const session = await mongoose.startSession();
   try {
+    session.startTransaction();
+    // check if the user has already applied for this module
+    const existingApplication = await TaApplication.findOne({
+      userId,
+      moduleId,
+    }).session(session);
+    if (existingApplication) {
+      throw new Error("You have already applied for this module");
+    }
+    // check available hours
+    let appliedModules = await AppliedModules.findOne({
+      userId,
+      recSeriesId,
+    }).session(session);
+    if (appliedModules && appliedModules.availableHoursPerWeek < taHours) {
+      throw new Error("Insufficient available hours to apply for this module");
+    }
+    // increase applied count
+    let updateModule;
+    if (userRole === "undergraduate") {
+      updateModule = await ModuleDetails.findOneAndUpdate(
+        {
+          _id: moduleId,
+          $expr: {
+            $lt: ["$appliedUndergraduateCount", "$requiredUndergraduateTACount"],
+          },
+      },
+      {
+        $inc: { appliedUndergraduateCount: 1 },
+
+      },
+      { new: true, session, runValidators: true }
+    );} else if (userRole ==="postgraduate" ){
+      updateModule = await ModuleDetails.findOneAndUpdate(
+        {
+          _id: moduleId,
+          $expr: {
+            $lt: ["$appliedPostgraduateCount", "$requiredPostgraduateTACount"],
+          },
+        },
+        {
+          $inc: { appliedPostgraduateCount: 1 },
+        },
+        { new: true, session, runValidators: true }
+      );
+    }
+    if (!updateModule) {
+      throw new Error("TA positions for this module are already filled");
+    }
+
+    // create new TA application
     const taApplication = new TaApplication({
       userId,
       moduleId,
     });
-    // create ne TA application
-    await taApplication.save();
-    console.log("application saved successfully", taApplication);
-
-    // update the applied modules collection
-    let appliedModules = await AppliedModules.findOneAndUpdate(
-      {
-        userId,
-        recSeriesId,
-        availableHoursPerWeek: { $gte: taHours },
-      },
-      {
-        $inc: { availableHoursPerWeek: -taHours },
-        $push: { appliedModules: taApplication._id },
-      },
-      { new: true }
-    );
-    if (!appliedModules) {
-      const existing = await AppliedModules.findOne({ userId, recSeriesId });
-      if (existing) {
-        return res.status(400).json({
-          message: "Insufficient available hours to apply for this module",
+    await taApplication.save({ session });
+    console.log("application created successfully", taApplication);
+    if (appliedModules) {
+      await AppliedModules.findByIdAndUpdate(
+        appliedModules._id,
+        {
+          $inc: { availableHoursPerWeek: -taHours },
+          $push: { appliedModules: taApplication._id },
+        },
+        { session}
+      );} else {
+        appliedModules = new AppliedModules({
+          userId,
+          recSeriesId,
+          appliedModules: [taApplication._id],
+          availableHoursPerWeek:
+            userRole === "undergraduate" ? 6 - taHours : 10 - taHours,
         });
+        await appliedModules.save({ session });
       }
-      appliedModules = new AppliedModules({
-        userId,
-        recSeriesId,
-        appliedModules: [taApplication._id],
-        availableHoursPerWeek:
-          userRole === "undergraduate" ? 6 - taHours : 10 - taHours,
-      });
-      await appliedModules.save();
-      console.log(appliedModules);
-
-      res.status(201).json({
-        message: "Application submitted successfully",
-        application: taApplication,
-      });
-    }
+        // commit transaction since everything is successful
+        await session.commitTransaction();
+        console.log("Transaction committed.");
+        res.status(201).json({
+          message: "Application submitted successfully",
+          application: taApplication,
+        });
   } catch (error) {
-    console.error("Error submitting application");
-    res.status(500).json({ message: "Error submitting application", error });
-  }
-};
+    // abort transaction in case of error
+    await session.abortTransaction();
+    console.error("Transaction aborted due to error:", error);
+    res.status(500).json({ message: error.message || "Error submitting application", error });
+  }finally{
+    session.endSession();
+    console.log("Session ended");
+  }}; 
+
+    // await taApplication.save()
+    // console.log("application saved successfully", taApplication);
+
+    // update the applied modules collection =1
+    // let appliedModules = await AppliedModules.findOneAndUpdate(
+    //   {
+    //     userId,
+    //     recSeriesId,
+    //     availableHoursPerWeek: { $gte: taHours },
+    //   },
+    //   {
+    //     $inc: { availableHoursPerWeek: -taHours },
+    //     $push: { appliedModules: taApplication._id },
+    //   },
+    //   { new: true }
+    // );
+  //   if (!appliedModules) {
+  //     const existing = await AppliedModules.findOne({ userId, recSeriesId });
+  //     if (existing) {
+  //       return res.status(400).json({
+  //         message: "Insufficient available hours to apply for this module",
+  //       });
+  //     }
+  //     appliedModules = new AppliedModules({
+  //       userId,
+  //       recSeriesId,
+  //       appliedModules: [taApplication._id],
+  //       availableHoursPerWeek:
+  //         userRole === "undergraduate" ? 6 - taHours : 10 - taHours,
+  //     });
+  //     await appliedModules.save();
+  //     console.log(appliedModules);
+
+  //     res.status(201).json({
+  //       message: "Application submitted successfully",
+  //       application: taApplication,
+  //     });
+  //   }
+  // } catch (error) {
+  //   console.error("Error submitting application");
+  //   res.status(500).json({ message: "Error submitting application", error });
+  // }
+
 
 const getAppliedModules = async (req, res) => {
   const userId = req.query.userId;

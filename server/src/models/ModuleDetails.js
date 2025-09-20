@@ -66,6 +66,25 @@ const moduleDetailsSchema = new mongoose.Schema(
       default: "pending changes",
       enum: ["pending changes", "advertised"],
     },
+    
+    appliedUndergraduateCount: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    appliedPostgraduateCount: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    requiredUndergraduateTACount: {
+      type: Number,
+      required: true,
+    },
+    requiredPostgraduateTACount: {
+      type: Number,
+      required: true,
+    }
   },
   { timestamps: true }
 );
