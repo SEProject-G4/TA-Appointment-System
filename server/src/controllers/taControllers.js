@@ -245,34 +245,52 @@ const getAcceptedModules = async (req, res) => {
   const userId = req.query.userId;
 
   try {
-    const applications = await TaApplication.find({
-      userId,
-      status: "accepted",
-    }).populate("moduleId");
-    const coordinatorIds = applications.flatMap(
-      (app) => app.moduleId.coordinators
-    ); //may have repititions
-    const coordinators = await User.find({ googleId: { $in: coordinatorIds } });
-    const coordinatorMap = coordinators.reduce((map, user) => {
-      map[user.googleId] = user.name;
-      return map;
-    }, {});
-    const updatedApplications = applications.map((app) => ({
-      ...app.toObject(),
-      moduleId: {
-        ...app.moduleId.toObject(),
-        coordinators: app.moduleId.coordinators.map(
-          (id) => coordinatorMap[id] || "-"
-        ),
-      },
-    }));
+    // Find the user's active recruitment series (like before)
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.status(200).json(updatedApplications);
+    const userGroupID = user.userGroup;
+    const userRole = user.role;
+
+    let activeRecSeries = [];
+    if (userRole === "undergraduate") {
+      activeRecSeries = await RecruitmentSeries.find(
+        { status: "active", undergradMailingList: { $in: [userGroupID] } },
+        { _id: 1 }
+      );
+    } else if (userRole === "postgraduate") {
+      activeRecSeries = await RecruitmentSeries.find(
+        { status: "active", postgradMailingList: { $in: [userGroupID] } },
+        { _id: 1 }
+      );
+    }
+
+    // Fetch only accepted applications inside AppliedModules
+    const acceptedApplications = await AppliedModules.find({
+      userId,
+      recSeriesId: { $in: activeRecSeries.map((r) => r._id) }
+    }).populate({
+      path: "appliedModules",
+      match: { status: "accepted" }, // ✅ filter accepted only
+      populate: {
+        path: "moduleId",
+        model: "ModuleDetails",
+        populate: {
+          path: "coordinators",
+          model: "User",
+          select: "name"
+        }
+      }
+    });
+    
+
+    res.status(200).json(acceptedApplications);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching applied modules", error });
-    console.error("Error fetching applied modules:", error);
+    console.error("Error fetching accepted modules:", error);
+    res.status(500).json({ message: "Error fetching accepted modules", error });
   }
 };
+
 
 module.exports = {
   getAllRequests,

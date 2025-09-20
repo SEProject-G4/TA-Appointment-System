@@ -83,22 +83,30 @@ function TADashboardAccepted() {
               You have not applied for any TA positions yet.
             </p>
           ) : (
-            applications.map((app) => (
-              <TAAcceptedCard
-                key={app.id}
-                moduleCode={app.moduleId.moduleCode}
-                moduleName={app.moduleId.moduleName}
-                coordinators={app.moduleId.coordinators}
-                requiredTAHours={app.moduleId.requiredTAHours}
-                requiredTANumber={app.moduleId.requiredTACount}
-                appliedTANumber={1}
-                status="Pending Document Submission"
-                appliedDate={app.createdAt.split("T")[0]}
-                documentDueDate={app.moduleId.documentDueDate.split("T")[0]}
-                applicationDueDate={app.moduleId.applicationDueDate.split("T")[0]}
-                requirements={[app.moduleId.requirements]}
-              />
-            ))
+            applications.flatMap((app) =>
+              app.appliedModules.map((appModule) => (
+                <TAAcceptedCard
+                  key={appModule._id}
+                  moduleCode={appModule.moduleId.moduleCode}
+                  moduleName={appModule.moduleId.moduleName}
+                  coordinators={appModule.moduleId.coordinators.map(
+                    (c) => c.name
+                  )}
+                  requiredTAHours={appModule.moduleId.requiredTAHours}
+                  requiredTANumber={appModule.moduleId.requiredTACount}
+                  appliedTANumber={1}
+                  status="Pending Document Submission"
+                  appliedDate={appModule.createdAt.split("T")[0]}
+                  documentDueDate={
+                    appModule.moduleId.documentDueDate.split("T")[0]
+                  }
+                  applicationDueDate={
+                    appModule.moduleId.applicationDueDate.split("T")[0]
+                  }
+                  requirements={[appModule.moduleId.requirements]}
+                />
+              ))
+            )
           )}
         </div>
       </div>
@@ -107,4 +115,3 @@ function TADashboardAccepted() {
 }
 
 export default TADashboardAccepted;
-
