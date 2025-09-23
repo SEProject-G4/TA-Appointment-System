@@ -33,7 +33,7 @@ const getAllRequests = async (req, res) => {
     console.log(recSeriesIds);
     const appliedModules = await AppliedModules.find(
       { userId, recSeriesId: { $in: recSeriesIds } },
-      { appliedModules: 1 }
+      { appliedModules: 1 ,availableHoursPerWeek:1}
     ).populate("appliedModules");
     console.log("applied modules", appliedModules);
     const appliedModulesIds = appliedModules.flatMap((am) =>
@@ -66,7 +66,7 @@ const getAllRequests = async (req, res) => {
       };
     });
 
-    res.status(200).json(updatedModules);
+    res.status(200).json({ updatedModules, availableHoursPerWeek: appliedModules[0]?.availableHoursPerWeek });
   } catch (error) {
     res.status(500).json({ message: "Error fetching modules", error });
     console.error("Error fetching modules:", error);
@@ -282,7 +282,7 @@ const getAcceptedModules = async (req, res) => {
         }
       }
     });
-    
+
 
     res.status(200).json(acceptedApplications);
   } catch (error) {

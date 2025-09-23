@@ -13,6 +13,7 @@ function TADashboard() {
   const [refreshKey, setRefreshKey] = useState(0); // New state variable for refresh key
   const userId = user?.id; //handle this error when user is null
   const userRole = user?.role;
+  const [availableHoursPerWeek, setAvailableHoursPerWeek] = useState<number>(0);
 
   const applyForTA = async (
     userId: string,
@@ -60,7 +61,8 @@ function TADashboard() {
             },
           }
         );
-        setModules(response.data);
+        setModules(response.data.updatedModules);
+        setAvailableHoursPerWeek(response.data.availableHoursPerWeek); 
       } catch (error) {
         console.error("Error fetching modules:", error);
       } finally {
@@ -113,7 +115,7 @@ function TADashboard() {
           />
           <TAStatCard
             statName="Remaining TA Hours Per Week"
-            statValue={userRole === "undergraduate" ? 6 : 10} // Example static values
+            statValue={availableHoursPerWeek} // Example static values
             icon={Newspaper}
           />
         </div>
@@ -147,7 +149,7 @@ function TADashboard() {
               applicationDueDate={module.applicationDueDate.split("T")[0]}
               onApply={() =>
                 applyForTA(
-                  user?.id,
+                  user.id,
                   user.role,
                   module._id,
                   module.recruitmentSeriesId,
