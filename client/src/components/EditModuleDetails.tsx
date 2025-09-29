@@ -10,7 +10,8 @@ interface ModuleEditData {
   applicationDueDate: string;
   documentDueDate?: string;
   requiredTAHoursPerWeek: number;
-  numberOfRequiredTAs: number;
+  requiredUndergraduateTACount: number;
+  requiredPostgraduateTACount: number;
   requirements: string;
 }
 
@@ -25,7 +26,8 @@ const EditModuleDetails: React.FC = () => {
     applicationDueDate: string;
     documentDueDate: string;
     requiredTAHours?: number | null;
-    requiredTACount?: number | null;
+    requiredUndergraduateTACount?: number | null;
+    requiredPostgraduateTACount?: number | null;
     requirements?: string | null;
     moduleStatus?: string;
   };
@@ -84,7 +86,8 @@ const EditModuleDetails: React.FC = () => {
             applicationDueDate: m.applicationDueDate,
             documentDueDate: m.documentDueDate || undefined,
             requiredTAHoursPerWeek: m.requiredTAHours ?? 0,
-            numberOfRequiredTAs: m.requiredTACount ?? 0,
+            requiredUndergraduateTACount: m.requiredUndergraduateTACount ?? 0,
+            requiredPostgraduateTACount: m.requiredPostgraduateTACount ?? 0,
             requirements: m.requirements ?? "",
           };
           // Initially show read-only view for all modules
@@ -138,7 +141,8 @@ const EditModuleDetails: React.FC = () => {
 
       const payload = {
         requiredTAHours: moduleData.requiredTAHoursPerWeek,
-        requiredTACount: moduleData.numberOfRequiredTAs,
+        requiredUndergraduateTACount: moduleData.requiredUndergraduateTACount,
+        requiredPostgraduateTACount: moduleData.requiredPostgraduateTACount,
         requirements: moduleData.requirements,
       };
 
@@ -253,22 +257,34 @@ const EditModuleDetails: React.FC = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="bg-white rounded-lg p-3 border border-border-default">
                             <div className="text-xs text-text-secondary">Required TA Hours</div>
-                            <div className="text-text-primary text-sm">{d?.requiredTAHoursPerWeek || "0"} {((d?.requiredTAHoursPerWeek || 0) === 1 ? 'hour' : 'hours')} per week</div>
+                            <div className="text-text-primary text-sm">
+                              {d?.requiredTAHoursPerWeek || "0"} {((d?.requiredTAHoursPerWeek || 0) === 1 ? 'hour' : 'hours')} per week
+                            </div>
                           </div>
                           <div className="bg-white rounded-lg p-3 border border-border-default">
-                            <div className="text-xs text-text-secondary">Required TAs</div>
-                            <div className="text-text-primary text-sm">{d?.numberOfRequiredTAs || "0"} {((d?.numberOfRequiredTAs || 0) === 1 ? 'Teaching Asistant' : 'Teaching Assistants')}</div>
-                        </div>
+                            <div className="text-xs text-text-secondary">Undergraduate TAs</div>
+                            <div className="text-text-primary text-sm">
+                              {d?.requiredUndergraduateTACount || "0"} {((d?.requiredUndergraduateTACount || 0) === 1 ? 'TA' : 'TAs')}
+                            </div>
+                          </div>
+                          <div className="bg-white rounded-lg p-3 border border-border-default">
+                            <div className="text-xs text-text-secondary">Postgraduate TAs</div>
+                            <div className="text-text-primary text-sm">
+                              {d?.requiredPostgraduateTACount || "0"} {((d?.requiredPostgraduateTACount || 0) === 1 ? 'TA' : 'TAs')}
+                            </div>
+                          </div>
                           <div className="bg-white rounded-lg p-3 border border-border-default sm:col-span-2">
                             <div className="text-xs text-text-secondary mb-1">Requirements</div>
-                            <div className="text-sm text-text-primary leading-relaxed">{d?.requirements || "No specific requirements specified for this TA position."}</div>
+                            <div className="text-sm text-text-primary leading-relaxed">
+                              {d?.requirements || "No specific requirements specified for this TA position."}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-text-primary mb-2">
                           TA Hours per Week
@@ -288,22 +304,44 @@ const EditModuleDetails: React.FC = () => {
                           min={0}
                         />
                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-text-primary mb-2">
-                          Number of Required TAs
+                          Undergraduate TAs Required
                         </label>
                         <input
                           type="number"
-                          value={d?.numberOfRequiredTAs ?? 0}
+                          value={d?.requiredUndergraduateTACount ?? 0}
                           onChange={(e) =>
                             handleInputChange(
                               m._id,
-                              "numberOfRequiredTAs",
+                              "requiredUndergraduateTACount",
                               parseInt(e.target.value)
                             )
                           }
                           className="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-page text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          placeholder="e.g., 5"
+                          placeholder="e.g., 3"
+                          min={0}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-text-primary mb-2">
+                          Postgraduate TAs Required
+                        </label>
+                        <input
+                          type="number"
+                          value={d?.requiredPostgraduateTACount ?? 0}
+                          onChange={(e) =>
+                            handleInputChange(
+                              m._id,
+                              "requiredPostgraduateTACount",
+                              parseInt(e.target.value)
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-page text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                          placeholder="e.g., 2"
                           min={0}
                         />
                       </div>

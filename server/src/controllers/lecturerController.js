@@ -65,7 +65,12 @@ const editModuleRequirments = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { requiredTAHours, requiredTACount, requirements } = req.body;
+    const { 
+      requiredTAHours, 
+      requiredUndergraduateTACount, 
+      requiredPostgraduateTACount, 
+      requirements 
+    } = req.body;
 
     // Verify the lecturer is a coordinator for this module
     const moduleDoc = await ModuleDetails.findById(id);
@@ -88,9 +93,10 @@ const editModuleRequirments = async (req, res) => {
       {
         $set: {
           requiredTAHours,
-          requiredTACount,
+          requiredUndergraduateTACount,
+          requiredPostgraduateTACount,
           requirements,
-          moduleStatus: 'changes submitted', // Set to changes submitted
+          moduleStatus: 'changes submitted',
           updatedBy: req.user._id,
         },
       },
