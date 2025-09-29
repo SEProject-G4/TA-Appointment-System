@@ -24,20 +24,8 @@ const getMyModules = async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
-    // Get unique recruitment series IDs
-    const recruitmentSeriesIds = [...new Set(modules.map(m => m.recruitmentSeriesId))];
-
-    // Get recruitment series statuses
-    const recruitmentSeries = await RecruitmentSeries.find({
-      _id: { $in: recruitmentSeriesIds },
-      status: 'initialised'  // Only get series that are initialised
-    }).select('_id');
-
-    // Filter modules to only those with active recruitment series
-    const activeSeriesIds = recruitmentSeries.map(rs => rs._id);
-    const activeModules = modules.filter(module => 
-      activeSeriesIds.some(activeId => activeId.equals(module.recruitmentSeriesId))
-    );
+    // No recruitment series status filtering; consider all modules for the coordinator
+    const activeModules = modules;
 
     // Group modules by status
     const groupedModules = {
@@ -125,14 +113,9 @@ const handleRequests = async (req, res) => {
     }).select('_id moduleCode moduleName semester year requiredTACount recruitmentSeriesId');
     console.log('edit modules -> matched', coordinatorModulesAll.length, 'modules for', coordinatorId);
 
-    // Filter to only modules whose recruitment series is initialised
-    const rsIds = [...new Set(coordinatorModulesAll.map(m => m.recruitmentSeriesId))];
-    const activeSeries = await RecruitmentSeries.find({ _id: { $in: rsIds }, status: 'initialised' }).select('_id');
-    const activeSeriesIds = activeSeries.map(rs => rs._id);
-    const coordinatorModules = coordinatorModulesAll.filter(m => 
-      activeSeriesIds.some(activeId => activeId.equals(m.recruitmentSeriesId))
-    );
-    console.log('handleRequests -> active modules after RS filter', coordinatorModules.length);
+    // No recruitment series status filtering; consider all modules for the coordinator
+    const coordinatorModules = coordinatorModulesAll;
+    console.log('handleRequests -> modules (no RS filter)', coordinatorModules.length);
 
     if (coordinatorModules.length === 0) {
       return res.status(200).json({ 
@@ -354,14 +337,9 @@ const viewModuleDetails = async (req, res) => {
     }).select('_id moduleCode moduleName semester year requiredTACount requiredTAHours requirements recruitmentSeriesId');
     console.log("coordinatorModules (all)", coordinatorModulesAll);
 
-    // Filter modules to those whose recruitment series is initialised
-    const seriesIds = [...new Set(coordinatorModulesAll.map(m => m.recruitmentSeriesId))];
-    const activeSeriesDocs = await RecruitmentSeries.find({ _id: { $in: seriesIds }, status: 'initialised' }).select('_id');
-    const activeSeriesIds = activeSeriesDocs.map(s => s._id);
-    const coordinatorModules = coordinatorModulesAll.filter(m => 
-      activeSeriesIds.some(activeId => activeId.equals(m.recruitmentSeriesId))
-    );
-    console.log('viewModuleDetails -> active modules after RS filter', coordinatorModules.length);
+    // No recruitment series status filtering; consider all modules for the coordinator
+    const coordinatorModules = coordinatorModulesAll;
+    console.log('viewModuleDetails -> modules (no RS filter)', coordinatorModules.length);
 
     if (coordinatorModules.length === 0) {
       return res.status(200).json({ modules: [] });
