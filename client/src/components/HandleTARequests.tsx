@@ -9,7 +9,6 @@ interface ModuleGroup {
   moduleName: string;
   semester: string;
   year: string;
-  totalRequiredTAs: number;
   requiredUndergraduateTAs?: number;
   requiredPostgraduateTAs?: number;
   appliedTAs: { name: string; status: string; applicationId: string; indexNumber: string; role?: 'undergraduate' | 'postgraduate' }[];
@@ -21,7 +20,6 @@ interface TARequestCardProps {
   semester: string;
   year: string;
   appliedTAs: { name: string; status: string; applicationId: string; indexNumber: string; role?: 'undergraduate' | 'postgraduate' }[];
-  totalRequiredTAs: number;
   requiredUndergraduateTAs?: number;
   requiredPostgraduateTAs?: number;
   onAccept: (applicationId: string, studentName: string) => void;
@@ -36,7 +34,6 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
   semester,
   year,
   appliedTAs,
-  totalRequiredTAs, // kept for backward compatibility, not used in per-tab progress
   requiredUndergraduateTAs,
   requiredPostgraduateTAs,
   onAccept,
@@ -81,7 +78,6 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
           <div className="text-right">
             <div className="text-sm text-text-secondary">Progress</div>
             <div className="text-lg font-semibold text-text-primary">{acceptedInTab}/{requiredForTab}</div>
-            <div className="text-xs text-text-secondary">Total required: {totalRequiredTAs}</div>
           </div>
           <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
@@ -299,7 +295,6 @@ const HandleTARequests = () => {
         moduleName: m.moduleName,
         semester: m.semester,
         year: m.year,
-        totalRequiredTAs: m.requiredTACount || 5,
         requiredUndergraduateTAs: m.requiredUndergraduateTACount || 0,
         requiredPostgraduateTAs: m.requiredPostgraduateTACount || 0,
         appliedTAs: (m.applications || []).map((a: any) => ({
@@ -415,8 +410,7 @@ const HandleTARequests = () => {
               moduleCode={m.moduleCode}
               moduleName={m.moduleName}
               semester={m.semester}
-              year={m.year}
-              totalRequiredTAs={m.totalRequiredTAs}
+              year={m.year}             
               requiredUndergraduateTAs={m.requiredUndergraduateTAs}
               requiredPostgraduateTAs={m.requiredPostgraduateTAs}
               appliedTAs={m.appliedTAs}
