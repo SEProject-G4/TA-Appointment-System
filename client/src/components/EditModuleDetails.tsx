@@ -258,19 +258,19 @@ const EditModuleDetails: React.FC = () => {
                           <div className="bg-white rounded-lg p-3 border border-border-default">
                             <div className="text-xs text-text-secondary">Required TA Hours</div>
                             <div className="text-text-primary text-sm">
-                              {d?.requiredTAHoursPerWeek || "0"} {((d?.requiredTAHoursPerWeek || 0) === 1 ? 'hour' : 'hours')} per week
+                              {Number(d?.requiredTAHoursPerWeek ?? 0)} {Number(d?.requiredTAHoursPerWeek ?? 0) === 1 ? 'hour' : 'hours'} per week
                             </div>
                           </div>
                           <div className="bg-white rounded-lg p-3 border border-border-default">
                             <div className="text-xs text-text-secondary">Undergraduate TAs</div>
                             <div className="text-text-primary text-sm">
-                              {d?.requiredUndergraduateTACount || "0"} {((d?.requiredUndergraduateTACount || 0) === 1 ? 'TA' : 'TAs')}
+                              {Number(d?.requiredUndergraduateTACount ?? 0)} {Number(d?.requiredUndergraduateTACount ?? 0) === 1 ? 'TA' : 'TAs'}
                             </div>
                           </div>
                           <div className="bg-white rounded-lg p-3 border border-border-default">
                             <div className="text-xs text-text-secondary">Postgraduate TAs</div>
                             <div className="text-text-primary text-sm">
-                              {d?.requiredPostgraduateTACount || "0"} {((d?.requiredPostgraduateTACount || 0) === 1 ? 'TA' : 'TAs')}
+                              {Number(d?.requiredPostgraduateTACount ?? 0)} {Number(d?.requiredPostgraduateTACount ?? 0) === 1 ? 'TA' : 'TAs'}
                             </div>
                           </div>
                           <div className="bg-white rounded-lg p-3 border border-border-default sm:col-span-2">

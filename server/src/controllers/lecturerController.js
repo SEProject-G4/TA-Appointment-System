@@ -110,7 +110,7 @@ const handleRequests = async (req, res) => {
     // First, get all modules where the coordinator is responsible
     const coordinatorModulesAll = await ModuleDetails.find({
       coordinators: coordinatorId
-    }).select('_id moduleCode moduleName semester year requiredTACount recruitmentSeriesId');
+    }).select('_id moduleCode moduleName semester year requiredTACount requiredUndergraduateTACount requiredPostgraduateTACount recruitmentSeriesId');
     console.log('edit modules -> matched', coordinatorModulesAll.length, 'modules for', coordinatorId);
 
     // No recruitment series status filtering; consider all modules for the coordinator
@@ -155,7 +155,7 @@ const handleRequests = async (req, res) => {
     // Fetch user details (name and index number)
     const users = await User.find({
       _id: { $in: userIds }
-    }).select('googleId name indexNumber');
+    }).select('googleId name indexNumber role');
     console.log("users", users);
 
     // Create a map of user details for quick lookup
@@ -163,7 +163,8 @@ const handleRequests = async (req, res) => {
     users.forEach(user => {
       userMap[user._id] = {
         name: user.name,
-        indexNumber: user.indexNumber
+        indexNumber: user.indexNumber,
+        role: user.role
       };
     });
 
@@ -196,6 +197,8 @@ const handleRequests = async (req, res) => {
           semester: module.semester,
           year: module.year,
           requiredTACount: module.requiredTACount,
+          requiredUndergraduateTACount: module.requiredUndergraduateTACount || 0,
+          requiredPostgraduateTACount: module.requiredPostgraduateTACount || 0,
           requiredTAHours: module.requiredTAHours || 0,
           totalApplications: 0,
           pendingCount: 0,
@@ -206,7 +209,7 @@ const handleRequests = async (req, res) => {
       }
 
       const group = moduleMap.get(moduleIdStr);
-      const userDetails = userMap[app.userId] || { name: 'Unknown', indexNumber: 'N/A' };
+      const userDetails = userMap[app.userId] || { name: 'Unknown', indexNumber: 'N/A', role: 'undergraduate' };
       group.totalApplications += 1;
       const statusLower = String(app.status || '').toLowerCase();
       if (statusLower === 'pending') group.pendingCount += 1;
@@ -218,6 +221,7 @@ const handleRequests = async (req, res) => {
         userId: app.userId,
         studentName: userDetails.name,
         indexNumber: userDetails.indexNumber,
+        role: userDetails.role,
         status: app.status,
         appliedAt: app.createdAt
       })

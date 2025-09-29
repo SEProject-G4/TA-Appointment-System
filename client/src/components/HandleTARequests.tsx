@@ -10,7 +10,9 @@ interface ModuleGroup {
   semester: string;
   year: string;
   totalRequiredTAs: number;
-  appliedTAs: { name: string; status: string; applicationId: string; indexNumber: string }[];
+  requiredUndergraduateTAs?: number;
+  requiredPostgraduateTAs?: number;
+  appliedTAs: { name: string; status: string; applicationId: string; indexNumber: string; role?: 'undergraduate' | 'postgraduate' }[];
 }
 
 interface TARequestCardProps {
@@ -18,8 +20,10 @@ interface TARequestCardProps {
   moduleName: string;
   semester: string;
   year: string;
-  appliedTAs: { name: string; status: string; applicationId: string; indexNumber: string }[];
+  appliedTAs: { name: string; status: string; applicationId: string; indexNumber: string; role?: 'undergraduate' | 'postgraduate' }[];
   totalRequiredTAs: number;
+  requiredUndergraduateTAs?: number;
+  requiredPostgraduateTAs?: number;
   onAccept: (applicationId: string, studentName: string) => void;
   onReject: (applicationId: string, studentName: string) => void;
   processingActions: Set<string>;
@@ -32,16 +36,24 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
   semester,
   year,
   appliedTAs,
-  totalRequiredTAs,
+  totalRequiredTAs, // kept for backward compatibility, not used in per-tab progress
+  requiredUndergraduateTAs,
+  requiredPostgraduateTAs,
   onAccept,
   onReject,
   processingActions,
   collapsible = true
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const acceptedCount = appliedTAs.filter(ta => (ta.status || '').toLowerCase() === 'accepted').length;
+  const [activeTab, setActiveTab] = useState<'undergraduate' | 'postgraduate'>('undergraduate');
+  // Overall counts kept for header metrics if needed later
+  // const acceptedCount = appliedTAs.filter(ta => (ta.status || '').toLowerCase() === 'accepted').length;
   const pendingCount = appliedTAs.filter(ta => (ta.status || '').toLowerCase() === 'pending').length;
-  const progress = Math.min((acceptedCount / totalRequiredTAs) * 100, 100);
+
+  const filteredTAs = appliedTAs.filter(ta => (ta.role || 'undergraduate') === activeTab);
+  const acceptedInTab = filteredTAs.filter(ta => (ta.status || '').toLowerCase() === 'accepted').length;
+  const requiredForTab = activeTab === 'undergraduate' ? Number(requiredUndergraduateTAs ?? 0) : Number(requiredPostgraduateTAs ?? 0);
+  const progress = Math.min(requiredForTab > 0 ? (acceptedInTab / requiredForTab) * 100 : 0, 100);
 
   return (
     <div className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-4 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
@@ -68,7 +80,8 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
         <div className="flex items-center space-x-4">
           <div className="text-right">
             <div className="text-sm text-text-secondary">Progress</div>
-            <div className="text-lg font-semibold text-text-primary">{acceptedCount}/{totalRequiredTAs}</div>
+            <div className="text-lg font-semibold text-text-primary">{acceptedInTab}/{requiredForTab}</div>
+            <div className="text-xs text-text-secondary">Total required: {totalRequiredTAs}</div>
           </div>
           <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
@@ -96,18 +109,31 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
                   <span className="text-sm text-text-secondary">Pending:</span>
                   <span className="font-semibold text-text-primary">{pendingCount}</span>
                 </div>
-        </div>
-      </div>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex w-full border-b border-border-default">
+              {(['undergraduate','postgraduate'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-2 text-sm font-medium ${activeTab === tab ? 'text-primary border-b-2 border-primary' : 'text-text-secondary'}`}
+                >
+                  {tab === 'undergraduate' ? 'Undergraduates' : 'Postgraduates'}
+                </button>
+              ))}
+            </div>
 
             {/* Applications List */}
-          {appliedTAs.length === 0 ? (
+          {filteredTAs.length === 0 ? (
               <div className="text-center py-8 text-text-secondary">
                 <FaUserGraduate className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No applications yet for this module.</p>
+                <p className="text-sm">No applications in this tab.</p>
               </div>
           ) : (
               <div className="space-y-2">
-                {appliedTAs.map((ta, idx) => {
+                {filteredTAs.map((ta, idx) => {
               const statusLower = (ta.status || '').toLowerCase();
               const isActionDisabled = ['accepted', 'rejected'].includes(statusLower);
                   const isProcessing = processingActions.has(ta.applicationId);
@@ -168,19 +194,32 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
               <div className="flex items-center space-x-2">
                 <FaClipboardList className="text-primary-dark h-4 w-4" />
                 <span className="text-sm text-text-secondary">Pending:</span>
-                <span className="font-semibold text-text-primary">{pendingCount}</span>
+                <span className="font-semibold text-text-primary">{filteredTAs.filter(ta => (ta.status || '').toLowerCase() === 'pending').length}</span>
         </div>
-      </div>
+            </div>
           </div>
 
-          {appliedTAs.length === 0 ? (
+          {/* Tabs */}
+          <div className="flex w-full border-b border-border-default">
+            {(['undergraduate','postgraduate'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3 py-2 text-sm font-medium ${activeTab === tab ? 'text-primary border-b-2 border-primary' : 'text-text-secondary'}`}
+              >
+                {tab === 'undergraduate' ? 'Undergraduates' : 'Postgraduates'}
+              </button>
+            ))}
+          </div>
+
+          {filteredTAs.length === 0 ? (
             <div className="text-center py-8 text-text-secondary">
               <FaUserGraduate className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No applications yet for this module.</p>
+              <p className="text-sm">No applications yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {appliedTAs.map((ta, idx) => {
+              {filteredTAs.map((ta, idx) => {
                 const statusLower = (ta.status || '').toLowerCase();
                 const isActionDisabled = ['accepted', 'rejected'].includes(statusLower);
                 const isProcessing = processingActions.has(ta.applicationId);
@@ -261,11 +300,14 @@ const HandleTARequests = () => {
         semester: m.semester,
         year: m.year,
         totalRequiredTAs: m.requiredTACount || 5,
+        requiredUndergraduateTAs: m.requiredUndergraduateTACount || 0,
+        requiredPostgraduateTAs: m.requiredPostgraduateTACount || 0,
         appliedTAs: (m.applications || []).map((a: any) => ({
           name: a.studentName,
           status: a.status,
           applicationId: a.applicationId,
-          indexNumber: a.indexNumber
+          indexNumber: a.indexNumber,
+          role: a.role
         }))
       }));
 
@@ -375,6 +417,8 @@ const HandleTARequests = () => {
               semester={m.semester}
               year={m.year}
               totalRequiredTAs={m.totalRequiredTAs}
+              requiredUndergraduateTAs={m.requiredUndergraduateTAs}
+              requiredPostgraduateTAs={m.requiredPostgraduateTAs}
               appliedTAs={m.appliedTAs}
               onAccept={(id, name) => openConfirm('accept', id, name)}
               onReject={(id, name) => openConfirm('reject', id, name)}
