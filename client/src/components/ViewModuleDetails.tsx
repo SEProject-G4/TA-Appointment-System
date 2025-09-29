@@ -209,11 +209,11 @@ const ViewModuleDetails: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-bg-page rounded-lg p-3 border border-border-default">
                     <div className="text-xs text-text-secondary">TA Hours</div>
-                    <div className="text-sm font-semibold text-text-primary">{module.requiredTAHours}h</div>
+                    <div className="text-sm font-semibold text-text-primary">{Number(module.requiredTAHours ?? 0)}h</div>
                   </div>
                   <div className="bg-bg-page rounded-lg p-3 border border-border-default">
                     <div className="text-xs text-text-secondary">Accepted TAs</div>
-                    <div className="text-sm font-semibold text-text-primary">{module.acceptedTAs.length}</div>
+                    <div className="text-sm font-semibold text-text-primary">{Number(module.acceptedTAs?.length ?? 0)}</div>
                   </div>
                 </div>
 

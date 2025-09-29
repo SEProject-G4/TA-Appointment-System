@@ -357,7 +357,8 @@ const viewModuleDetails = async (req, res) => {
     for (const app of applications) {
       const statusLower = String(app.status || '').toLowerCase();
       if (statusLower === 'accepted') {
-        const key = app.moduleId.toString();
+        const key = app.moduleId && typeof app.moduleId.toString === 'function' ? app.moduleId.toString() : String(app.moduleId || '');
+        if (!key) continue;
         if (!acceptedByModule.has(key)) acceptedByModule.set(key, []);
         acceptedByModule.get(key).push(app);
       }
@@ -365,7 +366,19 @@ const viewModuleDetails = async (req, res) => {
     console.log("acceptedByModule", acceptedByModule);
 
     // If no requests at all, return empty
-    const modulesWithAnyRequests = new Set(applications.map(a => a.moduleId.toString()));
+    const modulesWithAnyRequests = new Set(
+      applications
+        .map(a => {
+          try {
+            const id = a.moduleId;
+            if (!id) return null;
+            return typeof id.toString === 'function' ? id.toString() : String(id);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean)
+    );
     if (modulesWithAnyRequests.size === 0) {
       return res.status(200).json({ modules: [] });
     }
@@ -373,13 +386,15 @@ const viewModuleDetails = async (req, res) => {
     // Collect userIds from accepted applications to fetch user + docs
     const acceptedUserIds = [...new Set(applications.filter(a => String(a.status || '').toLowerCase() === 'accepted').map(a => a.userId))];
 
-    const users = await User.find({ _id: { $in: acceptedUserIds } }).select('Id name indexNumber');
+    const users = await User.find({ _id: { $in: acceptedUserIds } }).select('_id name indexNumber');
     console.log("users", users);
 
-    const userMap = users.reduce((acc, u) => { acc[u._id] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
+    const userMap = users.reduce((acc, u) => { acc[u._id.toString()] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
 
     // TaDocumentSubmission.userId is stored as String, so convert accepted user ObjectIds to strings
-    const acceptedUserIdStrings = acceptedUserIds.map(id => id.toString());
+    const acceptedUserIdStrings = acceptedUserIds
+      .filter(Boolean)
+      .map(id => (id && typeof id.toString === 'function') ? id.toString() : String(id));
     console.log("acceptedUserIdStrings", acceptedUserIdStrings);
 
     const docSubs = await TaDocumentSubmission.find({ userId: { $in: acceptedUserIdStrings } }).select('userId documents status').lean();
@@ -442,8 +457,8 @@ const viewModuleDetails = async (req, res) => {
           };
           return {
             userId: a.userId,
-            name: userMap[a.userId]?.name || 'Unknown',
-            indexNumber: userMap[a.userId]?.indexNumber || 'N/A',
+            name: userMap[userIdStr]?.name || 'Unknown',
+            indexNumber: userMap[userIdStr]?.indexNumber || 'N/A',
             documents,
             docStatus: docEntry.status,
             documentSummary
@@ -456,9 +471,9 @@ const viewModuleDetails = async (req, res) => {
           moduleName: m.moduleName,
           semester: m.semester,
           year: m.year,
-          requiredTAHours: m.requiredTAHours,
+          requiredTAHours: m.requiredTAHours || 0,
           assignedTAsCount: acceptedTAs.length,
-          requiredTACount: m.requiredTACount,
+          requiredTACount: m.requiredTACount || 0,
           acceptedTAs,
           applicationsCount: applicationsCountMap[modId] || 0
         }
