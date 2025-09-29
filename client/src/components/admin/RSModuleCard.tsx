@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../api/axiosConfig";
 // import { toast } from "react-hot-toast";
 import { useToast } from "../../contexts/ToastContext";
+import axios from "axios";
 
 interface RSModuleCardProps {
   _id: string;
@@ -139,17 +140,32 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     // Implementation for deleting a module
   };
 
-  const handleAdvertiseModule = (moduleData: ModuleDetails) => {
+  const handleAdvertiseModule = async (moduleData: ModuleDetails) => {
     // Implementation for advertising a module
-    updateModuleStatus(moduleData._id, "advertised");
+    try{
+      await axiosInstance.put(`/modules/${moduleData._id}/advertise`);
+      showToast("Module advertised successfully", "success");
+      await fetchModuleDetails(moduleData._id);
+    } catch (error) {
+      console.error("Error advertising module:", error);
+      showToast("Failed to advertise module", "error");
+    }
   };
 
   const handleViewApplications = (moduleData: ModuleDetails) => {
     // Implementation for viewing applications
   };
 
-  const handleSendforApproval = (moduleData: ModuleDetails) => {
+  const handleSendforApproval = async (moduleData: ModuleDetails) => {
     // Implementation for sending module for approval
+    try{
+      await axiosInstance.put(`/modules/${moduleData._id}/send-for-approval`);
+      showToast("Module coordinators were notified successfully to review the applications", "success");
+      await fetchModuleDetails(moduleData._id);
+    } catch (error) {
+      console.error("Error sending module for approval:", error);
+      showToast("Failed to send module for approval", "error");
+    }
   };
 
   const handleCopyModule = (moduleData: ModuleDetails) => {
@@ -291,7 +307,9 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
           </svg>
         </Checkbox>
 
-        <p className="text-sm text-text-primary text-wrap flex-1 font-semibold flex items-center">
+        <p className="text-sm text-text-primary text-wrap flex-1 font-semibold flex items-center hover:underline cursor-pointer" onClick={() => {
+          navigate(`/module-details/${data._id}`, { state: { moduleData: data } });
+        }}>
           {data.moduleCode} - {data.moduleName} [Semester {data.semester}]
         </p>
         <p
@@ -515,7 +533,10 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
           <button 
             key={index}
             className={`w-full py-1.5 rounded-md font-semibold text-sm outline outline-1 ${button.className}`}
-            onClick={() => button.action(data)}
+            onClick={(e) => {
+              e.stopPropagation();
+              button.action(data);
+            }}
           >
             {button.label}
           </button>

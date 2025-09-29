@@ -15,6 +15,7 @@ import EditModule from "./pages/admin/EditModule";
 import NewRecruitmentSeries from "./pages/admin/NewRecruitmentSeries";
 import AddUser from "./pages/admin/AddUser";
 import UndergraduateUsers from "./pages/admin/UndergraduateUsers";
+import ModuleDetails from "./pages/admin/ModuleDetails";
 
 import TADashboardApplied from "./pages/TADashboardApplied";
 import TADashboardAccepted from "./pages/TADashboardAccepted";
@@ -103,6 +104,15 @@ function App() {
                   element={
                     <ProtectedRoute roles="admin">
                       <EditModule />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/module-details/:moduleId"
+                  element={
+                    <ProtectedRoute roles="admin">
+                      <ModuleDetails />
                     </ProtectedRoute>
                   }
                 />
