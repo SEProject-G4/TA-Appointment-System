@@ -213,7 +213,7 @@ const ViewModuleDetails: React.FC = () => {
                     <div className="text-sm font-semibold text-text-primary">{Number(module.requiredTAHours ?? 0)}h</div>
                   </div>
                   <div className="bg-bg-page rounded-lg p-3 border border-border-default">
-                    <div className="text-xs text-text-secondary">{((activeTabByModule[module.moduleId] || 'undergraduate') === 'undergraduate') ? 'Accepted Undergraduate TAs' : 'Accepted Postgraduate TAs'}</div>
+                    <div className="text-xs text-text-secondary">{((activeTabByModule[module.moduleId] || 'undergraduate') === 'undergraduate') ? 'Accepted Undergraduates' : 'Accepted Postgraduates'}</div>
                     <div className="text-sm font-semibold text-text-primary">{Number((module.acceptedTAs || []).filter(ta => (ta.role || 'undergraduate') === (activeTabByModule[module.moduleId] || 'undergraduate')).length)}</div>
                   </div>
                 </div>
