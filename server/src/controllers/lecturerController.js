@@ -390,10 +390,10 @@ const viewModuleDetails = async (req, res) => {
     // Collect userIds from accepted applications to fetch user + docs
     const acceptedUserIds = [...new Set(applications.filter(a => String(a.status || '').toLowerCase() === 'accepted').map(a => a.userId))];
 
-    const users = await User.find({ _id: { $in: acceptedUserIds } }).select('_id name indexNumber');
+    const users = await User.find({ _id: { $in: acceptedUserIds } }).select('_id name indexNumber role');
     console.log("users", users);
 
-    const userMap = users.reduce((acc, u) => { acc[u._id.toString()] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
+    const userMap = users.reduce((acc, u) => { acc[u._id.toString()] = { name: u.name, indexNumber: u.indexNumber, role: u.role }; return acc; }, {});
 
     // TaDocumentSubmission.userId is stored as String, so convert accepted user ObjectIds to strings
     const acceptedUserIdStrings = acceptedUserIds
@@ -463,6 +463,7 @@ const viewModuleDetails = async (req, res) => {
             userId: a.userId,
             name: userMap[userIdStr]?.name || 'Unknown',
             indexNumber: userMap[userIdStr]?.indexNumber || 'N/A',
+            role: userMap[userIdStr]?.role,
             documents,
             docStatus: docEntry.status,
             documentSummary
