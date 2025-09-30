@@ -1,15 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { FaChevronDown } from 'react-icons/fa';
-
+import React, { useState, useRef, useEffect } from "react";
+import { FaChevronDown } from "react-icons/fa";
 
 export interface Option {
   id: number | string;
   label: number | string;
+  subtitle?: string;
+  picture?: string;
 }
 
 interface AutoSelectProps {
   options: Option[];
   placeholder?: string;
+  width?: string;
   className?: string;
   selectedOption: Option | null;
   onSelect: (value: Option | null) => void;
@@ -19,6 +21,7 @@ const AutoSelect: React.FC<AutoSelectProps> = ({
   options,
   placeholder = "Select or type",
   className,
+  width="300px",
   selectedOption,
   onSelect,
 }) => {
@@ -33,7 +36,9 @@ const AutoSelect: React.FC<AutoSelectProps> = ({
     query === ""
       ? options
       : options.filter((option) =>
-          option.label.toString().toLowerCase().includes(query.toLowerCase())
+          option.label.toString().toLowerCase().includes(query.toLowerCase()) ||
+          (option.subtitle &&
+            option.subtitle.toString().toLowerCase().includes(query.toLowerCase()))
         );
 
   // Handle click outside to close dropdown
@@ -66,13 +71,14 @@ const AutoSelect: React.FC<AutoSelectProps> = ({
     : "";
 
   return (
-    <div className={`w-52 ${className}`} ref={containerRef}>
+    <div className={`${className}`} ref={containerRef}>
       <div className="relative mt-1">
         <input
           ref={inputRef}
           type="text"
           className="w-full py-1 px-2 rounded-md outline outline-1 outline-text-secondary focus:outline-primary-light focus:outline-offset-1 focus:outline-2 bg-white"
           value={inputValue}
+          style={{ width: width }}
           onChange={() => {
             setIsOpen(true);
           }}
@@ -112,11 +118,11 @@ const AutoSelect: React.FC<AutoSelectProps> = ({
                 setActiveOptionIndex(0);
               }
             } else if (
-                e.key.length === 1 &&
-                !e.ctrlKey &&
-                !e.altKey &&
-                !e.metaKey
-              ) {
+              e.key.length === 1 &&
+              !e.ctrlKey &&
+              !e.altKey &&
+              !e.metaKey
+            ) {
               setQuery((prev) => prev + e.key);
               setActiveOptionIndex(0);
             } else if (e.key === "Backspace") {
@@ -169,7 +175,23 @@ const AutoSelect: React.FC<AutoSelectProps> = ({
                       : undefined
                   }
                 >
-                  <span className="block truncate">{option.label}</span>
+                  <div className="flex items-center">
+                    {option.picture && (
+                      <img
+                        src={option.picture}
+                        alt={option.label.toString()}
+                        className="h-8 w-8 rounded-full mr-3"
+                      />
+                    )}
+                    <div className="flex flex-col items-start">
+                      <p className="block truncate">{option.label}</p>
+                      {option.subtitle && (
+                        <p className="text-xs4">
+                          {option.subtitle}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))
             )}

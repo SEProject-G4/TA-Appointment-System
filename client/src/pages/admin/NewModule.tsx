@@ -77,6 +77,8 @@ const NewModule: React.FC = () => {
     setAvailableLecturers(data.map((lecturer: any) => ({
       id: lecturer._id,
       label: lecturer.displayName,
+      subtitle: lecturer.email,
+      picture: lecturer.profilePicture,
     })));
 
     console.log("Fetched lecturers:", data);
@@ -427,7 +429,7 @@ const postFormData = async () => {
           className="ml-8"
           />
         </div>
-        <div className="flex flex-row flex-wrap ml-8 space-x-5 items-start mb-8">
+        <div className="flex flex-row flex-wrap ml-8 gap-x-3 gap-y-2 items-start mb-8">
           {formData.coordinators &&
           formData.coordinators.length > 0 &&
           formData.coordinators.map((coordinator) => (
@@ -435,9 +437,22 @@ const postFormData = async () => {
             key={coordinator.id}
             className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-full drop-shadow bg-bg-card flex items-center text-text-primary space-x-3"
             >
-            <p className="text-text-primary text-sm font-semibold">
+            {coordinator.picture && (
+              <img
+                src={coordinator.picture}
+                alt={coordinator.label.toString()}
+                className="h-8 w-8 rounded-full mr-3"
+              />
+            )}
+            <div className="flex flex-col items-start"><p className="text-text-primary text-sm font-semibold">
               {coordinator.label}
             </p>
+            {coordinator.subtitle && (
+              <p className="text-xs text-text-secondary">
+                {coordinator.subtitle}
+              </p>
+            )}
+            </div>
             <MdClose
               className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
               onClick={() => removeCoordinator(coordinator)}
