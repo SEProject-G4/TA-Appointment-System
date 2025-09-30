@@ -14,29 +14,32 @@ const getMyModules = async (req, res) => {
 
     const coordinatorId = req.user._id;
 
-    // First get all modules where user is coordinator
+    // Get all modules where user is coordinator with either status
     const modules = await ModuleDetails
-      .find({ coordinators: coordinatorId })
+      .find({ 
+        coordinators: coordinatorId,
+        moduleStatus: { 
+          $in: ['pending changes', 'changes submitted'] 
+        }
+      })
       .sort({ createdAt: -1 });
 
-    // Get unique recruitment series IDs
-    const recruitmentSeriesIds = [...new Set(modules.map(m => m.recruitmentSeriesId))];
+    // No recruitment series status filtering; consider all modules for the coordinator
+    const activeModules = modules;
 
-    // Get recruitment series statuses
-    const recruitmentSeries = await RecruitmentSeries.find({
-      _id: { $in: recruitmentSeriesIds },
-      status: 'initialised'  // Only get series that are initialised
-    }).select('_id');
+    // Group modules by status
+    const groupedModules = {
+      pendingChanges: activeModules.filter(m => m.moduleStatus === 'pending changes'),
+      changesSubmitted: activeModules.filter(m => m.moduleStatus === 'changes submitted')
+    };
 
-    // Filter modules to only those with active recruitment series
-    const activeSeriesIds = recruitmentSeries.map(rs => rs._id);
-    const activeModules = modules.filter(module => 
-      activeSeriesIds.some(activeId => activeId.equals(module.recruitmentSeriesId))
+    console.log('lecturer getMyModules -> matched', 
+      groupedModules.pendingChanges.length, 'pending changes and',
+      groupedModules.changesSubmitted.length, 'changes submitted modules for', 
+      coordinatorId
     );
 
-    console.log('lecturer getMyModules -> matched', activeModules.length, 'active modules for', coordinatorId);
-
-    return res.status(200).json(activeModules);
+    return res.status(200).json(groupedModules);
   } catch (error) {
     console.error('Error fetching lecturer modules:', error);
     return res.status(500).json({ error: 'Failed to fetch modules for coordinator' });
@@ -50,7 +53,12 @@ const editModuleRequirments = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { requiredTAHours, requiredTACount, requirements, moduleStatus } = req.body;
+    const { 
+      requiredTAHours, 
+      requiredUndergraduateTACount, 
+      requiredPostgraduateTACount, 
+      requirements 
+    } = req.body;
 
     // Verify the lecturer is a coordinator for this module
     const moduleDoc = await ModuleDetails.findById(id);
@@ -62,15 +70,21 @@ const editModuleRequirments = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to edit this module' });
     }
 
-    // Update the lecturer fields including moduleStatus
+    // Verify the module is in "pending changes" status
+    if (moduleDoc.moduleStatus !== 'pending changes') {
+      return res.status(400).json({ error: 'Module is not in pending changes status' });
+    }
+
+    // Update the module fields and set status to "changes submitted"
     const updatedModule = await ModuleDetails.findByIdAndUpdate(
       id,
       {
         $set: {
           requiredTAHours,
-          requiredTACount,
+          requiredUndergraduateTACount,
+          requiredPostgraduateTACount,
           requirements,
-          moduleStatus: 'submitted', // Automatically set to submitted
+          moduleStatus: 'changes submitted',
           updatedBy: req.user._id,
         },
       },
@@ -96,17 +110,12 @@ const handleRequests = async (req, res) => {
     // First, get all modules where the coordinator is responsible
     const coordinatorModulesAll = await ModuleDetails.find({
       coordinators: coordinatorId
-    }).select('_id moduleCode moduleName semester year requiredTACount recruitmentSeriesId');
+    }).select('_id moduleCode moduleName semester year requiredTACount requiredUndergraduateTACount requiredPostgraduateTACount recruitmentSeriesId');
     console.log('edit modules -> matched', coordinatorModulesAll.length, 'modules for', coordinatorId);
 
-    // Filter to only modules whose recruitment series is initialised
-    const rsIds = [...new Set(coordinatorModulesAll.map(m => m.recruitmentSeriesId))];
-    const activeSeries = await RecruitmentSeries.find({ _id: { $in: rsIds }, status: 'initialised' }).select('_id');
-    const activeSeriesIds = activeSeries.map(rs => rs._id);
-    const coordinatorModules = coordinatorModulesAll.filter(m => 
-      activeSeriesIds.some(activeId => activeId.equals(m.recruitmentSeriesId))
-    );
-    console.log('handleRequests -> active modules after RS filter', coordinatorModules.length);
+    // No recruitment series status filtering; consider all modules for the coordinator
+    const coordinatorModules = coordinatorModulesAll;
+    console.log('handleRequests -> modules (no RS filter)', coordinatorModules.length);
 
     if (coordinatorModules.length === 0) {
       return res.status(200).json({ 
@@ -146,7 +155,7 @@ const handleRequests = async (req, res) => {
     // Fetch user details (name and index number)
     const users = await User.find({
       _id: { $in: userIds }
-    }).select('googleId name indexNumber');
+    }).select('googleId name indexNumber role');
     console.log("users", users);
 
     // Create a map of user details for quick lookup
@@ -154,7 +163,8 @@ const handleRequests = async (req, res) => {
     users.forEach(user => {
       userMap[user._id] = {
         name: user.name,
-        indexNumber: user.indexNumber
+        indexNumber: user.indexNumber,
+        role: user.role
       };
     });
 
@@ -187,6 +197,8 @@ const handleRequests = async (req, res) => {
           semester: module.semester,
           year: module.year,
           requiredTACount: module.requiredTACount,
+          requiredUndergraduateTACount: module.requiredUndergraduateTACount || 0,
+          requiredPostgraduateTACount: module.requiredPostgraduateTACount || 0,
           requiredTAHours: module.requiredTAHours || 0,
           totalApplications: 0,
           pendingCount: 0,
@@ -197,7 +209,7 @@ const handleRequests = async (req, res) => {
       }
 
       const group = moduleMap.get(moduleIdStr);
-      const userDetails = userMap[app.userId] || { name: 'Unknown', indexNumber: 'N/A' };
+      const userDetails = userMap[app.userId] || { name: 'Unknown', indexNumber: 'N/A', role: 'undergraduate' };
       group.totalApplications += 1;
       const statusLower = String(app.status || '').toLowerCase();
       if (statusLower === 'pending') group.pendingCount += 1;
@@ -209,6 +221,7 @@ const handleRequests = async (req, res) => {
         userId: app.userId,
         studentName: userDetails.name,
         indexNumber: userDetails.indexNumber,
+        role: userDetails.role,
         status: app.status,
         appliedAt: app.createdAt
       })
@@ -328,14 +341,9 @@ const viewModuleDetails = async (req, res) => {
     }).select('_id moduleCode moduleName semester year requiredTACount requiredTAHours requirements recruitmentSeriesId');
     console.log("coordinatorModules (all)", coordinatorModulesAll);
 
-    // Filter modules to those whose recruitment series is initialised
-    const seriesIds = [...new Set(coordinatorModulesAll.map(m => m.recruitmentSeriesId))];
-    const activeSeriesDocs = await RecruitmentSeries.find({ _id: { $in: seriesIds }, status: 'initialised' }).select('_id');
-    const activeSeriesIds = activeSeriesDocs.map(s => s._id);
-    const coordinatorModules = coordinatorModulesAll.filter(m => 
-      activeSeriesIds.some(activeId => activeId.equals(m.recruitmentSeriesId))
-    );
-    console.log('viewModuleDetails -> active modules after RS filter', coordinatorModules.length);
+    // No recruitment series status filtering; consider all modules for the coordinator
+    const coordinatorModules = coordinatorModulesAll;
+    console.log('viewModuleDetails -> modules (no RS filter)', coordinatorModules.length);
 
     if (coordinatorModules.length === 0) {
       return res.status(200).json({ modules: [] });
@@ -353,7 +361,8 @@ const viewModuleDetails = async (req, res) => {
     for (const app of applications) {
       const statusLower = String(app.status || '').toLowerCase();
       if (statusLower === 'accepted') {
-        const key = app.moduleId.toString();
+        const key = app.moduleId && typeof app.moduleId.toString === 'function' ? app.moduleId.toString() : String(app.moduleId || '');
+        if (!key) continue;
         if (!acceptedByModule.has(key)) acceptedByModule.set(key, []);
         acceptedByModule.get(key).push(app);
       }
@@ -361,7 +370,19 @@ const viewModuleDetails = async (req, res) => {
     console.log("acceptedByModule", acceptedByModule);
 
     // If no requests at all, return empty
-    const modulesWithAnyRequests = new Set(applications.map(a => a.moduleId.toString()));
+    const modulesWithAnyRequests = new Set(
+      applications
+        .map(a => {
+          try {
+            const id = a.moduleId;
+            if (!id) return null;
+            return typeof id.toString === 'function' ? id.toString() : String(id);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean)
+    );
     if (modulesWithAnyRequests.size === 0) {
       return res.status(200).json({ modules: [] });
     }
@@ -369,13 +390,15 @@ const viewModuleDetails = async (req, res) => {
     // Collect userIds from accepted applications to fetch user + docs
     const acceptedUserIds = [...new Set(applications.filter(a => String(a.status || '').toLowerCase() === 'accepted').map(a => a.userId))];
 
-    const users = await User.find({ _id: { $in: acceptedUserIds } }).select('Id name indexNumber');
+    const users = await User.find({ _id: { $in: acceptedUserIds } }).select('_id name indexNumber role');
     console.log("users", users);
 
-    const userMap = users.reduce((acc, u) => { acc[u._id] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
+    const userMap = users.reduce((acc, u) => { acc[u._id.toString()] = { name: u.name, indexNumber: u.indexNumber, role: u.role }; return acc; }, {});
 
     // TaDocumentSubmission.userId is stored as String, so convert accepted user ObjectIds to strings
-    const acceptedUserIdStrings = acceptedUserIds.map(id => id.toString());
+    const acceptedUserIdStrings = acceptedUserIds
+      .filter(Boolean)
+      .map(id => (id && typeof id.toString === 'function') ? id.toString() : String(id));
     console.log("acceptedUserIdStrings", acceptedUserIdStrings);
 
     const docSubs = await TaDocumentSubmission.find({ userId: { $in: acceptedUserIdStrings } }).select('userId documents status').lean();
@@ -438,8 +461,9 @@ const viewModuleDetails = async (req, res) => {
           };
           return {
             userId: a.userId,
-            name: userMap[a.userId]?.name || 'Unknown',
-            indexNumber: userMap[a.userId]?.indexNumber || 'N/A',
+            name: userMap[userIdStr]?.name || 'Unknown',
+            indexNumber: userMap[userIdStr]?.indexNumber || 'N/A',
+            role: userMap[userIdStr]?.role,
             documents,
             docStatus: docEntry.status,
             documentSummary
@@ -452,9 +476,9 @@ const viewModuleDetails = async (req, res) => {
           moduleName: m.moduleName,
           semester: m.semester,
           year: m.year,
-          requiredTAHours: m.requiredTAHours,
+          requiredTAHours: m.requiredTAHours || 0,
           assignedTAsCount: acceptedTAs.length,
-          requiredTACount: m.requiredTACount,
+          requiredTACount: m.requiredTACount || 0,
           acceptedTAs,
           applicationsCount: applicationsCountMap[modId] || 0
         }

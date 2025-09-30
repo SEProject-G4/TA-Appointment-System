@@ -10,7 +10,8 @@ interface ModuleEditData {
   applicationDueDate: string;
   documentDueDate?: string;
   requiredTAHoursPerWeek: number;
-  numberOfRequiredTAs: number;
+  requiredUndergraduateTACount: number;
+  requiredPostgraduateTACount: number;
   requirements: string;
 }
 
@@ -25,9 +26,16 @@ const EditModuleDetails: React.FC = () => {
     applicationDueDate: string;
     documentDueDate: string;
     requiredTAHours?: number | null;
-    requiredTACount?: number | null;
+    requiredUndergraduateTACount?: number | null;
+    requiredPostgraduateTACount?: number | null;
     requirements?: string | null;
     moduleStatus?: string;
+  };
+
+  // Update the type definition to match the backend response
+  type ModulesResponse = {
+    pendingChanges: ModuleFromApi[];
+    changesSubmitted: ModuleFromApi[];
   };
 
   const [modules, setModules] = useState<ModuleFromApi[]>([]);
@@ -37,7 +45,7 @@ const EditModuleDetails: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [updating, setUpdating] = useState<Record<string, boolean>>({});
-  const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
+  const [changesSubmitted, setChangesSubmitted] = useState<Record<string, boolean>>({});
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingModuleId, setPendingModuleId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Record<string, boolean>>({});
@@ -56,14 +64,20 @@ const EditModuleDetails: React.FC = () => {
       try {
         setLoading(true);
         setError("");
-        const res = await axiosInstance.get<ModuleFromApi[]>(
-          "/lecturer/modules"
-        );
-        const list = res.data || [];
-        setModules(list);
+        const res = await axiosInstance.get<ModulesResponse>("/lecturer/modules");
+        
+        // Combine both arrays of modules
+        const allModules = [
+          ...res.data.pendingChanges,
+          ...res.data.changesSubmitted
+        ];
+        
+        setModules(allModules);
+        
         const mapped: Record<string, ModuleEditData> = {};
         const initialEditing: Record<string, boolean> = {};
-        for (const m of list) {
+        
+        for (const m of allModules) {
           mapped[m._id] = {
             moduleCode: m.moduleCode,
             moduleName: m.moduleName,
@@ -72,20 +86,22 @@ const EditModuleDetails: React.FC = () => {
             applicationDueDate: m.applicationDueDate,
             documentDueDate: m.documentDueDate || undefined,
             requiredTAHoursPerWeek: m.requiredTAHours ?? 0,
-            numberOfRequiredTAs: m.requiredTACount ?? 0,
+            requiredUndergraduateTACount: m.requiredUndergraduateTACount ?? 0,
+            requiredPostgraduateTACount: m.requiredPostgraduateTACount ?? 0,
             requirements: m.requirements ?? "",
           };
           // Initially show read-only view for all modules
           initialEditing[m._id] = false;
 
-          if (m.moduleStatus === "submitted") {
-            setSubmitted((prev) => ({ ...prev, [m._id]: true }));
+          if (m.moduleStatus === "changes submitted") {
+            setChangesSubmitted((prev) => ({ ...prev, [m._id]: true }));
           }
         }
         setModuleEdits(mapped);
         setEditing(initialEditing);
-        // list view removed
+        
       } catch (e) {
+        console.error("Error loading modules:", e);
         setError("Failed to load your modules");
       } finally {
         setLoading(false);
@@ -125,7 +141,8 @@ const EditModuleDetails: React.FC = () => {
 
       const payload = {
         requiredTAHours: moduleData.requiredTAHoursPerWeek,
-        requiredTACount: moduleData.numberOfRequiredTAs,
+        requiredUndergraduateTACount: moduleData.requiredUndergraduateTACount,
+        requiredPostgraduateTACount: moduleData.requiredPostgraduateTACount,
         requirements: moduleData.requirements,
       };
 
@@ -134,7 +151,7 @@ const EditModuleDetails: React.FC = () => {
         payload
       );
 
-      setSubmitted((prev) => ({ ...prev, [pendingModuleId]: true }));
+      setChangesSubmitted((prev) => ({ ...prev, [pendingModuleId]: true }));
       // Exit editing mode after successful submit
       setEditing((prev) => ({ ...prev, [pendingModuleId]: false }));
 
@@ -181,7 +198,7 @@ const EditModuleDetails: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full">
           {modules.map((m) => {
             const d = moduleEdits[m._id];
-            const isSubmitted = submitted[m._id] || m.moduleStatus === "submitted";
+            const isSubmitted = changesSubmitted[m._id] || m.moduleStatus === "changes submitted";
             const isEditing = editing[m._id];
             return (
               <div
@@ -199,7 +216,7 @@ const EditModuleDetails: React.FC = () => {
                     <p className="text-text-primary text-sm mt-1">{m.moduleName}</p>
                             </div>
                   {isSubmitted ? (
-                    <span className="badge badge-accepted">Submitted</span>
+                    <span className="badge badge-accepted">Changes Submitted</span>
                   ) : (
                     <button
                       type="button"
@@ -240,22 +257,34 @@ const EditModuleDetails: React.FC = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="bg-white rounded-lg p-3 border border-border-default">
                             <div className="text-xs text-text-secondary">Required TA Hours</div>
-                            <div className="text-text-primary text-sm">{d?.requiredTAHoursPerWeek || "0"} {((d?.requiredTAHoursPerWeek || 0) === 1 ? 'hour' : 'hours')} per week</div>
+                            <div className="text-text-primary text-sm">
+                              {Number(d?.requiredTAHoursPerWeek ?? 0)} {Number(d?.requiredTAHoursPerWeek ?? 0) === 1 ? 'hour' : 'hours'} per week
+                            </div>
                           </div>
                           <div className="bg-white rounded-lg p-3 border border-border-default">
-                            <div className="text-xs text-text-secondary">Required TAs</div>
-                            <div className="text-text-primary text-sm">{d?.numberOfRequiredTAs || "0"} {((d?.numberOfRequiredTAs || 0) === 1 ? 'Teaching Asistant' : 'Teaching Assistants')}</div>
-                        </div>
+                            <div className="text-xs text-text-secondary">Undergraduate TAs</div>
+                            <div className="text-text-primary text-sm">
+                              {Number(d?.requiredUndergraduateTACount ?? 0)} {Number(d?.requiredUndergraduateTACount ?? 0) === 1 ? 'TA' : 'TAs'}
+                            </div>
+                          </div>
+                          <div className="bg-white rounded-lg p-3 border border-border-default">
+                            <div className="text-xs text-text-secondary">Postgraduate TAs</div>
+                            <div className="text-text-primary text-sm">
+                              {Number(d?.requiredPostgraduateTACount ?? 0)} {Number(d?.requiredPostgraduateTACount ?? 0) === 1 ? 'TA' : 'TAs'}
+                            </div>
+                          </div>
                           <div className="bg-white rounded-lg p-3 border border-border-default sm:col-span-2">
                             <div className="text-xs text-text-secondary mb-1">Requirements</div>
-                            <div className="text-sm text-text-primary leading-relaxed">{d?.requirements || "No specific requirements specified for this TA position."}</div>
+                            <div className="text-sm text-text-primary leading-relaxed">
+                              {d?.requirements || "No specific requirements specified for this TA position."}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-text-primary mb-2">
                           TA Hours per Week
@@ -275,22 +304,44 @@ const EditModuleDetails: React.FC = () => {
                           min={0}
                         />
                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-text-primary mb-2">
-                          Number of Required TAs
+                          Undergraduate TAs Required
                         </label>
                         <input
                           type="number"
-                          value={d?.numberOfRequiredTAs ?? 0}
+                          value={d?.requiredUndergraduateTACount ?? 0}
                           onChange={(e) =>
                             handleInputChange(
                               m._id,
-                              "numberOfRequiredTAs",
+                              "requiredUndergraduateTACount",
                               parseInt(e.target.value)
                             )
                           }
                           className="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-page text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          placeholder="e.g., 5"
+                          placeholder="e.g., 3"
+                          min={0}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-text-primary mb-2">
+                          Postgraduate TAs Required
+                        </label>
+                        <input
+                          type="number"
+                          value={d?.requiredPostgraduateTACount ?? 0}
+                          onChange={(e) =>
+                            handleInputChange(
+                              m._id,
+                              "requiredPostgraduateTACount",
+                              parseInt(e.target.value)
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-page text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                          placeholder="e.g., 2"
                           min={0}
                         />
                       </div>
