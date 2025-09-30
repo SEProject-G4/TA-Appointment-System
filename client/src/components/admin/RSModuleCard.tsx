@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import { MdMoreVert } from "react-icons/md";
+import { MdMoreVert, MdClose } from "react-icons/md";
 import CommonAvatar from "../../assets/images/common_avatar.jpg";
 import { FiClock } from "react-icons/fi";
 import { FaUserGraduate } from "react-icons/fa";
@@ -9,13 +9,16 @@ import { Checkbox } from "@headlessui/react";
 import CircularProgress from "../common/CircularProgressBar";
 import { useNavigate } from "react-router-dom";
 
+import AutoSelect, { type Option } from "../../components/common/AutoSelect";
+
 import axiosInstance from "../../api/axiosConfig";
 // import { toast } from "react-hot-toast";
 import { useToast } from "../../contexts/ToastContext";
-import axios from "axios";
+import { useModal } from "../../contexts/ModalProvider";
 
 interface RSModuleCardProps {
   _id: string;
+  recSeriesId: string;
   moduleCode: string;
   moduleName: string;
   semester: number;
@@ -39,6 +42,7 @@ interface RSModuleCardProps {
 
 interface ModuleDetails {
   _id: string;
+  recSeriesId: string;
   moduleCode: string;
   moduleName: string;
   semester: number;
@@ -80,8 +84,175 @@ const getClassForStatus = (status: string) => {
   }
 };
 
+const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
+  moduleData,
+}) => {
+
+  const [availableStudents, setAvailableStudents] = useState<Option[]>([]);
+  const [selectedStudents, setSelectedStudents] = useState<Option[]>([]);
+
+  const [taType, setTaType] = useState<"undergraduate" | "postgraduate" | null>(
+    moduleData.requiredPostgraduateTACount === 0
+      ? "undergraduate"
+      : moduleData.requiredUndergraduateTACount === 0
+      ? "postgraduate"
+      : null
+  );
+
+  const { closeModal } = useModal();
+
+  const fetchEligibleStudents = async (type: "undergraduate" | "postgraduate") => {
+    try {
+      const response = await axiosInstance.get(`/recruitment-series/${moduleData.recSeriesId}/eligible-${type}s`);
+      const students = response.data.map((student: any) => ({
+        id: student._id,
+        label: student.indexNumber + " " + student.name,
+        subtitle: student.email,
+        picture: student.profilePicture
+      }));
+      setAvailableStudents(students);
+    } catch (error) {
+      console.error("Error fetching eligible students:", error);
+    }
+  };
+
+  const handleStudentChange = (student: Option | null) => {
+    if (!student) return;
+
+    setSelectedStudents((prev) => {
+      if (prev.find((s) => s.id === student.id)) {
+        return prev; // Student already selected
+      }
+      return [...prev, student];
+    });
+
+    setAvailableStudents((prev) =>
+      prev.filter((s) => s.id !== student.id)
+    );
+  }
+
+  const removeStudent = (student: Option) => {
+    setSelectedStudents((prev) => prev.filter((s) => s.id !== student.id));
+    setAvailableStudents((prev) => [...prev, student]);
+  }
+
+  return (
+    <div className="p-4">
+      <h2 className="text-lg font-semibold mb-2">
+        Add {taType} Applicants to {moduleData.moduleName}
+      </h2>
+      {!taType && (
+          <div className="flex flex-col">
+            <p className="text-sm text-text-secondary">
+              Which type of applicants would you like to add?
+            </p>
+            <div className="flex space-x-4 mt-3">
+              <button
+                className={`py-2 px-4 rounded hover:border-primary border-2 border-solid ${
+                  taType === "undergraduate"
+                    ? "bg-primary text-text-inverted"
+                    : "bg-white text-primary"
+                }`}
+                onClick={() => {
+                  fetchEligibleStudents("undergraduate");
+                  setTaType("undergraduate");
+                }}
+              >
+                Undergraduate
+              </button>
+              <button
+                className={`py-2 px-4 rounded hover:border-primary border-2 border-solid ${
+                  taType === "postgraduate"
+                    ? "bg-primary text-text-inverted"
+                    : "bg-white text-primary"
+                }`}
+                onClick={() => {
+                  fetchEligibleStudents("postgraduate");
+                  setTaType("postgraduate");
+                }}
+              >
+                Postgraduate
+              </button>
+            </div>
+          </div>
+        )}
+        {taType && (
+          <div className="flex flex-col">
+            <div className="flex flex-row items-center space-x-8 mb-5 mt-8">
+              <label className="label">
+                <span className="label-text">Select {taType === "undergraduate" ? "Undergraduate" : "Postgraduate"}(s)</span>
+              </label>
+              <AutoSelect
+              options={availableStudents}
+              selectedOption={null}
+              onSelect={handleStudentChange}
+              placeholder="Search by name or index or email"
+              className="ml-8"
+              />
+            </div>
+            <div className="flex flex-row flex-wrap ml-8 gap-x-3 gap-y-2 items-start mb-8 p-3 min-h-[100px] max-h-[300px] overflow-y-auto">
+              {selectedStudents &&
+              selectedStudents.length > 0 &&
+              selectedStudents.map((student) => (
+                <div
+                key={student.id}
+                className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-full drop-shadow bg-bg-card flex items-center text-text-primary space-x-3"
+                >
+                {student.picture && (
+                  <img
+                    src={student.picture}
+                    alt={student.label.toString()}
+                    className="h-8 w-8 rounded-full mr-3"
+                  />
+                )}
+                <div className="flex flex-col items-start"><p className="text-text-primary text-sm font-semibold">
+                  {student.label}
+                </p>
+                {student.subtitle && (
+                  <p className="text-xs text-text-secondary">
+                    {student.subtitle}
+                  </p>
+                )}
+                </div>
+                <MdClose
+                  className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
+                  onClick={() => removeStudent(student)}
+                />
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-text-secondary">
+              {selectedStudents.length} {taType === "undergraduate" ? "Undergraduate" : "Postgraduate"}(s) selected
+            </p>
+            <div className="flex justify-end gap-x-3 mt-4">
+              <button
+                className="px-4 py-2 text-text-secondary border border-text-secondary/20 rounded-md hover:bg-text-secondary/10 transition"
+                onClick={closeModal}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-primary text-text-inverted rounded-md hover:bg-primary-light transition disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={selectedStudents.length === 0}
+                onClick={() => {
+                  // Handle adding selected applicants
+                  console.log("Adding selected students:", selectedStudents);
+                  closeModal();
+                }}
+              >
+                Add Selected Applicants ({selectedStudents.length})
+              </button>
+            </div>
+          </div>)}
+
+      {/* Implementation for adding applicants */}
+    </div>
+  );
+};
+
 const RSModuleCard: React.FC<RSModuleCardProps> = ({
   _id,
+  recSeriesId,
   moduleCode,
   moduleName,
   semester,
@@ -102,6 +273,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     useState<ModuleDetails | null>(null);
 
   const navigate = useNavigate();
+  const { openModal, closeModal } = useModal();
   const { showToast } = useToast();
 
   const fetchModuleDetails = async (_id: string) => {
@@ -142,7 +314,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
 
   const handleAdvertiseModule = async (moduleData: ModuleDetails) => {
     // Implementation for advertising a module
-    try{
+    try {
       await axiosInstance.put(`/modules/${moduleData._id}/advertise`);
       showToast("Module advertised successfully", "success");
       await fetchModuleDetails(moduleData._id);
@@ -158,9 +330,12 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
 
   const handleSendforApproval = async (moduleData: ModuleDetails) => {
     // Implementation for sending module for approval
-    try{
+    try {
       await axiosInstance.put(`/modules/${moduleData._id}/send-for-approval`);
-      showToast("Module coordinators were notified successfully to review the applications", "success");
+      showToast(
+        "Module coordinators were notified successfully to review the applications",
+        "success"
+      );
       await fetchModuleDetails(moduleData._id);
     } catch (error) {
       console.error("Error sending module for approval:", error);
@@ -221,6 +396,16 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
             className:
               "outline-primary-dark text-text-primary hover:bg-primary/10 hover:text-primary-dark",
           },
+          {
+            label: "Add Applicants",
+            action: (moduleData: ModuleDetails) => {
+              openModal(<AddApplicantsModal moduleData={moduleData} />, {
+                showCloseButton: true,
+              });
+            },
+            className:
+              "outline-primary text-text-inverted bg-primary hover:bg-primary-light",
+          },
         ];
       case "full":
         return [
@@ -270,6 +455,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     ? fetchedModuleData
     : {
         _id,
+        recSeriesId,
         moduleCode,
         moduleName,
         semester,
@@ -307,9 +493,14 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
           </svg>
         </Checkbox>
 
-        <p className="text-sm text-text-primary text-wrap flex-1 font-semibold flex items-center hover:underline cursor-pointer" onClick={() => {
-          navigate(`/module-details/${data._id}`, { state: { moduleData: data } });
-        }}>
+        <p
+          className="text-sm text-text-primary text-wrap flex-1 font-semibold flex items-center hover:underline cursor-pointer"
+          onClick={() => {
+            navigate(`/module-details/${data._id}`, {
+              state: { moduleData: data },
+            });
+          }}
+        >
           {data.moduleCode} - {data.moduleName} [Semester {data.semester}]
         </p>
         <p
@@ -529,8 +720,8 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
       </div>
 
       <div className="flex flex-grow justify-end flex-col items-center w-full gap-y-2 p-2">
-        {getActionButtonsOnStatus(data.moduleStatus ).map((button, index) => (
-          <button 
+        {getActionButtonsOnStatus(data.moduleStatus).map((button, index) => (
+          <button
             key={index}
             className={`w-full py-1.5 rounded-md font-semibold text-sm outline outline-1 ${button.className}`}
             onClick={(e) => {

@@ -7,5 +7,7 @@ router.post('/create', protected, authorize(['admin']), recruitmentController.cr
 router.get('/', protected, authorize(['admin']), recruitmentController.getAllRecruitmentSeries);
 router.post('/:seriesId/add-module', protected, authorize(['admin']), recruitmentController.addModuleToRecruitmentSeries);
 router.get('/:seriesId/modules', protected, authorize(['admin']), recruitmentController.getModuleDetailsBySeriesId);
+router.get('/:seriesId/eligible-undergraduates', protected, authorize(['admin']), recruitmentController.getEligibleUndergraduates);
+router.get('/:seriesId/eligible-postgraduates', protected, authorize(['admin']), recruitmentController.getEligiblePostgraduates);
 
 module.exports = router;

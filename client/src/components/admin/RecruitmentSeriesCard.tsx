@@ -328,6 +328,7 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
                     <RSModuleCard
                       key={module._id}
                       _id={module._id}
+                      recSeriesId={_id}
                       moduleCode={module.moduleCode}
                       moduleName={module.moduleName}
                       semester={module.semester}

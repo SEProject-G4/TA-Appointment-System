@@ -121,11 +121,43 @@ const getModuleDetailsBySeriesId = async (req, res) => {
     }
 };
 
+const getEligibleUndergraduates = async (req, res) => {
+    try {
+        const seriesId = req.params.seriesId;
+        const recruitmentSeries = await RecruitmentSeries.findById(seriesId);
+        if (!recruitmentSeries) {
+            return res.status(404).json({ error: "Recruitment series not found" });
+        }
+        const undergradGroups = recruitmentSeries.undergradMailingList;
+        const eligibleUndergraduates = await User.find({ userGroup: { $in: undergradGroups }, role: 'undergraduate' });
+        res.status(200).json(eligibleUndergraduates);
+    } catch (error) {
+        console.error("Error fetching eligible undergraduates:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
 
+const getEligiblePostgraduates = async (req, res) => {
+    try {
+        const seriesId = req.params.seriesId;
+        const recruitmentSeries = await RecruitmentSeries.findById(seriesId);
+        if (!recruitmentSeries) {
+            return res.status(404).json({ error: "Recruitment series not found" });
+        }
+        const postgradGroups = recruitmentSeries.postgradMailingList;
+        const eligiblePostgraduates = await User.find({ userGroup: { $in: postgradGroups }, role: 'postgraduate' });
+        res.status(200).json(eligiblePostgraduates);
+    } catch (error) {
+        console.error("Error fetching eligible postgraduates:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
 
 module.exports = {
     createRecruitmentSeries,
     getAllRecruitmentSeries,
     addModuleToRecruitmentSeries,
     getModuleDetailsBySeriesId,
+    getEligibleUndergraduates,
+    getEligiblePostgraduates
 };
