@@ -41,29 +41,59 @@ const moduleDetailsSchema = new mongoose.Schema({
         default: 0, 
         min: 0 
     },
-    requiredUndergraduateTACount: { 
-        type: Number, 
-        required: false, 
-        default: 0, 
-        min: 0 
+    openForUndergraduates: {
+        type: Boolean,
+        required: true,
+        default: false,
     },
-    requiredPostgraduateTACount: { 
-        type: Number, 
-        required: false, 
-        default: 0, 
-        min: 0 
+    openForPostgraduates: {
+        type: Boolean,
+        required: true,
+        default: false,
     },
-    appliedUndergraduateCount: {
-        type: Number,
-        required: false,
-        default: 0,
-        min: 0
+    undergraduateCounts: {
+        type: {
+            required: { type: Number, default: 0, min: 0 },
+            remaining: { type: Number, default: 0, min: 0 },
+            applied: { type: Number, default: 0, min: 0 },
+            reviewed: { type: Number, default: 0, min: 0 },
+            accepted: { type: Number, default: 0, min: 0 },
+            docSubmitted: { type: Number, default: 0, min: 0 },
+            appointed: { type: Number, default: 0, min: 0 }
+        },
+        default: function() {
+            return this.openForUndergraduates ? {
+                required: 0,
+                remaining: 0,
+                applied: 0,
+                reviewed: 0,
+                accepted: 0,
+                docSubmitted: 0,
+                appointed: 0
+            } : null;
+        }
     },
-    appliedPostgraduateCount: {
-        type: Number,
-        required: false,
-        default: 0,
-        min: 0
+    postgraduateCounts: {
+        type: {
+            required: { type: Number, default: 0, min: 0 },
+            remaining: { type: Number, default: 0, min: 0 },
+            applied: { type: Number, default: 0, min: 0 },
+            reviewed: { type: Number, default: 0, min: 0 },
+            accepted: { type: Number, default: 0, min: 0 },
+            docSubmitted: { type: Number, default: 0, min: 0 },
+            appointed: { type: Number, default: 0, min: 0 }
+        },
+        default: function() {
+            return this.openForPostgraduates ? {
+                required: 0,
+                remaining: 0,
+                applied: 0,
+                reviewed: 0,
+                accepted: 0,
+                docSubmitted: 0,
+                appointed: 0
+            } : null;
+        }
     },
     requirements: {
         type: String,

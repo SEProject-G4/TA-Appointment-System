@@ -14,6 +14,7 @@ import { Tab,
 
 interface ModuleDetails {
   _id: string;
+  recruitmentSeriesId: string;
   moduleCode: string;
   moduleName: string;
   semester: number;
@@ -24,14 +25,32 @@ interface ModuleDetails {
     email: string;
     profilePicture: string;
   }[];
-  requiredTAHours: number;
-  requiredUndergraduateTACount: number;
-  requiredPostgraduateTACount: number;
-  appliedUndergraduateCount: number;
-  appliedPostgraduateCount: number;
-  requirements: string;
-  documentDueDate: Date;
   applicationDueDate: Date;
+  documentDueDate: Date;
+  requiredTAHours: number;
+  openForUndergraduates: boolean;
+  openForPostgraduates: boolean;
+  
+  undergraduateCounts: {
+    required: number;
+    remaining: number;
+    applied: number;
+    reviewed: number;
+    accepted: number;
+    docSubmitted: number;
+    appointed: number;
+  } ;
+
+  postgraduateCounts: {
+    required: number;
+    remaining: number;
+    applied: number;
+    reviewed: number;
+    accepted: number;
+    docSubmitted: number;
+    appointed: number;
+  } ;
+  requirements: string;
 }
 
 const getClassForStatus = (status: string) => {

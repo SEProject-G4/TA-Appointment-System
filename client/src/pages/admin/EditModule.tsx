@@ -12,6 +12,7 @@ import "./NewModule.css";
 
 interface ModuleDetails {
   _id: string;
+  recruitmentSeriesId: string;
   moduleCode: string;
   moduleName: string;
   semester: number;
@@ -22,14 +23,32 @@ interface ModuleDetails {
     email: string;
     profilePicture: string;
   }[];
-  requiredTAHours: number;
-  requiredUndergraduateTACount: number;
-  requiredPostgraduateTACount: number;
-  appliedUndergraduateCount: number;
-  appliedPostgraduateCount: number;
-  requirements: string;
-  documentDueDate: Date;
   applicationDueDate: Date;
+  documentDueDate: Date;
+  requiredTAHours: number;
+  openForUndergraduates: boolean;
+  openForPostgraduates: boolean;
+
+  undergraduateCounts: {
+    required: number;
+    remaining: number;
+    applied: number;
+    reviewed: number;
+    accepted: number;
+    docSubmitted: number;
+    appointed: number;
+  } | null;
+
+  postgraduateCounts: {
+    required: number;
+    remaining: number;
+    applied: number;
+    reviewed: number;
+    accepted: number;
+    docSubmitted: number;
+    appointed: number;
+  } | null;
+  requirements: string;
 }
 
 interface FormData {
@@ -83,6 +102,8 @@ const EditModule: React.FC = () => {
         data.map((lecturer: any) => ({
           id: lecturer._id,
           label: lecturer.displayName,
+          subtitle: lecturer.email,
+          picture: lecturer.profilePicture,
         }))
       );
 
@@ -339,6 +360,7 @@ const EditModule: React.FC = () => {
   useEffect(() => {
     if (state && state.moduleData) {
       const modData = state.moduleData;
+      console.log("Editing module data:", modData);
 
       setFormData({
         moduleCode: modData.moduleCode,
@@ -350,10 +372,16 @@ const EditModule: React.FC = () => {
         coordinators: modData.coordinators.map((coord) => ({
           id: coord.id,
           label: coord.displayName,
+          subtitle: coord.email,
+          picture: coord.profilePicture,
         })),
         taHours: modData.requiredTAHours,
-        undergraduateTAsRequired: modData.requiredUndergraduateTACount,
-        postgraduateTAsRequired: modData.requiredPostgraduateTACount,
+        undergraduateTAsRequired: modData.undergraduateCounts
+          ? modData.undergraduateCounts.required
+          : 0,
+        postgraduateTAsRequired: modData.postgraduateCounts
+          ? modData.postgraduateCounts.required
+          : 0,
         specialNotes: modData.requirements,
         docDueDate: toLocalDatetimeInputValue(
           new Date(modData.documentDueDate)
@@ -371,8 +399,6 @@ const EditModule: React.FC = () => {
           )
         );
       });
-
-
     } else {
       fetchLecturers();
     }
@@ -383,8 +409,10 @@ const EditModule: React.FC = () => {
       <div className="rounded-lg w-full max-w-4xl bg-bg-card shadow-xl p-8">
         <h2 className="text-3xl font-bold text-center mb-16 text-base-content select-none">
           Edit Module <br />
-          <span className="text-2xl mt-3">{formData.moduleCode} - {formData.moduleName}{" "}
-          [{formData.semester?.label}]</span>
+          <span className="text-2xl mt-3">
+            {formData.moduleCode} - {formData.moduleName} [
+            {formData.semester?.label}]
+          </span>
         </h2>
 
         <div className="flex flex-col space-y-6">
@@ -462,7 +490,7 @@ const EditModule: React.FC = () => {
                 className="ml-8"
               />
             </div>
-            <div className="flex flex-row flex-wrap ml-8 space-x-5 items-start mb-8">
+            <div className="flex flex-row flex-wrap ml-8 gap-x-5 gap-y-2 items-start mb-8">
               {formData.coordinators &&
                 formData.coordinators.length > 0 &&
                 formData.coordinators.map((coordinator) => (
@@ -470,9 +498,23 @@ const EditModule: React.FC = () => {
                     key={coordinator.id}
                     className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-full drop-shadow bg-bg-card flex items-center text-text-primary space-x-3"
                   >
-                    <p className="text-text-primary text-sm font-semibold">
-                      {coordinator.label}
-                    </p>
+                    {coordinator.picture && (
+                      <img
+                        src={coordinator.picture}
+                        alt={coordinator.label.toString()}
+                        className="h-8 w-8 rounded-full mr-3"
+                      />
+                    )}
+                    <div className="flex flex-col items-start">
+                      <p className="text-text-primary text-sm font-semibold">
+                        {coordinator.label}
+                      </p>
+                      {coordinator.subtitle && (
+                        <p className="text-xs text-text-secondary">
+                          {coordinator.subtitle}
+                        </p>
+                      )}
+                    </div>
                     <MdClose
                       className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
                       onClick={() => removeCoordinator(coordinator)}

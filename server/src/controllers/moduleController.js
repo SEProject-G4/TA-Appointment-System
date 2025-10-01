@@ -81,11 +81,11 @@ const advertiseModule = async(req, res) => {
         }
         const userGroupIds = recruitmentSeries.undergradMailingList.concat(recruitmentSeries.postgradMailingList);
 
-        const users = await User.find({ userGroup: { $in: userGroupIds } }, "email displayName");
+        const users = await User.find({ userGroup: { $in: userGroupIds } }, "email name");
 
         const emailPromises = users.map(user => {
             const subject = `New TA Position Available: ${module.moduleCode} - ${module.moduleName}`;
-            const htmlContent = `<p>Hello ${user.displayName},</p>
+            const htmlContent = `<p>Hello ${user.name},</p>
             <p>We are excited to announce a new TA position available for the module ${module.moduleCode} - ${module.moduleName}.</p>
             <p>Please check the details and apply if you are interested.</p>
             <p>Best regards,</p>

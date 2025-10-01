@@ -16,33 +16,9 @@ import axiosInstance from "../../api/axiosConfig";
 import { useToast } from "../../contexts/ToastContext";
 import { useModal } from "../../contexts/ModalProvider";
 
-interface RSModuleCardProps {
-  _id: string;
-  recSeriesId: string;
-  moduleCode: string;
-  moduleName: string;
-  semester: number;
-  moduleStatus: string;
-  coordinators: {
-    id: string;
-    displayName: string;
-    email: string;
-    profilePicture: string;
-  }[];
-  requiredTAHours: number;
-  requiredUndergraduateTACount: number;
-  requiredPostgraduateTACount: number;
-  appliedUndergraduateCount: number;
-  appliedPostgraduateCount: number;
-  requirements: string;
-  documentDueDate: string;
-  applicationDueDate: string;
-  refreshPage: () => void;
-}
-
 interface ModuleDetails {
   _id: string;
-  recSeriesId: string;
+  recruitmentSeriesId: string;
   moduleCode: string;
   moduleName: string;
   semester: number;
@@ -53,14 +29,36 @@ interface ModuleDetails {
     email: string;
     profilePicture: string;
   }[];
-  requiredTAHours: number;
-  requiredUndergraduateTACount: number;
-  requiredPostgraduateTACount: number;
-  appliedUndergraduateCount: number;
-  appliedPostgraduateCount: number;
-  requirements: string;
-  documentDueDate: Date;
   applicationDueDate: Date;
+  documentDueDate: Date;
+  requiredTAHours: number;
+  openForUndergraduates: boolean;
+  openForPostgraduates: boolean;
+
+  undergraduateCounts: {
+    required: number;
+    remaining: number;
+    applied: number;
+    reviewed: number;
+    accepted: number;
+    docSubmitted: number;
+    appointed: number;
+  };
+
+  postgraduateCounts: {
+    required: number;
+    remaining: number;
+    applied: number;
+    reviewed: number;
+    accepted: number;
+    docSubmitted: number;
+    appointed: number;
+  };
+  requirements: string;
+}
+
+interface RSModuleCardProps extends ModuleDetails {
+  refreshPage: () => void;
 }
 
 const getClassForStatus = (status: string) => {
@@ -87,28 +85,31 @@ const getClassForStatus = (status: string) => {
 const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
   moduleData,
 }) => {
-
   const [availableStudents, setAvailableStudents] = useState<Option[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<Option[]>([]);
 
   const [taType, setTaType] = useState<"undergraduate" | "postgraduate" | null>(
-    moduleData.requiredPostgraduateTACount === 0
+    !moduleData.openForPostgraduates
       ? "undergraduate"
-      : moduleData.requiredUndergraduateTACount === 0
+      : !moduleData.openForUndergraduates
       ? "postgraduate"
       : null
   );
 
   const { closeModal } = useModal();
 
-  const fetchEligibleStudents = async (type: "undergraduate" | "postgraduate") => {
+  const fetchEligibleStudents = async (
+    type: "undergraduate" | "postgraduate"
+  ) => {
     try {
-      const response = await axiosInstance.get(`/recruitment-series/${moduleData.recSeriesId}/eligible-${type}s`);
+      const response = await axiosInstance.get(
+        `/recruitment-series/${moduleData.recruitmentSeriesId}/eligible-${type}s`
+      );
       const students = response.data.map((student: any) => ({
         id: student._id,
         label: student.indexNumber + " " + student.name,
         subtitle: student.email,
-        picture: student.profilePicture
+        picture: student.profilePicture,
       }));
       setAvailableStudents(students);
     } catch (error) {
@@ -126,15 +127,13 @@ const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
       return [...prev, student];
     });
 
-    setAvailableStudents((prev) =>
-      prev.filter((s) => s.id !== student.id)
-    );
-  }
+    setAvailableStudents((prev) => prev.filter((s) => s.id !== student.id));
+  };
 
   const removeStudent = (student: Option) => {
     setSelectedStudents((prev) => prev.filter((s) => s.id !== student.id));
     setAvailableStudents((prev) => [...prev, student]);
-  }
+  };
 
   return (
     <div className="p-4">
@@ -142,108 +141,116 @@ const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
         Add {taType} Applicants to {moduleData.moduleName}
       </h2>
       {!taType && (
-          <div className="flex flex-col">
-            <p className="text-sm text-text-secondary">
-              Which type of applicants would you like to add?
-            </p>
-            <div className="flex space-x-4 mt-3">
-              <button
-                className={`py-2 px-4 rounded hover:border-primary border-2 border-solid ${
-                  taType === "undergraduate"
-                    ? "bg-primary text-text-inverted"
-                    : "bg-white text-primary"
-                }`}
-                onClick={() => {
-                  fetchEligibleStudents("undergraduate");
-                  setTaType("undergraduate");
-                }}
-              >
-                Undergraduate
-              </button>
-              <button
-                className={`py-2 px-4 rounded hover:border-primary border-2 border-solid ${
-                  taType === "postgraduate"
-                    ? "bg-primary text-text-inverted"
-                    : "bg-white text-primary"
-                }`}
-                onClick={() => {
-                  fetchEligibleStudents("postgraduate");
-                  setTaType("postgraduate");
-                }}
-              >
-                Postgraduate
-              </button>
-            </div>
+        <div className="flex flex-col">
+          <p className="text-sm text-text-secondary">
+            Which type of applicants would you like to add?
+          </p>
+          <div className="flex space-x-4 mt-3">
+            <button
+              className={`py-2 px-4 rounded hover:border-primary border-2 border-solid ${
+                taType === "undergraduate"
+                  ? "bg-primary text-text-inverted"
+                  : "bg-white text-primary"
+              }`}
+              onClick={() => {
+                fetchEligibleStudents("undergraduate");
+                setTaType("undergraduate");
+              }}
+            >
+              Undergraduate
+            </button>
+            <button
+              className={`py-2 px-4 rounded hover:border-primary border-2 border-solid ${
+                taType === "postgraduate"
+                  ? "bg-primary text-text-inverted"
+                  : "bg-white text-primary"
+              }`}
+              onClick={() => {
+                fetchEligibleStudents("postgraduate");
+                setTaType("postgraduate");
+              }}
+            >
+              Postgraduate
+            </button>
           </div>
-        )}
-        {taType && (
-          <div className="flex flex-col">
-            <div className="flex flex-row items-center space-x-8 mb-5 mt-8">
-              <label className="label">
-                <span className="label-text">Select {taType === "undergraduate" ? "Undergraduate" : "Postgraduate"}(s)</span>
-              </label>
-              <AutoSelect
+        </div>
+      )}
+      {taType && (
+        <div className="flex flex-col">
+          <div className="flex flex-row items-center space-x-8 mb-5 mt-8">
+            <label className="label">
+              <span className="label-text">
+                Select{" "}
+                {taType === "undergraduate" ? "Undergraduate" : "Postgraduate"}
+                (s)
+              </span>
+            </label>
+            <AutoSelect
               options={availableStudents}
               selectedOption={null}
               onSelect={handleStudentChange}
               placeholder="Search by name or index or email"
               className="ml-8"
-              />
-            </div>
-            <div className="flex flex-row flex-wrap ml-8 gap-x-3 gap-y-2 items-start mb-8 p-3 min-h-[100px] max-h-[300px] overflow-y-auto">
-              {selectedStudents &&
+            />
+          </div>
+          <div className="flex flex-row flex-wrap ml-8 gap-x-3 gap-y-2 items-start mb-8 p-3 min-h-[100px] max-h-[300px] overflow-y-auto">
+            {selectedStudents &&
               selectedStudents.length > 0 &&
               selectedStudents.map((student) => (
                 <div
-                key={student.id}
-                className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-full drop-shadow bg-bg-card flex items-center text-text-primary space-x-3"
+                  key={student.id}
+                  className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-full drop-shadow bg-bg-card flex items-center text-text-primary space-x-3"
                 >
-                {student.picture && (
-                  <img
-                    src={student.picture}
-                    alt={student.label.toString()}
-                    className="h-8 w-8 rounded-full mr-3"
+                  {student.picture && (
+                    <img
+                      src={student.picture}
+                      alt={student.label.toString()}
+                      className="h-8 w-8 rounded-full mr-3"
+                    />
+                  )}
+                  <div className="flex flex-col items-start">
+                    <p className="text-text-primary text-sm font-semibold">
+                      {student.label}
+                    </p>
+                    {student.subtitle && (
+                      <p className="text-xs text-text-secondary">
+                        {student.subtitle}
+                      </p>
+                    )}
+                  </div>
+                  <MdClose
+                    className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
+                    onClick={() => removeStudent(student)}
                   />
-                )}
-                <div className="flex flex-col items-start"><p className="text-text-primary text-sm font-semibold">
-                  {student.label}
-                </p>
-                {student.subtitle && (
-                  <p className="text-xs text-text-secondary">
-                    {student.subtitle}
-                  </p>
-                )}
-                </div>
-                <MdClose
-                  className="text-text-secondary hover:text-text-primary outline hover:outline-text-primary outline-1 outline-text-secondary cursor-pointer rounded-full p-0.5 size-5 hover:bg-primary-light/20 "
-                  onClick={() => removeStudent(student)}
-                />
                 </div>
               ))}
-            </div>
-            <p className="text-sm text-text-secondary">
-              {selectedStudents.length} {taType === "undergraduate" ? "Undergraduate" : "Postgraduate"}(s) selected
-            </p>
-            <div className="flex justify-end gap-x-3 mt-4">
-              <button
-                className="px-4 py-2 text-text-secondary border border-text-secondary/20 rounded-md hover:bg-text-secondary/10 transition"
-                onClick={closeModal}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-primary text-text-inverted rounded-md hover:bg-primary-light transition disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={selectedStudents.length === 0}
-                onClick={() => {
-                  // Handle adding selected applicants
-                  console.log("Adding selected students:", selectedStudents);
-                  closeModal();
-                }}
-              >
-                Add Selected Applicants ({selectedStudents.length})
-              </button>
-            </div>
-          </div>)}
+          </div>
+          <p className="text-sm text-text-secondary">
+            {selectedStudents.length}{" "}
+            {taType === "undergraduate" ? "Undergraduate" : "Postgraduate"}(s)
+            selected
+          </p>
+          <div className="flex justify-end gap-x-3 mt-4">
+            <button
+              className="px-4 py-2 text-text-secondary border border-text-secondary/20 rounded-md hover:bg-text-secondary/10 transition"
+              onClick={closeModal}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 bg-primary text-text-inverted rounded-md hover:bg-primary-light transition disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={selectedStudents.length === 0}
+              onClick={() => {
+                // Handle adding selected applicants
+                console.log("Adding selected students:", selectedStudents);
+                closeModal();
+              }}
+            >
+              Add Selected Applicants ({selectedStudents.length})
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Implementation for adding applicants */}
     </div>
@@ -252,18 +259,18 @@ const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
 
 const RSModuleCard: React.FC<RSModuleCardProps> = ({
   _id,
-  recSeriesId,
+  recruitmentSeriesId,
   moduleCode,
   moduleName,
   semester,
   moduleStatus,
   coordinators,
   requiredTAHours,
-  appliedUndergraduateCount,
-  appliedPostgraduateCount,
+  openForUndergraduates,
+  openForPostgraduates,
+  undergraduateCounts,
+  postgraduateCounts,
   requirements,
-  requiredUndergraduateTACount,
-  requiredPostgraduateTACount,
   documentDueDate,
   applicationDueDate,
   refreshPage,
@@ -279,7 +286,37 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   const fetchModuleDetails = async (_id: string) => {
     try {
       const response = await axiosInstance.get(`/modules/${_id}`);
-      setFetchedModuleData(response.data);
+      let data: ModuleDetails;
+      if (response.data.openForPostgraduates === false) {
+        data = {
+          postgraduateCounts: {
+            required: 0,
+            remaining: 0,
+            applied: 0,
+            reviewed: 0,
+            accepted: 0,
+            docSubmitted: 0,
+            appointed: 0,
+          },
+          ...response.data,
+        };
+      } else if (response.data.openForUndergraduates === false) {
+        data = {
+          undergraduateCounts: {
+            required: 0,
+            remaining: 0,
+            applied: 0,
+            reviewed: 0,
+            accepted: 0,
+            docSubmitted: 0,
+            appointed: 0,
+          },
+          ...response.data,
+        };
+      } else {
+        data = response.data;
+      }
+      setFetchedModuleData(data);
     } catch (error) {
       console.error("Error fetching module details:", error);
       showToast("Failed to fetch module details", "error");
@@ -355,7 +392,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
             label: "Edit",
             action: handleEditModule,
             className:
-              "outline-text-secondary text-text-primary hover:bg-text-secondary hover:text-text-inverted",
+              "outline-primary-dark text-text-primary hover:bg-primary/10 hover:text-primary-dark",
           },
           {
             label: "Notify Coordinators",
@@ -455,17 +492,17 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     ? fetchedModuleData
     : {
         _id,
-        recSeriesId,
+        recruitmentSeriesId,
         moduleCode,
         moduleName,
         semester,
         moduleStatus,
         coordinators,
         requiredTAHours,
-        requiredUndergraduateTACount,
-        requiredPostgraduateTACount,
-        appliedUndergraduateCount,
-        appliedPostgraduateCount,
+        openForUndergraduates,
+        openForPostgraduates,
+        undergraduateCounts,
+        postgraduateCounts,
         requirements,
         documentDueDate: new Date(documentDueDate),
         applicationDueDate: new Date(applicationDueDate),
@@ -619,12 +656,14 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
 
       <div className="flex w-full gap-x-2 items-stretch">
         <div
-          className={`flex flex-1 flex-col items-center gap-y-2 bg-bg-page p-2 rounded-md`}
+          className={`flex flex-1 flex-col items-center gap-y-2 bg-bg-page rounded-md p-2 ${
+            data.openForUndergraduates === false ? "opacity-100" : ""
+          }`}
         >
           <p className="w-full border-b-[0px] border-text-secondary/80 text-sm text-text-primary font-semibold">
             Undergraduate TAs
           </p>
-          {data.requiredUndergraduateTACount === 0 ? (
+          {data.openForUndergraduates === false ? (
             <div className="w-full flex flex-col items-center justify-center py-1 flex-1">
               <FaUserGraduate className="h-6 w-6 text-text-secondary mb-2" />
               <p className="text-sm text-text-secondary font-semibold text-center">
@@ -641,24 +680,21 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
               </div>
               <CircularProgress
                 percentage={
-                  (data.appliedUndergraduateCount /
-                    data.requiredUndergraduateTACount) *
+                  ((data.undergraduateCounts.required -
+                    data.undergraduateCounts.remaining) /
+                    data.undergraduateCounts.required) *
                   100
                 }
                 size="small"
-                color={
-                  data.appliedUndergraduateCount >=
-                  data.requiredUndergraduateTACount
-                    ? "green"
-                    : "blue"
-                }
+                color={"blue"}
               >
                 <p className="text-sm font-semibold">
                   <span className="text-text-primary text-2xl">
-                    {data.appliedUndergraduateCount}
+                    {data.undergraduateCounts.required -
+                      data.undergraduateCounts.remaining}
                   </span>
                   <span className="text-text-secondary">
-                    /{data.requiredUndergraduateTACount}
+                    /{data.undergraduateCounts.required}
                   </span>
                 </p>
               </CircularProgress>
@@ -668,13 +704,13 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
 
         <div
           className={`flex flex-1 flex-col items-center gap-y-2 bg-bg-page rounded-md p-2 ${
-            data.requiredPostgraduateTACount === 0 ? "opacity-100" : ""
+            data.openForPostgraduates === false ? "opacity-100" : ""
           }`}
         >
           <p className="w-full border-b-[0px] border-text-secondary/80 text-sm text-text-primary font-semibold">
             Postgraduate TAs
           </p>
-          {data.requiredPostgraduateTACount === 0 ? (
+          {data.openForPostgraduates === false ? (
             <div className="w-full flex flex-col items-center justify-center py-1 flex-1">
               <FaUserGraduate className="h-6 w-6 text-text-secondary mb-2" />
               <p className="text-sm text-text-secondary font-semibold text-center">
@@ -689,31 +725,36 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
                   {data.requiredTAHours}hours/week
                 </p>
               </div>
-              <CircularProgress
-                percentage={
-                  (data.appliedPostgraduateCount /
-                    data.requiredPostgraduateTACount) *
-                  100
-                }
-                size="small"
-                color={
-                  data.requiredPostgraduateTACount === 0
-                    ? "gray"
-                    : data.appliedPostgraduateCount >=
-                      data.requiredPostgraduateTACount
-                    ? "green"
-                    : "blue"
-                }
-              >
-                <p className="text-sm font-semibold">
-                  <span className="text-text-primary text-2xl">
-                    {data.appliedPostgraduateCount}
-                  </span>
-                  <span className="text-text-secondary">
-                    /{data.requiredPostgraduateTACount}
-                  </span>
-                </p>
-              </CircularProgress>
+                {data.postgraduateCounts ? (
+                  <CircularProgress
+                    percentage={
+                      data.postgraduateCounts
+                        ? ((data.postgraduateCounts.required -
+                            data.postgraduateCounts.remaining) /
+                            data.postgraduateCounts.required) *
+                          100
+                        : 0
+                    }
+                    size="small"
+                    color={"blue"}
+                  >
+                    <p className="text-sm font-semibold">
+                      <span className="text-text-primary text-2xl">
+                        {data.postgraduateCounts.required -
+                          data.postgraduateCounts.remaining}
+                      </span>
+                      <span className="text-text-secondary">
+                        /{data.postgraduateCounts.required}
+                      </span>
+                    </p>
+                  </CircularProgress>
+                ) : (
+                  <CircularProgress
+                    percentage={0}
+                    size="small"
+                    color={"blue"}
+                  ></CircularProgress>
+                )}
             </>
           )}
         </div>

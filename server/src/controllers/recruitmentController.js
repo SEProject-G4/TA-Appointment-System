@@ -66,6 +66,9 @@ const addModuleToRecruitmentSeries = async (req, res) => {
 
         console.log("Adding module to series:", seriesId, moduleData);
 
+        const openForUndergrads = moduleData.requiredUndergraduateTACount > 0;
+        const openForPostgrads = moduleData.requiredPostgraduateTACount > 0;
+
         // Add the module
         const newModule = new ModuleDetails({
             recruitmentSeriesId: seriesId,
@@ -76,8 +79,16 @@ const addModuleToRecruitmentSeries = async (req, res) => {
             applicationDueDate: new Date(moduleData.applicationDueDate),
             documentDueDate: new Date(moduleData.documentDueDate),
             requiredTAHours: moduleData.requiredTAHours,
-            requiredUndergraduateTACount: moduleData.requiredUndergraduateTACount,
-            requiredPostgraduateTACount: moduleData.requiredPostgraduateTACount,
+            openForUndergraduates: openForUndergrads,
+            openForPostgraduates: openForPostgrads,
+            undergraduateCounts: !openForUndergrads ? null : {
+                required: moduleData.requiredUndergraduateTACount,
+                remaining: moduleData.requiredUndergraduateTACount,
+            },
+            postgraduateCounts: !openForPostgrads ? null : {
+                required: moduleData.requiredPostgraduateTACount,
+                remaining: moduleData.requiredPostgraduateTACount,
+            },
             moduleStatus: "initialised",
             requirements: moduleData.requirements
         });
