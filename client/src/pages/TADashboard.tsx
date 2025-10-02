@@ -76,7 +76,8 @@ function TADashboard() {
   }, [userId, refreshKey]);
 
   return (
-    <div className="min-h-screen bg-bg-card text-text-primary">
+    
+    <div className="min-h-screen px-8 bg-bg-page text-text-primary">
       <div className="container px-4 py-8 mx-auto">
         {/* header */}
         <div className="mb-12 text-center">

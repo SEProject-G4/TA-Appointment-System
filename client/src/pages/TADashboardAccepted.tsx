@@ -24,6 +24,21 @@ function TADashboardAccepted() {
   const [isDocOpen, setIsDocOpen] = useState(false);
   const userRole = user?.role;
   const userId = user?.id; //check weather this correct------------------------------
+  const modules = applications.flatMap(app =>
+  app.appliedModules
+    .filter(mod => mod?.moduleId) // safeguard
+    .map(mod => ({
+      moduleCode: mod.moduleId.moduleCode,
+      moduleName: mod.moduleId.moduleName,
+      requiredTAHours: mod.moduleId.requiredTAHours || 0,
+    }))
+);
+
+// Total TA hours
+const totalTAHours = modules.reduce(
+  (sum, mod) => sum + mod.requiredTAHours,
+  0
+);
 
   useEffect(() => {
     if (!userId) return; // Don't run until we have userId
@@ -135,39 +150,40 @@ function TADashboardAccepted() {
                   : "space-y-4"
               }
             >
-           { applications.flatMap((app) =>
-              app.appliedModules.map((appModule) => (
-                <TAAppliedCard
-                  key={appModule._id}
-                  moduleCode={appModule.moduleId.moduleCode}
-                  moduleName={appModule.moduleId.moduleName}
-                  coordinators={appModule.moduleId.coordinators.map(
-                    (c) => c.name
-                  )}
-                  requiredTANumber={
-                    userRole === "undergraduate"
-                      ? appModule.moduleId.requiredUndergraduateTACount
-                      : appModule.moduleId.requiredPostgraduateTACount
-                  }
-                  appliedTANumber={
-                    userRole === "undergraduate"
-                      ? appModule.moduleId.appliedUndergraduateCount
-                      : appModule.moduleId.appliedPostgraduateCount
-                  }
-                  status={appModule.status}
-                  appliedDate={appModule.createdAt.split("T")[0]}
-                  documentDueDate={
-                    appModule.moduleId.documentDueDate.split("T")[0]
-                  }
-                  applicationDueDate={
-                    appModule.moduleId.applicationDueDate.split("T")[0]
-                  }
-                  viewMode={viewMode}
-                  requirements={[appModule.moduleId.requirements]}
-                />
-              ))
-            )}
-          </div>)}
+              {applications.flatMap((app) =>
+                app.appliedModules.map((appModule) => (
+                  <TAAppliedCard
+                    key={appModule._id}
+                    moduleCode={appModule.moduleId.moduleCode}
+                    moduleName={appModule.moduleId.moduleName}
+                    coordinators={appModule.moduleId.coordinators.map(
+                      (c) => c.name
+                    )}
+                    requiredTANumber={
+                      userRole === "undergraduate"
+                        ? appModule.moduleId.requiredUndergraduateTACount
+                        : appModule.moduleId.requiredPostgraduateTACount
+                    }
+                    appliedTANumber={
+                      userRole === "undergraduate"
+                        ? appModule.moduleId.appliedUndergraduateCount
+                        : appModule.moduleId.appliedPostgraduateCount
+                    }
+                    status={appModule.status}
+                    appliedDate={appModule.createdAt.split("T")[0]}
+                    documentDueDate={
+                      appModule.moduleId.documentDueDate.split("T")[0]
+                    }
+                    applicationDueDate={
+                      appModule.moduleId.applicationDueDate.split("T")[0]
+                    }
+                    viewMode={viewMode}
+                    requirements={[appModule.moduleId.requirements]}
+                  />
+                ))
+              )}
+            </div>
+          )}
         </div>
       </div>
       {isDocOpen && (
@@ -175,10 +191,8 @@ function TADashboardAccepted() {
           isDocOpen={isDocOpen}
           onClose={() => setIsDocOpen(false)}
           position={{
-            moduleCode: "vggg",
-            moduleName: "hhjh",
-            coordinators: ["hhj"],
-            requiredTAHours: 3,
+            modules,
+            totalTAHours,
           }}
         />
       )}
