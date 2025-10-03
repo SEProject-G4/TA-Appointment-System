@@ -29,6 +29,8 @@ app.use(session({
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/user-management', protected, authorize("admin"), require('./routes/userGroupRoutes'));
 app.use('/api/lecturer', require('./routes/lecturerRoutes'));
+app.use('/api/recruitment-series', require('./routes/recruitmentSeriesRoutes'));
+app.use('/api/modules', require('./routes/moduleRoutes'));
 app.use('/api/cse-office', require('./routes/cseOfficeRoutes'));
 app.use('/api/ta', require('./routes/taRoutes'));
 
