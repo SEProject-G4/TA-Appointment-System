@@ -1,9 +1,9 @@
-const RecruitmentSeries = require("../models/RecruitmentSeries");
+const RecruitmentRound = require("../models/RecruitmentRound");
 const UserGroup = require("../models/UserGroup");
 const ModuleDetails = require("../models/ModuleDetails");
 const User = require("../models/User");
 
-const createRecruitmentSeries = async (req, res) => {
+const createRecruitmentRound = async (req, res) => {
     try{
         const name = req.body.name;
         const applicationDueDate = req.body.applicationDueDate;
@@ -13,7 +13,7 @@ const createRecruitmentSeries = async (req, res) => {
         const undergradMailingList = req.body.undergradMailingList.map((group) => group._id);
         const postgradMailingList = req.body.postgradMailingList.map((group) => group._id);
 
-        const newRecruitmentSeries = new RecruitmentSeries({
+        const newRecruitmentRound = new RecruitmentRound({
             name,
             applicationDueDate,
             documentDueDate,
@@ -23,19 +23,19 @@ const createRecruitmentSeries = async (req, res) => {
             postgradMailingList,
             status: "initialised"
         });
-        console.log("New RecruitmentSeries is going to create",newRecruitmentSeries);
-        await newRecruitmentSeries.save();
-        res.status(201).json(newRecruitmentSeries);
+        console.log("New RecruitmentRound is going to create",newRecruitmentRound);
+        await newRecruitmentRound.save();
+        res.status(201).json(newRecruitmentRound);
     } catch (error) {
         console.error("Error creating recruitment series:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 }
 
-const getAllRecruitmentSeries = async (req, res) => {
+const getAllRecruitmentRounds = async (req, res) => {
     console.log("Fetching all recruitment series");
     try {
-        const recruitmentSeriesList = await RecruitmentSeries.find();
+        const recruitmentSeriesList = await RecruitmentRound.find();
         const resDataList = await Promise.all(recruitmentSeriesList.map(async (series) => {
             const undergradGroups = await Promise.all(series.undergradMailingList.map(group_id => UserGroup.findById(group_id)));
             const postgradGroups = await Promise.all(series.postgradMailingList.map(group_id => UserGroup.findById(group_id)));
@@ -53,13 +53,13 @@ const getAllRecruitmentSeries = async (req, res) => {
     }
 };
 
-const addModuleToRecruitmentSeries = async (req, res) => {
+const addModuleToRecruitmentRound = async (req, res) => {
     try {
         const seriesId = req.params.seriesId;
         const moduleData = req.body;
 
         // Find the recruitment series by ID
-        const recruitmentSeries = await RecruitmentSeries.findById(seriesId);
+        const recruitmentSeries = await RecruitmentRound.findById(seriesId);
         if (!recruitmentSeries) {
             return res.status(404).json({ error: "Recruitment series not found" });
         }
@@ -135,7 +135,7 @@ const getModuleDetailsBySeriesId = async (req, res) => {
 const getEligibleUndergraduates = async (req, res) => {
     try {
         const seriesId = req.params.seriesId;
-        const recruitmentSeries = await RecruitmentSeries.findById(seriesId);
+        const recruitmentSeries = await RecruitmentRound.findById(seriesId);
         if (!recruitmentSeries) {
             return res.status(404).json({ error: "Recruitment series not found" });
         }
@@ -151,7 +151,7 @@ const getEligibleUndergraduates = async (req, res) => {
 const getEligiblePostgraduates = async (req, res) => {
     try {
         const seriesId = req.params.seriesId;
-        const recruitmentSeries = await RecruitmentSeries.findById(seriesId);
+        const recruitmentSeries = await RecruitmentRound.findById(seriesId);
         if (!recruitmentSeries) {
             return res.status(404).json({ error: "Recruitment series not found" });
         }
@@ -165,9 +165,9 @@ const getEligiblePostgraduates = async (req, res) => {
 };
 
 module.exports = {
-    createRecruitmentSeries,
-    getAllRecruitmentSeries,
-    addModuleToRecruitmentSeries,
+    createRecruitmentRound,
+    getAllRecruitmentRounds,
+    addModuleToRecruitmentRound,
     getModuleDetailsBySeriesId,
     getEligibleUndergraduates,
     getEligiblePostgraduates

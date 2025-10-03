@@ -2,7 +2,7 @@ const ModuleDetails = require('../models/ModuleDetails');
 const TaApplication = require('../models/TaApplication');
 const User = require('../models/User');
 const TaDocumentSubmission = require('../models/TaDocumentSubmission');
-const RecruitmentSeries = require('../models/recruitmentSeries');
+const RecruitmentRound = require('../models/RecruitmentRound');
 
 // GET /api/lecturer/modules
 // Returns modules where the logged-in lecturer (by id) is listed in coordinators

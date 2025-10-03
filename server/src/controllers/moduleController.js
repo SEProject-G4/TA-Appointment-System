@@ -1,6 +1,6 @@
 const ModuleDetails = require("../models/ModuleDetails");
 const User = require("../models/User");
-const RecruitmentSeries = require("../models/RecruitmentSeries");
+const RecruitmentRound = require("../models/RecruitmentRound");
 const { sendEmail } = require("../services/emailService");
 
 const changeModuleStatus = async (req, res) => {
@@ -75,7 +75,7 @@ const advertiseModule = async(req, res) => {
         if (!recruitmentSeriesId) {
             return res.status(400).json({ error: "Module is not associated with any recruitment series" });
         }
-        const recruitmentSeries = await RecruitmentSeries.findById(recruitmentSeriesId);
+        const recruitmentSeries = await RecruitmentRound.findById(recruitmentSeriesId);
         if (!recruitmentSeries) {
             return res.status(404).json({ error: "Recruitment series not found" });
         }
