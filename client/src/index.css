@@ -44,6 +44,20 @@
   --font-marcellus: "Marcellus", serif;
 }
 
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.5s ease-out forwards;
+}
 /* Reusable components for consistent styling */
 @layer components {
   .btn {
