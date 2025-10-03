@@ -38,6 +38,7 @@ interface FormData {
   openForPostgrads: boolean;
 }
 
+//Good to use as an utility function,also in RecruitmentCard.tsx
 function toLocalDatetimeInputValue(date: Date) {
   const pad = (n: number) => n.toString().padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(

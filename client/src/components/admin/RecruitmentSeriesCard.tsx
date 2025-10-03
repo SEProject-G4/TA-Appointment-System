@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+
 import { FaChevronRight, FaRegCalendarAlt, FaBoxOpen } from "react-icons/fa";
 import { MdMoreVert } from "react-icons/md";
 import { LuCirclePlus, LuMail } from "react-icons/lu";
 import { FiClock } from "react-icons/fi";
-import {
-  RiCheckboxBlankCircleLine,
-  RiCheckboxCircleFill,
-} from "react-icons/ri";
 
+import { useModal } from "../../contexts/ModalProvider";
+
+import CopyRSModal from "./CopyRSModal";
 import RSModuleCard from "./RSModuleCard";
-import axiosInstance from "../../api/axiosConfig";
 import Loader from "../common/Loader";
-import { FaB } from "react-icons/fa6";
+
+import axiosInstance from "../../api/axiosConfig";
 
 interface UserGroup {
   _id: string;
@@ -36,15 +36,6 @@ interface RecruitmentSeriesCardProps {
   className?: string;
 }
 
-interface TimelineProps {
-  events: {
-    id: number;
-    title: string;
-    date: string;
-  }[];
-  completedUpto: number;
-}
-
 interface ModuleDetails {
   _id: string;
   recruitmentSeriesId: string;
@@ -63,7 +54,7 @@ interface ModuleDetails {
   requiredTAHours: number;
   openForUndergraduates: boolean;
   openForPostgraduates: boolean;
-  
+
   undergraduateCounts: {
     required: number;
     remaining: number;
@@ -72,7 +63,7 @@ interface ModuleDetails {
     accepted: number;
     docSubmitted: number;
     appointed: number;
-  } ;
+  };
 
   postgraduateCounts: {
     required: number;
@@ -82,9 +73,11 @@ interface ModuleDetails {
     accepted: number;
     docSubmitted: number;
     appointed: number;
-  } ;
+  };
   requirements: string;
 }
+
+
 
 const getClassForStatus = (status: string) => {
   switch (status) {
@@ -99,60 +92,6 @@ const getClassForStatus = (status: string) => {
     default:
       return "";
   }
-};
-
-const Timeline: React.FC<TimelineProps> = ({ events, completedUpto }) => {
-  return (
-    <div className="flex flex-row">
-      {events.map((event, index) => (
-        <div key={event.id} className={`flex flex-col flex-1`}>
-          <p className="text-text-secondary text-sm font-semibold w-full text-center h-[3em]">
-            {event.title}
-          </p>
-          <div className="flex flex-row items-center">
-            {index <= completedUpto ? (
-              <>
-                <div
-                  className={`flex-1 h-1 ${
-                    index === 0 ? "transparent" : "bg-primary"
-                  }`}
-                ></div>
-                <RiCheckboxCircleFill className="text-primary h-4 w-4 m-0" />
-                <div
-                  className={`flex-1 h-1 ${
-                    index === events.length - 1
-                      ? "transparent"
-                      : index === completedUpto
-                      ? "bg-text-secondary"
-                      : "bg-primary"
-                  }`}
-                ></div>
-              </>
-            ) : (
-              <>
-                <div
-                  className={`flex-1 h-1 ${
-                    index === 0 ? "transparent" : "bg-text-secondary"
-                  }`}
-                ></div>
-                <RiCheckboxBlankCircleLine className="text-text-secondary h-4 w-4 m-0" />
-                <div
-                  className={`flex-1 h-1 ${
-                    index === events.length - 1
-                      ? "transparent"
-                      : "bg-text-secondary"
-                  }`}
-                ></div>
-              </>
-            )}
-          </div>
-          <p className="text-text-secondary text-sm w-full text-center">
-            {event.date}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
 };
 
 const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
@@ -177,6 +116,8 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
 
+  const { openModal } = useModal();
+
   const refreshModuleDetails = () => {
     setHasFetched(false);
   };
@@ -195,6 +136,36 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCopyRS = () => {
+    openModal(
+      <CopyRSModal
+        recruitmentSeriesData={{
+          _id,
+          name,
+          applicationDueDate,
+          documentDueDate,
+          undergradHourLimit,
+          postgradHourLimit,
+        }}
+        modules={moduleDetails.map((mod) => {
+          return {
+            _id: mod._id,
+            label:
+              mod.moduleCode +
+              " - " +
+              mod.moduleName +
+              " [Semester " +
+              mod.semester +
+              "]",
+          };
+        })}
+      />,
+      {
+        showCloseButton: false,
+      }
+    );
   };
 
   useEffect(() => {
@@ -248,7 +219,10 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
               <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
                 Edit
               </li>
-              <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
+              <li
+                className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
+                onClick={handleCopyRS}
+              >
                 Make a copy
               </li>
               <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
