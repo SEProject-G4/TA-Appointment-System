@@ -136,9 +136,9 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
                 <div
                   tabIndex={0}
                   role="button"
-                  className="border-2 btn border-primary btn-circle avatar"
+                  className="border-2 border-primary btn-circle avatar"
                 >
-                  <div className="w-10 rounded-full">
+                  <div className="h-10 w-10 rounded-full">
                     <img alt="User Profile" src={user.profilePicture} />
                   </div>
                 </div>
