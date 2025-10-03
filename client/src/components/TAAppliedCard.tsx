@@ -47,7 +47,7 @@ const TAAppliedCard: React.FC<AppliedRequestProps> = ({
   
   return (
     <>
-    <div className="p-6 transition-all duration-300 border bg-gradient-to-br from-card to-muted/10 border-border/50 hover:shadow-lg">
+    <div className="p-6 mb-4 transition-all duration-300 border bg-gradient-to-br from-card to-muted/10 border-border/50 hover:shadow-lg">
       <div className="flex items-center justify-between">
         {/* Application Info */}
         <div className="flex items-center gap-4">

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const moduleDetailsSchema = new mongoose.Schema({
     recruitmentSeriesId: {
@@ -11,10 +11,10 @@ const moduleDetailsSchema = new mongoose.Schema({
         required: true, 
         trim: true 
     },
-    moduleName: { 
-        type: String, 
-        required: true, 
-        trim: true 
+    moduleName: {
+      type: String,
+      required: true,
+      trim: true,
     },
     semester: { 
         type: Number, 
@@ -31,9 +31,9 @@ const moduleDetailsSchema = new mongoose.Schema({
         type: Date, 
         required: true 
     },
-    documentDueDate: { 
-        type: Date, 
-        required: true 
+    documentDueDate: {
+      type: Date,
+      required: true,
     },
     requiredTAHours: { 
         type: Number, 

@@ -13,12 +13,12 @@ type AlertModalProps = {
 
 const AlertModal = ({ message, onClose }: AlertModalProps) => {
   return createPortal(
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
-      <div className="bg-bg-card p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
-        <p className="text-text-secondary text-lg mb-4">{message}</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
+      <div className="w-full max-w-sm p-6 text-center rounded-lg shadow-xl bg-bg-card">
+        <p className="mb-4 text-lg text-text-secondary">{message}</p>
         <button
           onClick={onClose}
-          className="bg-primary text-text-inverted px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+          className="px-4 py-2 transition-colors rounded-lg bg-primary text-text-inverted hover:bg-primary-dark"
         >
           OK
         </button>
@@ -71,6 +71,10 @@ const LoginPage: React.FC = () => {
         return '/admin-dashboard';
       case 'lecturer':
         return '/lecturer-dashboard';
+      case 'undergraduate':
+        return '/ta-dashboard';
+      case 'cse office' :
+        return '/cse-office-dashboard';
       default:
         return '/login'; // fallback to login if role is not recognized
     }
@@ -123,7 +127,7 @@ const LoginPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-page text-text-primary">
+      <div className="flex items-center justify-center min-h-screen bg-bg-page text-text-primary">
         Loading...
       </div>
     );
@@ -132,16 +136,16 @@ const LoginPage: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center"
+      className="flex items-center justify-center min-h-screen p-4 bg-center bg-cover"
       style={{
         backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${LoginBgImage})`,
       }}
     >
-      <div className="w-full max-w-md p-8 rounded-2xl shadow-xl bg-bg-card border border-border-default">
-        <h1 className="text-3xl font-bold text-center text-text-primary mb-2">
+      <div className="w-full max-w-md p-8 border shadow-xl rounded-2xl bg-bg-card border-border-default">
+        <h1 className="mb-2 text-3xl font-bold text-center text-text-primary">
           Welcome
         </h1>
-        <p className="text-center text-text-secondary mb-8">
+        <p className="mb-8 text-center text-text-secondary">
           Sign in to the TA Appointment System with your Google account.
         </p>
 

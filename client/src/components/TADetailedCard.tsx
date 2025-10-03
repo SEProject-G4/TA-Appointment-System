@@ -73,7 +73,7 @@ const TADetailedCard: React.FC<TADetailedCardProps> = ({
               </span>
             </div>
             <span className="text-sm text-gray-500">
-              Applied: {appliedDate}
+              Applied on: {appliedDate}
             </span>
           </div>
           <h2 className="text-lg font-semibold text-gray-800">{moduleName}</h2>

@@ -6,14 +6,16 @@ type ButtonProps = {
   icon?: React.ReactNode;
   onClick?: () => void;
   type?: "button" | "submit" | "reset";
+  disabled?: boolean;
 };
 
-export const Button = ({ label, icon, onClick, type = "button" }:ButtonProps) => {
+export const Button = ({ label, icon, onClick, type = "button", disabled = false }: ButtonProps) => {
   return (
-    <button
+    <button     
       type={type}
       onClick={onClick}
-      className="w-full bg-primary-dark text-text-inverted font-semibold py-3 px-6 rounded-md shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out border-0 relative overflow-hidden group"
+      className={`w-full ${!disabled ? "bg-primary-dark text-text-inverted" : "bg-primary-light text-black"} font-semibold py-3 px-6 rounded-md shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out border-0 relative overflow-hidden group`}
+      disabled={disabled}
     >
       {/* Shimmer effect */}
       <div className="absolute inset-0 transition-transform duration-1000 ease-in-out -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full"></div>

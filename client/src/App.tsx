@@ -3,19 +3,25 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { ModalProvider } from "./contexts/ModalProvider";
 import { useState, useRef, useEffect } from "react";
+
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import LecturerDashboard from "./pages/LecturerDashboard";
 import Navbar from "./components/common/Navbar";
 import HomePage from "./pages/HomePage";
 
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import NewModule from "./pages/admin/NewModule";
 import EditModule from "./pages/admin/EditModule";
 import NewRecruitmentSeries from "./pages/admin/NewRecruitmentSeries";
 import AddUser from "./pages/admin/AddUser";
 import UndergraduateUsers from "./pages/admin/UndergraduateUsers";
 import ModuleDetails from "./pages/admin/ModuleDetails";
+
+import ViewModuleDetails from "./components/ViewModuleDetails";
+import EditModuleDetails from "./components/EditModuleDetails";
+import HandleTARequests from "./components/HandleTARequests";
+
+import CSEofficeDashboard from "./pages/CSEofficeDashboard";
 
 import TADashboardApplied from "./pages/TADashboardApplied";
 import TADashboardAccepted from "./pages/TADashboardAccepted";
@@ -123,14 +129,20 @@ function App() {
               <Route path="ta-accepted" element={<TADashboardAccepted />} />
 
               {/* Lecturer Routes */}
-              <Route
+              {/* <Route
                 path="lecturer-dashboard"
                 element={
                   <ProtectedRoute roles="lecturer">
                     <LecturerDashboard />
                   </ProtectedRoute>
                 }
-              />
+              /> */}
+              <Route path="lec-view-module-details" element={<ViewModuleDetails />}  />
+              <Route path="lec-edit-module-details" element={<EditModuleDetails />} />
+              <Route path="lec-handle-ta-requests" element={<HandleTARequests />} />
+
+              {/* CSE Office Routes */}
+              <Route path="cse-office-dashboard" element={<CSEofficeDashboard />} />
 
               {/* Fallback redirect */}
               <Route path="*" element={<Navigate to="/login" replace />} />

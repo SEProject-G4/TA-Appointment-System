@@ -2,7 +2,7 @@ import React from "react";
 import { FaCog, FaUser, FaSignOutAlt } from "react-icons/fa";
 import CSELogo from "../../assets/images/cse-logo.png";
 import { useAuth } from "../../contexts/AuthContext";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 
 
 
@@ -12,7 +12,6 @@ interface NavbarProps {
 
 const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
   const { user, loading, logout, isLoggingOut } = useAuth(); // Destructure the new state
-  const navigate = useNavigate();
   const location = useLocation();
 
   if (isLoggingOut) {
@@ -43,6 +42,30 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
         },
       ]
     },
+    {
+      role:"undergraduate",
+      links: [
+        { subMenu:false, to: "/ta-dashboard", label: "Available Positions" },
+        { subMenu:false, to: "/ta-applied", label: "Applied Positions" },
+        { subMenu:false, to: "/ta-accepted", label: "Accepted Positions" },
+      ]
+    },
+
+    {
+      role: "lecturer",
+      links: [
+        { subMenu:false, to: "/lec-view-module-details", label: "View Module Details" },
+        { subMenu:false, to: "/lec-edit-module-details", label: "Edit Module Details" },
+        { subMenu:false, to: "/lec-handle-ta-requests", label: "Handle TA Requests" },
+      ]
+    },
+
+    {
+      role: "cse office",
+      links: [
+        { subMenu:false, to: "/cse-office-dashboard", label: "View TA Documents" }
+      ]
+    }
   ]
 
   const isPathActive = (path: string) => {
@@ -53,11 +76,11 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
     <nav ref={ref} className="w-full fixed top-0 z-50 shadow-sm">
       <div className="navbar flex flex-row bg-bg-card text-text-primary shadow-lg w-full">
         
-        <div className="flex flex-1 flex-row items-center justify-start space-x-32">
+        <div className="flex flex-row items-center justify-start flex-1 space-x-32">
           <div className="flex items-center">
-            <img src={CSELogo} alt="CSE Logo" className="w-14 h-8 mr-2" />
+            <img src={CSELogo} alt="CSE Logo" className="h-8 mr-2 w-14" />
             <Link to="/" className="text-xl text-text-primary font-mercellus">
-              <p className="lg:flex hidden">TA Appointment System</p>
+              <p className="hidden lg:flex">TA Appointment System</p>
               <p className="lg:hidden">TAAS</p>
             </Link>
           </div>
@@ -104,16 +127,16 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
             <>
               {" "}
               <div className="flex flex-col items-end">
-                <p className="text-md text-text-primary font-semibold">
+                <p className="font-semibold text-md text-text-primary">
                   {user.name}
                 </p>
                 <p className="text-sm text-text-secondary">{user.email}</p>
               </div>
-              <div className="dropdown dropdown-end mx-5">
+              <div className="mx-5 dropdown dropdown-end">
                 <div
                   tabIndex={0}
                   role="button"
-                  className="btn border-2 border-primary btn-circle avatar"
+                  className="border-2 btn border-primary btn-circle avatar"
                 >
                   <div className="w-10 rounded-full">
                     <img alt="User Profile" src={user.profilePicture} />
@@ -133,19 +156,19 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
                     {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                   </li>
                   <div className="px-2 my-2 h-[1px] w-full bg-text-secondary/20"></div>
-                  <li className="rounded p-1 hover:bg-primary/80 hover:text-text-inverted text-text-secondary font-semibold">
+                  <li className="p-1 font-semibold rounded hover:bg-primary/80 hover:text-text-inverted text-text-secondary">
                     <Link
                       to="/profile"
-                      className="px-2 flex flex-row items-center gap-2"
+                      className="flex flex-row items-center gap-2 px-2"
                     >
                       <FaUser />
                       Profile
                     </Link>
                   </li>
-                  <li className="rounded mt-2 p-1 hover:bg-primary/80 hover:text-text-inverted text-text-secondary font-semibold">
+                  <li className="p-1 mt-2 font-semibold rounded hover:bg-primary/80 hover:text-text-inverted text-text-secondary">
                     <Link
                       to="/settings"
-                      className="px-2 flex flex-row items-center gap-2"
+                      className="flex flex-row items-center gap-2 px-2"
                     >
                       <FaCog />
                       Settings
@@ -154,9 +177,9 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
                   <div className="px-2 my-2 h-[1px] w-full bg-text-secondary/20"></div>
                   <li
                     onClick={handleLogout}
-                    className="flex flex-row text-error rounded p-1 hover:bg-primary/80 hover:text-text-inverted font-semibold cursor-pointer"
+                    className="flex flex-row p-1 font-semibold rounded cursor-pointer text-error hover:bg-primary/80 hover:text-text-inverted"
                   >
-                    <div className="px-2 flex flex-row items-center gap-2 w-full">
+                    <div className="flex flex-row items-center w-full gap-2 px-2">
                       <FaSignOutAlt />
                       <p>Logout</p>
                     </div>
