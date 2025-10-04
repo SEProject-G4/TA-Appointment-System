@@ -2,7 +2,13 @@ import React, { useEffect, useState } from "react";
 import TARequestCard from "../../components/ta/TARequestCard";
 import TAStatCard from "../../components/ta/TAStatCard";
 import ViewToggle from "../../components/ta/ViewToggle";
-import { GraduationCap, BookOpen, Users, Newspaper } from "lucide-react";
+import {
+  GraduationCap,
+  BookOpen,
+  Users,
+  Newspaper,
+  ChevronDown,
+} from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -12,7 +18,8 @@ function TADashboard() {
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [viewMode, setViewMode] = useState<'cards' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
+  const [sortOption, setSortOption] = useState<string>("");
   const userId = user?.id;
   const userRole = user?.role;
   const [availableHoursPerWeek, setAvailableHoursPerWeek] = useState<number>(0);
@@ -51,6 +58,21 @@ function TADashboard() {
     }
   };
 
+  const handleSortChange = (option: string) => {
+    setSortOption(option);
+    let sortedModules = [...modules];
+
+    if (option === "name") {
+      sortedModules.sort((a, b) => a.moduleName.localeCompare(b.moduleName));
+    } else if (option === "hours") {
+      sortedModules.sort((a, b) => a.requiredTAHours - b.requiredTAHours);
+    } else if (option === "semester") {
+      sortedModules.sort((a, b) => a.semester - b.semester);
+    }
+
+    setModules(sortedModules);
+  };
+
   useEffect(() => {
     if (!user) return;
     const fetchModules = async () => {
@@ -65,6 +87,7 @@ function TADashboard() {
         );
         setModules(response.data.updatedModules);
         setAvailableHoursPerWeek(response.data.availableHoursPerWeek);
+        console.log("Fetched modules:", response.data);
       } catch (error) {
         console.error("Error fetching modules:", error);
       } finally {
@@ -76,7 +99,6 @@ function TADashboard() {
   }, [userId, refreshKey]);
 
   return (
-    
     <div className="min-h-screen px-8 bg-bg-page text-text-primary">
       <div className="container px-4 py-8 mx-auto">
         {/* header */}
@@ -95,7 +117,7 @@ function TADashboard() {
             knowledge and gain valuable experience.
           </p>
         </div>
-        
+
         {/* stats */}
         <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
           <TAStatCard
@@ -129,10 +151,27 @@ function TADashboard() {
           <h2 className="text-2xl font-semibold text-foreground">
             Available TA Positions
           </h2>
-          <ViewToggle
-            currentView={viewMode}
-            onViewChange={setViewMode}
-          />
+
+          <div className="flex items-center gap-4">
+            <div className="relative inline-flex overflow-hidden border rounded-lg shadow-lg border-border-default bg-bg-card group">
+              <select
+                value={sortOption}
+                onChange={(e) => handleSortChange(e.target.value)}
+                className="px-4 py-2 pr-10 text-sm font-semibold transition-all duration-300 bg-transparent appearance-none cursor-pointer text-text-secondary hover:bg-primary-light/20 hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-dark"
+              >
+                <option value="">Sort By</option>
+                <option value="name">Module Name (A–Z)</option>
+                <option value="hours">TA Hours (Low → High)</option>
+                <option value="semester">Semester (Low → High)</option>
+              </select>
+
+              <div className="absolute -translate-y-1/2 pointer-events-none right-3 top-1/2 text-text-secondary group-hover:text-text-primary">
+                <ChevronDown className="w-4 h-4" />
+              </div>
+            </div>
+
+            <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
+          </div>
         </div>
 
         {loading ? (
@@ -140,11 +179,13 @@ function TADashboard() {
             <p className="text-lg text-text-secondary">Loading...</p>
           </div>
         ) : modules.length > 0 ? (
-          <div className={
-            viewMode === 'cards' 
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' 
-              : 'space-y-4'
-          }>
+          <div
+            className={
+              viewMode === "cards"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                : "space-y-4"
+            }
+          >
             {modules.map((module) => (
               <TARequestCard
                 key={module.moduleCode}
@@ -159,8 +200,10 @@ function TADashboard() {
                 }
                 appliedTANumber={
                   userRole === "undergraduate"
-                    ? module.undergraduateCounts.required - module.undergraduateCounts.remaining
-                    : module.postgraduateCounts.required - module.postgraduateCounts.remaining
+                    ? module.undergraduateCounts.required -
+                      module.undergraduateCounts.remaining
+                    : module.postgraduateCounts.required -
+                      module.postgraduateCounts.remaining
                 }
                 requirements={[module.requirements]}
                 documentDueDate={module.documentDueDate.split("T")[0]}
@@ -180,7 +223,9 @@ function TADashboard() {
           </div>
         ) : (
           <div className="py-12 text-center">
-            <p className="text-lg text-text-secondary">No Available TA Positions...</p>
+            <p className="text-lg text-text-secondary">
+              No Available TA Positions...
+            </p>
           </div>
         )}
       </div>

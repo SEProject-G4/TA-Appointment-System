@@ -78,7 +78,9 @@ const getAllRequests = async (req, res) => {
 
     res.status(200).json({
       updatedModules,
-      availableHoursPerWeek: appliedModules[0]?.availableHoursPerWeek,
+      availableHoursPerWeek: appliedModules[0]?.availableHoursPerWeek !== undefined
+        ? appliedModules[0].availableHoursPerWeek
+        : (userRole === "undergraduate" ? 6 : 10),
     });
   } catch (error) {
     res

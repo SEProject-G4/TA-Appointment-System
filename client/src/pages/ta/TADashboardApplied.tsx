@@ -11,7 +11,7 @@ function TADashboardApplied() {
 
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<"cards" | "list">("list");
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const userId = user?.id; //check weather this correct------------------------------
   const userRole = user?.role;
 

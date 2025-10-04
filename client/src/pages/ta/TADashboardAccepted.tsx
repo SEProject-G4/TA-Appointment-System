@@ -20,7 +20,7 @@ function TADashboardAccepted() {
   const { user } = useAuth();
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<"cards" | "list">("list");
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [isDocOpen, setIsDocOpen] = useState(false);
   const userRole = user?.role;
   const userId = user?.id; //check weather this correct------------------------------
