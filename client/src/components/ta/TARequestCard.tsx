@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { BookOpen, Users, Clock } from "lucide-react";
 import { Button } from "../ui/Button";
+import { useToast } from "../../contexts/ToastContext";
+import { ConfirmDialog } from "../common/ConfirmDialog";
 
 interface TARequestCardProps {
   moduleCode: string;
@@ -33,27 +35,27 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
   const progressPercentage = (appliedTANumber / requiredTANumber) * 100;
   const isFullyFilled = appliedTANumber >= requiredTANumber;
   const [loading, setLoading] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const {showToast} = useToast();
 
   const handleApply = async() => {
-    const confirmApply = window.confirm(
-      `Are you sure you want to apply for ${moduleCode} - ${moduleName}?`
-    );
-    if (!confirmApply) return;
     try{
-      setLoading(true);
+      setLoading(true); 
       await onApply();
-      alert("Application submitted successfully!");
+      showToast("Application submitted successfully!", "success");
     } catch (error) {
       console.error("Error submitting application:", error);
-      alert(`Error submitting application: ${error}`);
+      showToast("Error submitting application. Please try again.", "error");
     } finally {
       setLoading(false);
+      setConfirmDialogOpen(false);
     }
   }
 
   // Card View Layout
   if (viewMode === 'cards') {
     return (
+      <>
       <div className="w-full max-w-sm p-6 duration-300 border rounded-lg shadow-sm bg-bg-card hover:shadow-md border-border/50 outline-dashed outline-1">
         {/* Header */}
         <div className="mb-4">
@@ -156,15 +158,24 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
         {/* Apply Button */}
         <Button
           label="Apply Now"
-          onClick={handleApply}
+          onClick={() => setConfirmDialogOpen(true)}
           disabled={loading}
         />
       </div>
+      <ConfirmDialog
+        isOpen={confirmDialogOpen}
+        title="Confirm Application?"
+        message={`This action cannot be undone. Once confirmed, your application will be submitted as a TA for ${moduleCode} – ${moduleName}.`}
+        onConfirm={handleApply}
+        onCancel={() => setConfirmDialogOpen(false)}
+      />
+      </>
     );
   }
 
   // List View Layout (Original)
   return (
+    <>
     <div className="w-full p-6 mb-4 transition-all duration-300 rounded-md shadow-sm outline-dashed outline-1 bg-bg-card hover:shadow-md">
       <div className="grid items-center grid-cols-12 gap-6">
         {/* left */}
@@ -269,12 +280,20 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
           
           <Button
             label="Apply Now"
-            onClick={handleApply}
+            onClick={() => setConfirmDialogOpen(true)}
             disabled={loading}
           />  
         </div>
       </div>
     </div>
+    <ConfirmDialog
+        isOpen={confirmDialogOpen}
+        title="Confirm Application?"
+        message={`This action cannot be undone. Once confirmed, your application will be submitted as a TA for ${moduleCode} – ${moduleName}.`}
+        onConfirm={handleApply}
+        onCancel={() => setConfirmDialogOpen(false)}
+      />
+    </>
   );
 };
 
