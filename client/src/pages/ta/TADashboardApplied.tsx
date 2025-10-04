@@ -108,13 +108,13 @@ function TADashboardApplied() {
                   requiredTAHours={app.moduleId.requiredTAHours}
                   requiredTANumber={
                     userRole === "undergraduate"
-                      ? app.moduleId.requiredUndergraduateTACount
-                      : app.moduleId.requiredPostgraduateTACount
+                      ? app.moduleId.undergraduateCounts.required // check this is it okay to show applied count? or the remainin positions
+                      : app.moduleId.postgraduateCounts.required
                   }
                   appliedTANumber={
                     userRole === "undergraduate"
-                      ? app.moduleId.appliedUndergraduateCount
-                      : app.moduleId.appliedPostgraduateCount
+                      ? app.moduleId.undergraduateCounts.applied
+                      : app.moduleId.postgraduateCounts.applied
                   }
                   status={app.status}
                   appliedDate={app.createdAt.split("T")[0]}

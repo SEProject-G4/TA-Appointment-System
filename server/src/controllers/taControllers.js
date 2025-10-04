@@ -7,16 +7,16 @@ const RecruitmentSeries = require("../models/RecruitmentRound");
 const AppliedModules = require("../models/AppliedModules");
 
 // fetching all the available modules that have been advertised by admin for the active recruitment series-------------------------------
+// and that the user has not already applied for. and satisfies the available ta hours condition
 const getAllRequests = async (req, res) => {
   const userId = req.query.userId; //fetch userID from query parameters
 
   try {
     const user = await User.findById(userId); //fetch user object details using userID
-    console.log(user);
     const userGroupID = user.userGroup;
-    const userRole = user.role;
+    const userRole = user.role; //based on the user role undergrad or postgrad, we can fetch their modules
 
-    let activeRecSeries = []; //get the active recruitment series for the user based on their role
+    let activeRecSeries = []; //get the active recruitment series for the user, based on their role
     if (userRole === "undergraduate") {
       activeRecSeries = await RecruitmentSeries.find(
         { status: "active", undergradMailingList: { $in: [userGroupID] } },
@@ -28,27 +28,34 @@ const getAllRequests = async (req, res) => {
         { _id: 1 }
       );
     }
-    console.log(userRole, userGroupID, activeRecSeries);
-    const recSeriesIds = activeRecSeries.map((r) => r._id);
-    console.log(recSeriesIds);
-    const appliedModules = await AppliedModules.find(   //fetch the applied modules for the user for the active recruitment series
-      { userId, recSeriesId: { $in: recSeriesIds } },
-      { appliedModules: 1 ,availableHoursPerWeek:1}
-    ).populate("appliedModules");
 
-    console.log("applied modules", appliedModules); 
+    const recSeriesIds = activeRecSeries.map((r) => r._id);
+
+    const appliedModules = await AppliedModules.find(
+      //fetch the applied modules for the user for the active recruitment series
+      { userId, recSeriesId: { $in: recSeriesIds } },
+      { appliedModules: 1, availableHoursPerWeek: 1 }
+    ).populate("appliedModules");
 
     const appliedModulesIds = appliedModules.flatMap((am) =>
       am.appliedModules.map((app) => app.moduleId)
     );
-    // console.log("applied module ids", appliedModulesIds);
+
+    const hoursFilter = appliedModules?.[0]?.availableHoursPerWeek
+      ? { requiredTAHours: { $lte: appliedModules[0].availableHoursPerWeek } }
+      : {};
 
     const modules = await ModuleDetails.find({
       recruitmentSeriesId: { $in: recSeriesIds },
       moduleStatus: "advertised",
       _id: { $nin: appliedModulesIds },
-      requiredTAHours :{$lte: appliedModules[0]?.availableHoursPerWeek}
-    }); //fetch the available modules that have been advertised by admin.
+      ...hoursFilter,
+      ...(userRole === "undergraduate"
+        ? { openForUndergraduates: true }
+        : { openForPostgraduates: true }),
+    });
+    //fetch the available modules that have been advertised by admin.
+    // and required ta hours should be less than or equal to available hours per week of the user
 
     const allCoordinators = modules.flatMap((module) => module.coordinators); //get the names of the module co-ordinators
     const uniqueCoordinators = [...new Set(allCoordinators)];
@@ -60,7 +67,7 @@ const getAllRequests = async (req, res) => {
       map[user._id] = user.name;
       return map;
     }, {});
-    console.log(coordinatorMap);
+
     const updatedModules = modules.map((module) => {
       const obj = module.toObject();
       return {
@@ -69,17 +76,22 @@ const getAllRequests = async (req, res) => {
       };
     });
 
-    res.status(200).json({ updatedModules, availableHoursPerWeek: appliedModules[0]?.availableHoursPerWeek });
+    res.status(200).json({
+      updatedModules,
+      availableHoursPerWeek: appliedModules[0]?.availableHoursPerWeek,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching modules", error });
-    console.error("Error fetching modules:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching available TA positions", error });
+    console.error("Error fetching available TA positions:", error);
   }
 };
 
 // Applying for a TA position-----------------------------------------------------------------------------------------------------------
 const applyForTA = async (req, res) => {
   const { userId, userRole, moduleId, recSeriesId, taHours } = req.body;
-  console.log(userId, userRole, moduleId, recSeriesId, taHours);
+  // console.log(userId, userRole, moduleId, recSeriesId, taHours);
 
   const session = await mongoose.startSession();
   try {
@@ -108,13 +120,14 @@ const applyForTA = async (req, res) => {
           _id: moduleId,
           $expr: {
             $lt: [
-              "$appliedUndergraduateCount",
-              "$requiredUndergraduateTACount",
+              "$undergraduateCounts.required - $undergraduateCounts.remaining",
+              "$undergraduateCounts.required",
             ],
           },
         },
         {
-          $inc: { appliedUndergraduateCount: 1 },
+          $inc: { "undergraduateCounts.applied": 1 },
+          $inc: { "undergraduateCounts.remaining":-1 },
         },
         { new: true, session, runValidators: true }
       );
@@ -123,11 +136,15 @@ const applyForTA = async (req, res) => {
         {
           _id: moduleId,
           $expr: {
-            $lt: ["$appliedPostgraduateCount", "$requiredPostgraduateTACount"],
+            $lt: [
+              "$postgraduateCounts.required - $postgraduateCounts.remaining",
+              "$postgraduateCounts.required",
+            ],
           },
-        },
+        }, 
         {
-          $inc: { appliedPostgraduateCount: 1 },
+          $inc: { "postgraduateCounts.applied": 1 },
+          $inc: { "postgraduateCounts.remaining": -1 },
         },
         { new: true, session, runValidators: true }
       );
@@ -173,18 +190,15 @@ const applyForTA = async (req, res) => {
     // abort transaction in case of error
     await session.abortTransaction();
     console.error("Transaction aborted due to error:", error);
-    res
-      .status(500)
-      .json({
-        message: error.message || "Error submitting application",
-        error,
-      });
+    res.status(500).json({
+      message: error.message || "Error submitting application",
+      error,
+    });
   } finally {
     session.endSession();
     console.log("Session ended");
   }
 };
-
 
 // get applied modules for a user---------------------------------------------------------------------------------------------------------
 const getAppliedModules = async (req, res) => {
@@ -211,17 +225,21 @@ const getAppliedModules = async (req, res) => {
     // fetch AppliedModules with nested populate
     const appliedModulesDocs = await AppliedModules.find({
       userId,
-      recSeriesId: { $in: activeRecSeries.map(r => r._id) }
+      recSeriesId: { $in: activeRecSeries.map((r) => r._id) },
     }).populate({
       path: "appliedModules",
-      populate: { path: "moduleId", model: "ModuleDetails" }
+      populate: { path: "moduleId", model: "ModuleDetails" },
     });
 
     // flatten into actual TaApplications
-    const allApplications = appliedModulesDocs.flatMap(am => am.appliedModules);
+    const allApplications = appliedModulesDocs.flatMap(
+      (am) => am.appliedModules
+    );
 
     // collect coordinators
-    const coordinatorIds = allApplications.flatMap(app => app.moduleId.coordinators);
+    const coordinatorIds = allApplications.flatMap(
+      (app) => app.moduleId.coordinators
+    );
     const coordinators = await User.find({ _id: { $in: coordinatorIds } });
     const coordinatorMap = coordinators.reduce((map, user) => {
       map[user._id] = user.name;
@@ -229,12 +247,14 @@ const getAppliedModules = async (req, res) => {
     }, {});
 
     // attach coordinator names to moduleId
-    const updatedApplications = allApplications.map(app => ({
+    const updatedApplications = allApplications.map((app) => ({
       ...app.toObject(),
       moduleId: {
         ...app.moduleId.toObject(),
-        coordinators: app.moduleId.coordinators.map(id => coordinatorMap[id] || "-")
-      }
+        coordinators: app.moduleId.coordinators.map(
+          (id) => coordinatorMap[id] || "-"
+        ),
+      },
     }));
 
     res.status(200).json(updatedApplications);
@@ -271,7 +291,7 @@ const getAcceptedModules = async (req, res) => {
     // Fetch only accepted applications inside AppliedModules
     const acceptedApplications = await AppliedModules.find({
       userId,
-      recSeriesId: { $in: activeRecSeries.map((r) => r._id) }
+      recSeriesId: { $in: activeRecSeries.map((r) => r._id) },
     }).populate({
       path: "appliedModules",
       match: { status: "accepted" }, // ✅ filter accepted only
@@ -281,11 +301,10 @@ const getAcceptedModules = async (req, res) => {
         populate: {
           path: "coordinators",
           model: "User",
-          select: "name"
-        }
-      }
+          select: "name",
+        },
+      },
     });
-
 
     res.status(200).json(acceptedApplications);
   } catch (error) {
@@ -293,7 +312,6 @@ const getAcceptedModules = async (req, res) => {
     res.status(500).json({ message: "Error fetching accepted modules", error });
   }
 };
-
 
 module.exports = {
   getAllRequests,

@@ -23,7 +23,7 @@ import HandleTARequests from "./components/HandleTARequests";
 
 import CSEofficeDashboard from "./pages/CSEofficeDashboard";
 
-import TADashboardApplied from "./pages/TADashboardApplied";
+import TADashboardApplied from "./pages/ta/TADashboardApplied";
 import TADashboardAccepted from "./pages/ta/TADashboardAccepted";
 import TADashboard from "./pages/ta/TADashboard";
 
@@ -48,7 +48,7 @@ function App() {
       <div className="w-screen h-screen overflow-hidden">
         <Navbar ref={navbarRef} />
         <div
-          className="overflow-y-auto overflow-x-hidden"
+          className="overflow-x-hidden overflow-y-auto"
           style={
             isInLoginPage
               ? { overflowY: "hidden", height: "100vh" }

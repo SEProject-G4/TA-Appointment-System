@@ -159,15 +159,16 @@ const totalTAHours = modules.reduce(
                     coordinators={appModule.moduleId.coordinators.map(
                       (c) => c.name
                     )}
+                    requiredTAHours={appModule.moduleId.requiredTAHours}
                     requiredTANumber={
                       userRole === "undergraduate"
-                        ? appModule.moduleId.requiredUndergraduateTACount
-                        : appModule.moduleId.requiredPostgraduateTACount
+                        ? appModule.moduleId.undergraduateCounts.required
+                        : appModule.moduleId.postgraduateCounts.required
                     }
                     appliedTANumber={
                       userRole === "undergraduate"
-                        ? appModule.moduleId.appliedUndergraduateCount
-                        : appModule.moduleId.appliedPostgraduateCount
+                        ? appModule.moduleId.undergraduateCounts.applied
+                        : appModule.moduleId.postgraduateCounts.applied
                     }
                     status={appModule.status}
                     appliedDate={appModule.createdAt.split("T")[0]}

@@ -109,10 +109,8 @@ function TADashboard() {
               (total, mod) =>
                 total +
                 (userRole === "undergraduate"
-                  ? mod.requiredUndergraduateTACount -
-                    mod.appliedUndergraduateCount
-                  : mod.requiredPostgraduateTACount -
-                    mod.appliedPostgraduateCount),
+                  ? mod.undergraduateCounts.remaining
+                  : mod.postgraduateCounts.remaining),
               0
             )}
             icon={Users}
@@ -156,13 +154,13 @@ function TADashboard() {
                 requiredTAHours={module.requiredTAHours}
                 requiredTANumber={
                   userRole === "undergraduate"
-                    ? module.requiredUndergraduateTACount
-                    : module.requiredPostgraduateTACount
+                    ? module.undergraduateCounts.required
+                    : module.ostgraduateCounts.required
                 }
                 appliedTANumber={
                   userRole === "undergraduate"
-                    ? module.appliedUndergraduateCount
-                    : module.appliedPostgraduateCount
+                    ? module.undergraduateCounts.required - module.undergraduateCounts.remaining
+                    : module.postgraduateCounts.required - module.postgraduateCounts.remaining
                 }
                 requirements={[module.requirements]}
                 documentDueDate={module.documentDueDate.split("T")[0]}
