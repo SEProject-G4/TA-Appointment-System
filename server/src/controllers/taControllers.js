@@ -3,7 +3,7 @@ const app = require("../app");
 const ModuleDetails = require("../models/ModuleDetails");
 const TaApplication = require("../models/TaApplication");
 const User = require("../models/User");
-const RecruitmentSeries = require("../models/recruitmentSeries");
+const RecruitmentSeries = require("../models/RecruitmentRound");
 const AppliedModules = require("../models/AppliedModules");
 
 // fetching all the available modules that have been advertised by admin for the active recruitment series-------------------------------

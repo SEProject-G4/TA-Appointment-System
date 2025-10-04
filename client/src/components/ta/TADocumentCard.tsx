@@ -9,7 +9,7 @@ import {
   Download,
 } from "lucide-react";
 import React, { useState } from "react";
-import { Button } from "./ui/Button";
+import { Button } from "../ui/Button";
 
 interface DocumentSubmissionModalProps {
   isDocOpen: boolean;
@@ -61,7 +61,7 @@ export default function DocumentSubmissionModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Submitted data:", formData);
-    alert(`Documents submitted for ${position.moduleCode}`);
+    alert("Documents submitted for all accepted ta positions");
     onClose();
   };
 

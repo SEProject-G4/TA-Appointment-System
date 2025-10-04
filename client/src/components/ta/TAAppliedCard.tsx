@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { BookOpen, Eye, Calendar } from "lucide-react";
-import { Button } from "./ui/Button";
+import { Button } from "../ui/Button";
 import TADetailedCard from "./TADetailedCard";
 
 interface AppliedRequestProps {

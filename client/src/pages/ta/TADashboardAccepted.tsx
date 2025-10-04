@@ -8,12 +8,12 @@ import {
   UploadIcon,
 } from "lucide-react";
 // import TAAcceptedCard from "../components/TAAcceptedCard";
-import TAAppliedCard from "../components/TAAppliedCard";
-import TAStatCard from "../components/TAStatCard";
-import { Button } from "../components/ui/Button";
-import TADocumentCard from "../components/TADocumentCard";
-import ViewToggle from "../components/ViewToggle";
-import { useAuth } from "../contexts/AuthContext";
+import TAAppliedCard from "../../components/ta/TAAppliedCard";
+import TAStatCard from "../../components/ta/TAStatCard";
+import { Button } from "../../components/ui/Button";
+import TADocumentCard from "../../components/ta/TADocumentCard";
+import ViewToggle from "../../components/ta/ViewToggle";
+import { useAuth } from "../../contexts/AuthContext";
 import axios from "axios";
 
 function TADashboardAccepted() {

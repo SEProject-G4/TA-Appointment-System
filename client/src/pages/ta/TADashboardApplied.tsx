@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Delete, Trophy, FileUser, Newspaper } from "lucide-react";
-import TAAppliedCard from "../components/TAAppliedCard";
-import TAStatCard from "../components/TAStatCard";
-import ViewToggle from "../components/ViewToggle";
+import TAAppliedCard from "../../components/ta/TAAppliedCard";
+import TAStatCard from "../../components/ta/TAStatCard";
+import ViewToggle from "../../components/ta/ViewToggle";
 import axios from "axios";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 function TADashboardApplied() {
   const { user } = useAuth();

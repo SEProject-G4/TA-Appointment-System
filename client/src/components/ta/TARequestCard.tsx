@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { BookOpen, Users, Clock } from "lucide-react";
-import { Button } from "./ui/Button";
+import { Button } from "../ui/Button";
 
 interface TARequestCardProps {
   moduleCode: string;

@@ -24,8 +24,8 @@ import HandleTARequests from "./components/HandleTARequests";
 import CSEofficeDashboard from "./pages/CSEofficeDashboard";
 
 import TADashboardApplied from "./pages/TADashboardApplied";
-import TADashboardAccepted from "./pages/TADashboardAccepted";
-import TADashboard from "./pages/TADashboard";
+import TADashboardAccepted from "./pages/ta/TADashboardAccepted";
+import TADashboard from "./pages/ta/TADashboard";
 
 function App() {
   const navbarRef = useRef<HTMLDivElement>(null);

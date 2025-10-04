@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import TARequestCard from "../components/TARequestCard";
-import TAStatCard from "../components/TAStatCard";
-import ViewToggle from "../components/ViewToggle";
+import TARequestCard from "../../components/ta/TARequestCard";
+import TAStatCard from "../../components/ta/TAStatCard";
+import ViewToggle from "../../components/ta/ViewToggle";
 import { GraduationCap, BookOpen, Users, Newspaper } from "lucide-react";
 import axios from "axios";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 function TADashboard() {
   const { user } = useAuth();
