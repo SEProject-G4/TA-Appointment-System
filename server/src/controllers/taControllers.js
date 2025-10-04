@@ -121,15 +121,15 @@ const applyForTA = async (req, res) => {
         {
           _id: moduleId,
           $expr: {
-            $lt: [
-              "$undergraduateCounts.required - $undergraduateCounts.remaining",
-              "$undergraduateCounts.required",
+            $gt: [
+              "$undergraduateCounts.remaining",
+              0
             ],
           },
         },
         {
-          $inc: { "undergraduateCounts.applied": 1 },
-          $inc: { "undergraduateCounts.remaining":-1 },
+          $inc: { "undergraduateCounts.applied": 1 ,
+          "undergraduateCounts.remaining":-1 },
         },
         { new: true, session, runValidators: true }
       );
@@ -138,15 +138,15 @@ const applyForTA = async (req, res) => {
         {
           _id: moduleId,
           $expr: {
-            $lt: [
-              "$postgraduateCounts.required - $postgraduateCounts.remaining",
-              "$postgraduateCounts.required",
+            $gt: [
+              "$postgraduateCounts.remaining",
+              0
             ],
-          },
+          }, 
         }, 
         {
-          $inc: { "postgraduateCounts.applied": 1 },
-          $inc: { "postgraduateCounts.remaining": -1 },
+          $inc: { "postgraduateCounts.applied": 1 ,
+           "postgraduateCounts.remaining": -1 },
         },
         { new: true, session, runValidators: true }
       );
