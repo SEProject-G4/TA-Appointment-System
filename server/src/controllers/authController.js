@@ -70,7 +70,11 @@ const getCurrentUser = async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
+<<<<<<< HEAD
             groupID: user.userGroup ,
+=======
+            groupId: user.userGroup,
+>>>>>>> 6802bff420d23842886ef87e6370bbe69d051693
             profilePicture: user.profilePicture
         }
 

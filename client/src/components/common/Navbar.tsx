@@ -1,8 +1,10 @@
 import React from "react";
 import { FaCog, FaUser, FaSignOutAlt } from "react-icons/fa";
-import CSELogo from "../assets/images/cse-logo.png";
-import { useAuth } from "../contexts/AuthContext";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import CSELogo from "../../assets/images/cse-logo.png";
+import { useAuth } from "../../contexts/AuthContext";
+import { useLocation, Link } from "react-router-dom";
+
+
 
 interface NavbarProps {
   ref: React.Ref<HTMLDivElement>;
@@ -10,7 +12,6 @@ interface NavbarProps {
 
 const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
   const { user, loading, logout, isLoggingOut } = useAuth(); // Destructure the new state
-  const navigate = useNavigate();
   const location = useLocation();
 
   if (isLoggingOut) {
@@ -26,36 +27,43 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
     return null;
   }
 
-  const navLinks: { role: string; links: { to: string; label: string }[] }[] = [
+  const navLinks: { role: string; links: { subMenu:boolean; to: string; label: string; subNavs?: { to: string; label: string }[] }[] }[] = [
     {
       role: "admin",
       links: [
-        { to: "/admin-dashboard", label: "Admin Dashboard" },
-        { to: "/manage-users/add-user", label: "Manage Users" },
+        { subMenu:false, to: "/admin-dashboard", label: "Admin Dashboard" },
+        { subMenu:true, to: "/manage-users/add-user", label: "Manage Users",
+          subNavs: [
+            { to: "/manage-users/overview", label: "Overview" },
+            { to: "/manage-users/undergraduates", label: "Undergraduates" },
+            { to: "/manage-users/postgraduates", label: "Postgraduates" },
+            { to: "/manage-users/add-user", label: "Add User" },
+          ]
+        },
       ]
     },
     {
       role:"undergraduate",
       links: [
-        { to: "/ta-dashboard", label: "Available Positions" },
-        { to: "/ta-applied", label: "Applied Positions" },
-        { to: "/ta-accepted", label: "Accepted Positions" },
+        { subMenu:false, to: "/ta-dashboard", label: "Available Positions" },
+        { subMenu:false, to: "/ta-applied", label: "Applied Positions" },
+        { subMenu:false, to: "/ta-accepted", label: "Accepted Positions" },
       ]
     },
 
     {
       role: "lecturer",
       links: [
-        { to: "/lec-view-module-details", label: "View Module Details" },
-        { to: "/lec-edit-module-details", label: "Edit Module Details" },
-        { to: "/lec-handle-ta-requests", label: "Handle TA Requests" },
+        { subMenu:false, to: "/lec-view-module-details", label: "View Module Details" },
+        { subMenu:false, to: "/lec-edit-module-details", label: "Edit Module Details" },
+        { subMenu:false, to: "/lec-handle-ta-requests", label: "Handle TA Requests" },
       ]
     },
 
     {
       role: "cse office",
       links: [
-        { to: "/cse-office-dashboard", label: "View TA Documents" }
+        { subMenu:false, to: "/cse-office-dashboard", label: "View TA Documents" }
       ]
     }
   ]
@@ -65,8 +73,8 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
   };
 
   return (
-    <nav ref={ref} className="fixed top-0 z-50 w-full shaddow-lg">
-      <div className="flex flex-row w-full shadow-lg navbar bg-bg-card text-text-primary">
+    <nav ref={ref} className="w-full fixed top-0 z-50 shadow-sm">
+      <div className="navbar flex flex-row bg-bg-card text-text-primary shadow-lg w-full">
         
         <div className="flex flex-row items-center justify-start flex-1 space-x-32">
           <div className="flex items-center">
@@ -86,7 +94,22 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
               if (user && user.role === nav.role) {
                 return nav.links.map((link) => (
                   <li key={link.to} className={`font-raleway hover:text-primary transition duration-300 ease-in-out ${isPathActive(link.to) ? 'font-semibold text-primary-dark' : 'text-text-secondary'}`}>
-                    <Link to={link.to}>{link.label}</Link>
+
+                    {link.subMenu ? (
+                      <div className="group">
+                        <p role="button">{link.label}</p>
+                        <ul className="hidden outline-text-secondary/20 outline-1 outline rounded-sm absolute group-hover:block menu bg-bg-card z-10 w-48 p-2 drop-shadow">
+                          {link.subNavs?.map((subNav) => (
+                            <li key={subNav.to} className={`hover:bg-primary/70 hover:text-text-inverted rounded ${isPathActive(subNav.to) ? 'font-semibold text-primary-dark' : 'text-text-secondary'}`}>
+                              <Link to={subNav.to}>{subNav.label}</Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <Link to={link.to}>{link.label}</Link>
+                    )}
+
                   </li>
                 ));
               }
@@ -113,9 +136,9 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
                 <div
                   tabIndex={0}
                   role="button"
-                  className="border-2 btn border-primary btn-circle avatar"
+                  className="border-2 border-primary btn-circle avatar"
                 >
-                  <div className="w-10 rounded-full">
+                  <div className="h-10 w-10 rounded-full">
                     <img alt="User Profile" src={user.profilePicture} />
                   </div>
                 </div>
