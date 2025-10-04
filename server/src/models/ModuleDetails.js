@@ -101,42 +101,12 @@ const moduleDetailsSchema = new mongoose.Schema({
         default: "",
     },
     moduleStatus: {
-<<<<<<< HEAD
-      type: String,
-      required: true,
-      default: "pending changes",
-      enum: ["pending changes", "advertised"],
-    },
-    
-    appliedUndergraduateCount: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    appliedPostgraduateCount: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    requiredUndergraduateTACount: {
-      type: Number,
-      required: true,
-    },
-    requiredPostgraduateTACount: {
-      type: Number,
-      required: true,
-    }
-  },
-  { timestamps: true }
-);
-=======
         type: String,
         required: true,
         default: "initialised",
         enum: ["initialised", "pending changes", "changes submitted","advertised", "full", "getting documents", "closed"]
     }
 }, { timestamps: true });
->>>>>>> 6802bff420d23842886ef87e6370bbe69d051693
 
 
 // Pre-validate hook to check all coordinators are lecturers
