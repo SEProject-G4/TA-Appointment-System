@@ -8,6 +8,7 @@ import {
   Users,
   Newspaper,
   ChevronDown,
+  RefreshCw 
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
@@ -20,6 +21,7 @@ function TADashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [sortOption, setSortOption] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const userId = user?.id;
   const userRole = user?.role;
   const [availableHoursPerWeek, setAvailableHoursPerWeek] = useState<number>(0);
@@ -72,6 +74,25 @@ function TADashboard() {
 
     setModules(sortedModules);
   };
+
+  const filteredModules = modules.filter((mod) => {
+    if (!searchQuery) return true;
+
+    const query = searchQuery.toLowerCase();
+    const code = mod.moduleCode?.toLowerCase() || "";
+    const name = mod.moduleName?.toLowerCase() || "";
+
+    // ✅ Coordinators are array of strings
+    const coordinators = Array.isArray(mod.coordinators)
+      ? mod.coordinators.map((c) => c.toLowerCase()).join(" ")
+      : "";
+
+    return (
+      code.includes(query) ||
+      name.includes(query) ||
+      coordinators.includes(query)
+    );
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -146,31 +167,45 @@ function TADashboard() {
       </div>
 
       <div className="gap-2 m-8">
-        {/* Header with View Toggle */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-foreground">
-            Available TA Positions
-          </h2>
+        <div className="gap-2 ">
+          {/* Header */}
+          <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+            <h2 className="text-2xl font-semibold text-foreground">
+              Available TA Positions
+            </h2>
 
-          <div className="flex items-center gap-4">
-            <div className="relative inline-flex overflow-hidden border rounded-lg shadow-lg border-border-default bg-bg-card group">
-              <select
-                value={sortOption}
-                onChange={(e) => handleSortChange(e.target.value)}
-                className="px-4 py-2 pr-10 text-sm font-semibold transition-all duration-300 bg-transparent appearance-none cursor-pointer text-text-secondary hover:bg-primary-light/20 hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-dark"
-              >
-                <option value="">Sort By</option>
-                <option value="name">Module Name (A–Z)</option>
-                <option value="hours">TA Hours (Low → High)</option>
-                <option value="semester">Semester (Low → High)</option>
-              </select>
+            {/* Controls section */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/*  Search input */}
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-64 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-dark bg-bg-card text-text-primary placeholder:text-text-secondary"
+              />
 
-              <div className="absolute -translate-y-1/2 pointer-events-none right-3 top-1/2 text-text-secondary group-hover:text-text-primary">
-                <ChevronDown className="w-4 h-4" />
+              {/*  Sorting modules */}
+              <div className="relative inline-flex overflow-hidden border rounded-lg shadow-sm border-border-default bg-bg-card group">
+                <select
+                  value={sortOption}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                  className="px-4 py-2 pr-10 text-sm font-medium bg-transparent appearance-none cursor-pointer text-text-secondary hover:bg-primary-light/20 hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-dark"
+                >
+                  <option value="">Sort By</option>
+                  <option value="name">Module Name (A–Z)</option>
+                  <option value="hours">TA Hours (Low → High)</option>
+                  <option value="semester">Semester (Low → High)</option>
+                </select>
+
+                <div className="absolute -translate-y-1/2 pointer-events-none right-3 top-1/2 text-text-secondary group-hover:text-text-primary">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
               </div>
-            </div>
 
-            <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
+              {/* 🪄 View toggle */}
+              <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
+            </div>
           </div>
         </div>
 
@@ -186,7 +221,7 @@ function TADashboard() {
                 : "space-y-4"
             }
           >
-            {modules.map((module) => (
+            {filteredModules.map((module) => (
               <TARequestCard
                 key={module.moduleCode}
                 moduleCode={`Sem ${module.semester} ${module.moduleCode}`}
