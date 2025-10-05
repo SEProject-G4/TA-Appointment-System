@@ -82,7 +82,7 @@ function TADashboard() {
     const code = mod.moduleCode?.toLowerCase() || "";
     const name = mod.moduleName?.toLowerCase() || "";
 
-    // ✅ Coordinators are array of strings
+    // Coordinators are array of strings
     const coordinators = Array.isArray(mod.coordinators)
       ? mod.coordinators.map((c) => c.toLowerCase()).join(" ")
       : "";
@@ -168,11 +168,23 @@ function TADashboard() {
 
       <div className="gap-2 m-8">
         <div className="gap-2 ">
-          {/* Header */}
+          {/* Header - Available TA Positions */}
           <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-2xl font-semibold text-foreground">
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-semibold text-foreground">
               Available TA Positions
             </h2>
+            {/* Refresh button  */}
+            <div>
+            <button
+              className="p-2 text-sm font-medium border rounded-lg bg-bg-card text-text-primary hover:bg-primary-light/20 focus:outline-none focus:ring-2 focus:ring-primary-dark"
+              onClick={() => setRefreshKey((prev) => prev + 1)}
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            </div>
+            </div>
+            
 
             {/* Controls section */}
             <div className="flex flex-wrap items-center gap-3">
