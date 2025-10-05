@@ -50,6 +50,14 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
         { subMenu:false, to: "/ta-accepted", label: "Accepted Positions" },
       ]
     },
+    {
+      role: "postgraduate",
+      links: [
+        {  subMenu:false, to: "/ta-dashboard", label: "Available Positions" },
+        { subMenu:false, to: "/ta-applied", label: "Applied Positions" },
+        { subMenu:false, to: "/ta-accepted", label: "Accepted Positions" },
+      ]
+    },
 
     {
       role: "lecturer",
@@ -73,8 +81,8 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
   };
 
   return (
-    <nav ref={ref} className="w-full fixed top-0 z-50 shadow-sm">
-      <div className="navbar flex flex-row bg-bg-card text-text-primary shadow-lg w-full">
+    <nav ref={ref} className="fixed top-0 z-50 w-full shadow-sm">
+      <div className="flex flex-row w-full shadow-lg navbar bg-bg-card text-text-primary">
         
         <div className="flex flex-row items-center justify-start flex-1 space-x-32">
           <div className="flex items-center">
@@ -98,7 +106,7 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
                     {link.subMenu ? (
                       <div className="group">
                         <p role="button">{link.label}</p>
-                        <ul className="hidden outline-text-secondary/20 outline-1 outline rounded-sm absolute group-hover:block menu bg-bg-card z-10 w-48 p-2 drop-shadow">
+                        <ul className="absolute z-10 hidden w-48 p-2 rounded-sm outline-text-secondary/20 outline-1 outline group-hover:block menu bg-bg-card drop-shadow">
                           {link.subNavs?.map((subNav) => (
                             <li key={subNav.to} className={`hover:bg-primary/70 hover:text-text-inverted rounded ${isPathActive(subNav.to) ? 'font-semibold text-primary-dark' : 'text-text-secondary'}`}>
                               <Link to={subNav.to}>{subNav.label}</Link>
@@ -138,7 +146,7 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
                   role="button"
                   className="border-2 border-primary btn-circle avatar"
                 >
-                  <div className="h-10 w-10 rounded-full">
+                  <div className="w-10 h-10 rounded-full">
                     <img alt="User Profile" src={user.profilePicture} />
                   </div>
                 </div>
