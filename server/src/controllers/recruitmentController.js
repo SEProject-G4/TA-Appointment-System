@@ -2,6 +2,7 @@ const RecruitmentRound = require("../models/RecruitmentRound");
 const UserGroup = require("../models/UserGroup");
 const ModuleDetails = require("../models/ModuleDetails");
 const User = require("../models/User");
+const { default: mongoose } = require("mongoose");
 
 const createRecruitmentRound = async (req, res) => {
     try{
@@ -164,11 +165,116 @@ const getEligiblePostgraduates = async (req, res) => {
     }
 };
 
+const copyRecruitmentRound = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const { seriesId } = req.params;
+        const { name, applicationDueDate, documentDueDate, undergradHourLimit, postgradHourLimit, undergradMailingList, postgradMailingList, modules } = req.body;
+        const originalSeries = await RecruitmentRound.findById(seriesId).session(session);
+        if (!originalSeries) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ error: "Original recruitment series not found" });
+        }
+
+        const newSeries = new RecruitmentRound({
+            name,
+            applicationDueDate,
+            documentDueDate,
+            undergradHourLimit,
+            postgradHourLimit,
+            undergradMailingList,
+            postgradMailingList,
+            status: "initialised"
+        });
+
+        await newSeries.save({ session });
+
+        let modulesToCopy = [];
+        if (modules.length > 0) {
+            modulesToCopy = await ModuleDetails.find({ _id: { $in: modules }, recruitmentSeriesId: seriesId }).session(session);
+            await Promise.all(modulesToCopy.map(async module => {
+                const newModule = new ModuleDetails({
+                    recruitmentSeriesId: newSeries._id,
+                    moduleCode: module.moduleCode,
+                    moduleName: module.moduleName,
+                    semester: module.semester,
+                    coordinators: module.coordinators,
+                    applicationDueDate: new Date(applicationDueDate),
+                    documentDueDate: new Date(documentDueDate),
+                    requiredTAHours: module.requiredTAHours,
+                    openForUndergraduates: module.openForUndergraduates,
+                    openForPostgraduates: module.openForPostgraduates,
+                    undergraduateCounts: module.undergraduateCounts ? {
+                        required: module.undergraduateCounts.required,
+                        remaining: module.undergraduateCounts.required
+                     } : null,
+                    postgraduateCounts: module.postgraduateCounts ? {
+                        required: module.postgraduateCounts.required,
+                        remaining: module.postgraduateCounts.required
+                    } : null,
+                    requirements: module.requirements,
+                    moduleStatus: "initialised",
+                });
+                await newModule.save({ session });
+            }));
+            newSeries.moduleCount = modulesToCopy.length;
+            newSeries.undergraduateTAPositionsCount = modulesToCopy.reduce((sum, mod) => sum + (mod.undergraduateCounts ? mod.undergraduateCounts.required : 0), 0);
+            newSeries.postgraduateTAPositionsCount = modulesToCopy.reduce((sum, mod) => sum + (mod.postgraduateCounts ? mod.postgraduateCounts.required : 0), 0);
+            await newSeries.save({ session });
+        }
+
+        await session.commitTransaction();
+        res.status(201).json({ message: "The new recruitment round created successfully including " + modulesToCopy.length + " modules." });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error copying recruitment round:", error);
+        res.status(500).json({ error: "Internal server error" });
+    } finally {
+        session.endSession();
+    }
+};
+
+const deleteRecruitmentRound = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { seriesId } = req.params;
+
+        // Find the recruitment series
+        const recruitmentSeries = await RecruitmentRound.findById(seriesId).session(session);
+        if (!recruitmentSeries) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ error: "Recruitment round not found" });
+        }
+
+        // Delete associated modules
+        await ModuleDetails.deleteMany({ recruitmentSeriesId: seriesId }).session(session);
+
+        // Delete the recruitment series
+        await RecruitmentRound.findByIdAndDelete(seriesId).session(session);
+
+        await session.commitTransaction();
+        res.status(200).json({ message: "Recruitment round deleted successfully" });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error deleting recruitment round:", error);
+        res.status(500).json({ error: "Internal server error" });
+    } finally {
+        session.endSession();
+    }
+};
+
 module.exports = {
     createRecruitmentRound,
     getAllRecruitmentRounds,
     addModuleToRecruitmentRound,
     getModuleDetailsBySeriesId,
     getEligibleUndergraduates,
-    getEligiblePostgraduates
+    getEligiblePostgraduates,
+    copyRecruitmentRound,
+    deleteRecruitmentRound
 };

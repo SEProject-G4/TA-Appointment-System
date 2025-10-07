@@ -9,5 +9,7 @@ router.post('/:seriesId/add-module', protected, authorize(['admin']), recruitmen
 router.get('/:seriesId/modules', protected, authorize(['admin']), recruitmentController.getModuleDetailsBySeriesId);
 router.get('/:seriesId/eligible-undergraduates', protected, authorize(['admin']), recruitmentController.getEligibleUndergraduates);
 router.get('/:seriesId/eligible-postgraduates', protected, authorize(['admin']), recruitmentController.getEligiblePostgraduates);
+router.post('/copy/:seriesId', protected, authorize(['admin']), recruitmentController.copyRecruitmentRound);
+router.delete('/:seriesId', protected, authorize(['admin']), recruitmentController.deleteRecruitmentRound);
 
 module.exports = router;

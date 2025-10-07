@@ -2,7 +2,7 @@ import {useState, useEffect } from "react";
 
 
 import { RiCheckboxCircleFill } from "react-icons/ri";
-import { MdClose } from "react-icons/md";
+import { MdClose, MdError } from "react-icons/md";
 import { LuCirclePlus } from "react-icons/lu";
 
 import AutoSelect from "../common/AutoSelect";
@@ -82,12 +82,8 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
     postgradMailingList: [],
   });
   const [inputErrors, setInputErrors] = useState<{ [key: string]: string }>({});
-  const [availableUndergradGroups, setAvailableUndergradGroups] = useState<
-    UserGroup[]
-  >([]);
-  const [availablePostgradGroups, setAvailablePostgradGroups] = useState<
-    UserGroup[]
-  >([]);
+  const [availableUndergradGroups, setAvailableUndergradGroups] = useState<UserGroup[]>([]);
+  const [availablePostgradGroups, setAvailablePostgradGroups] = useState<UserGroup[]>([]);
   const [selectedModules, setSelectedModules] = useState<Module[]>(modules);
   const [removedModules, setRemovedModules] = useState<Module[]>([]);
   const [usersCount, setUsersCount] = useState<{ under: number; post: number }>(
@@ -96,6 +92,7 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
       post: 0,
     }
   );
+  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const { closeModal } = useModal();
 
@@ -296,12 +293,31 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
 
   const handleCreate = async () => {
     setCurrentStep(3);
+    const payload = {
+      name: formData.name,
+      applicationDueDate: new Date(formData.applicationDueDate).toISOString(),
+      documentDueDate: new Date(formData.documentDueDate).toISOString(),
+      undergradHourLimit: formData.undergradHourLimit,
+      postgradHourLimit: formData.postgradHourLimit,
+      undergradMailingList: formData.undergradMailingList.map((g) => g._id),
+      postgradMailingList: formData.postgradMailingList.map((g) => g._id),
+      modules: selectedModules.map((m) => m._id),
+    }
     setIsProcessing(true);
-      // Add your submission logic here
-      console.log("Submitting copy request...");
-      setTimeout(() => {
-        setIsProcessing(false);
-      }, 3000);
+    try{
+      const response = await axiosInstance.post(
+        `/recruitment-series/copy/${recruitmentSeriesData._id}`,
+        payload
+      );
+      if (response.status === 201) {
+        setResult({ success: true, message: response.data.message });
+      }
+    } catch (error) {
+      console.error("Error creating recruitment round:", error);
+      setResult({ success: false, message: "Failed to create recruitment round." });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleClose = () => {
@@ -698,10 +714,20 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
               <p className="text-text-primary text-lg mb-2">Processing...</p>
               <p className="text-text-secondary">This will take a few moments.</p>
             </div>)}
-            {!isProcessing && (<div className="flex flex-col items-center">
-              <RiCheckboxCircleFill className="text-success size-16 mb-5" />
-              <p className="text-text-primary text-lg mb-2">Recruitment Round Created Succesfully!</p>
-              <p className="text-text-secondary">You can now close this dialog.</p>
+            {(!isProcessing && result) && (<div className="flex flex-col items-center">
+              {result.success ? (
+                <>
+                  <RiCheckboxCircleFill className="text-success size-16 mb-5" />
+                  <p className="text-text-primary text-lg mb-2">{result.message}</p>
+                  <p className="text-text-secondary">You can now close this dialog.</p>
+                </>
+              ) : (
+                <>
+                  <MdError className="text-error size-16 mb-5" />
+                  <p className="text-text-primary text-lg mb-2">{result.message}</p>
+                  <p className="text-text-secondary">Please try again later.</p>
+                </>
+              )}
             </div>)}
           </div>
         </div>

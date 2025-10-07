@@ -7,6 +7,7 @@ import { LuCirclePlus, LuMail } from "react-icons/lu";
 import { FiClock } from "react-icons/fi";
 
 import { useModal } from "../../contexts/ModalProvider";
+import { useToast } from "../../contexts/ToastContext";
 
 import CopyRSModal from "./CopyRSModal";
 import RSModuleCard from "./RSModuleCard";
@@ -116,7 +117,8 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
 
-  const { openModal } = useModal();
+  const { openModal, closeModal } = useModal();
+  const { showToast } = useToast();
 
   const refreshModuleDetails = () => {
     setHasFetched(false);
@@ -136,6 +138,38 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDeleteRS = () => {
+    openModal(
+      <div className="flex flex-col items-center py-4 px-6">
+        <h2 className="text-lg font-semibold mb-4">Delete Recruitment Round</h2>
+        <p className="text-warning font-semibold mb-2">This action will delete all associated modules, associated applications, and any other related data.</p>
+        <p>Are you sure you want to delete this recruitment series?</p>
+        <div className="flex gap-x-4 mt-4">
+          <button
+            className="rounded-md outline outline-1 outline-warning hover:bg-warning text-warning hover:text-text-inverted px-5 py-2 font-semibold"
+            onClick={async () => {
+              try {
+                const response = await axiosInstance.delete(`/recruitment-series/${_id}`);
+                if(response.status === 200) {
+                  showToast("Recruitment series deleted successfully with all its associated data.", "success");
+                  closeModal();
+                }
+                // Optionally refresh the list or provide feedback
+              } catch (error) {
+                console.error("Error deleting recruitment series:", error);
+              }
+            }}
+          >
+            Delete
+          </button>
+          <button className="rounded-md outline outline-1 outline-text-secondary hover:bg-primary/20 text-text-primary px-5 py-2 font-semibold" onClick={() => closeModal()}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    ,{ showCloseButton: false });
   };
 
   const handleCopyRS = () => {
@@ -225,7 +259,8 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
               >
                 Make a copy
               </li>
-              <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
+              <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
+              onClick={handleDeleteRS}>
                 Delete
               </li>
             </ul>
