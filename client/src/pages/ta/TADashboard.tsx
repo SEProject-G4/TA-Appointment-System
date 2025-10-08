@@ -120,27 +120,27 @@ function TADashboard() {
   }, [userId, refreshKey]);
 
   return (
-    <div className="min-h-screen px-8 bg-bg-page text-text-primary">
-      <div className="container px-4 py-8 mx-auto">
+    <div className="min-h-screen px-2 sm:px-4 bg-bg-page text-text-primary">
+      <div className="container px-2 py-4 mx-auto sm:px-4 sm:py-8">
         {/* header */}
-        <div className="mb-12 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 rounded-xl bg-primary/10">
-              <GraduationCap className="w-8 h-8 text-text-primary" />
+        <div className="mb-8 text-center sm:mb-12">
+          <div className="flex flex-col items-center justify-center gap-2 mb-4 sm:flex-row sm:gap-3">
+            <div className="p-2 sm:p-3 rounded-xl bg-primary/10">
+              <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8 text-text-primary" />
             </div>
-            <h1 className="text-4xl font-bold ">
-              {userRole} - TA Application Portal
+            <h1 className="text-2xl font-bold text-center sm:text-3xl lg:text-4xl">
+              TA Application Portal
             </h1>
           </div>
-          <p className="max-w-2xl mx-auto text-lg text-text-secondary">
+          {/* <p className="max-w-2xl mx-auto text-lg text-text-secondary">
             Apply for Teaching Assistant positions across various computer
             science modules. Find the perfect opportunity to share your
             knowledge and gain valuable experience.
-          </p>
+          </p> */}
         </div>
 
         {/* stats */}
-        <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 mb-6 sm:gap-6 sm:mb-8 sm:grid-cols-2 lg:grid-cols-3">
           <TAStatCard
             statName="Available Modules"
             statValue={modules.length}
@@ -158,20 +158,22 @@ function TADashboard() {
             )}
             icon={Users}
           />
-          <TAStatCard
-            statName="Remaining TA Hours Per Week"
-            statValue={availableHoursPerWeek}
-            icon={Newspaper}
-          />
+          <div className="sm:col-span-2 lg:col-span-1">
+            <TAStatCard
+              statName="Remaining TA Hours Per Week"
+              statValue={availableHoursPerWeek}
+              icon={Newspaper}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="gap-2 m-8">
+      <div className="gap-2 p-4 m-2 rounded-lg sm:p-6 lg:p-8 sm:m-4 lg:m-8 bg-bg-card">
         <div className="gap-2 ">
           {/* Header - Available TA Positions */}
-          <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-semibold text-foreground">
+          <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <h2 className="text-xl font-semibold sm:text-2xl text-foreground">
               Available TA Positions
             </h2>
             {/* Refresh button  */}
@@ -187,50 +189,54 @@ function TADashboard() {
             
 
             {/* Controls section */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col items-stretch w-full gap-3 sm:flex-row sm:items-center lg:w-auto">
               {/*  Search input */}
               <input
                 type="text"
-                placeholder="Search"
+                placeholder="Search modules..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-dark bg-bg-card text-text-primary placeholder:text-text-secondary"
+                className="w-full px-3 py-2 text-sm border rounded-lg sm:w-64 focus:outline-none focus:ring-2 focus:ring-primary-dark bg-bg-card text-text-primary placeholder:text-text-secondary"
               />
 
               {/*  Sorting modules */}
-              <div className="relative inline-flex overflow-hidden border rounded-lg shadow-sm border-border-default bg-bg-card group">
-                <select
-                  value={sortOption}
-                  onChange={(e) => handleSortChange(e.target.value)}
-                  className="px-4 py-2 pr-10 text-sm font-medium bg-transparent appearance-none cursor-pointer text-text-secondary hover:bg-primary-light/20 hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-dark"
-                >
-                  <option value="">Sort By</option>
-                  <option value="name">Module Name (A–Z)</option>
-                  <option value="hours">TA Hours (Low → High)</option>
-                  <option value="semester">Semester (Low → High)</option>
-                </select>
+              <div className="flex flex-col w-full gap-3 sm:flex-row sm:w-auto">
+                <div className="relative inline-flex w-full overflow-hidden border rounded-lg shadow-sm border-border-default bg-bg-card group sm:w-auto">
+                  <select
+                    value={sortOption}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                    className="w-full px-4 py-2 pr-10 text-sm font-medium bg-transparent appearance-none cursor-pointer sm:w-auto text-text-secondary hover:bg-primary-light/20 hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-dark"
+                  >
+                    <option value="">Sort By</option>
+                    <option value="name">Module Name (A–Z)</option>
+                    <option value="hours">TA Hours (Low → High)</option>
+                    <option value="semester">Semester (Low → High)</option>
+                  </select>
 
-                <div className="absolute -translate-y-1/2 pointer-events-none right-3 top-1/2 text-text-secondary group-hover:text-text-primary">
-                  <ChevronDown className="w-4 h-4" />
+                  <div className="absolute -translate-y-1/2 pointer-events-none right-3 top-1/2 text-text-secondary group-hover:text-text-primary">
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </div>
+
+                {/* 🪄 View toggle */}
+                <div className="flex justify-center sm:justify-start">
+                  <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
                 </div>
               </div>
-
-              {/* 🪄 View toggle */}
-              <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
             </div>
           </div>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-lg text-text-secondary">Loading...</p>
+          <div className="flex items-center justify-center py-8 sm:py-12">
+            <p className="text-base sm:text-lg text-text-secondary">Loading...</p>
           </div>
         ) : modules.length > 0 ? (
           <div
             className={
               viewMode === "cards"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                : "space-y-4"
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 sm:gap-6"
+                : "space-y-3 sm:space-y-4"
             }
           >
             {filteredModules.map((module) => (
@@ -258,8 +264,8 @@ function TADashboard() {
                 viewMode={viewMode}
                 onApply={() =>
                   applyForTA(
-                    user.id,
-                    user.role,
+                    user?.id || "",
+                    user?.role || "",
                     module._id,
                     module.recruitmentSeriesId,
                     module.requiredTAHours
@@ -269,8 +275,8 @@ function TADashboard() {
             ))}
           </div>
         ) : (
-          <div className="py-12 text-center">
-            <p className="text-lg text-text-secondary">
+          <div className="py-8 text-center sm:py-12">
+            <p className="text-base sm:text-lg text-text-secondary">
               No Available TA Positions...
             </p>
           </div>

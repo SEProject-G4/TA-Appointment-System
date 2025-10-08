@@ -41,50 +41,50 @@ const TADetailedCard: React.FC<TADetailedCardProps> = ({
   } = details;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 relative overflow-y-auto max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-4 sm:p-6 relative overflow-y-auto max-h-[95vh] sm:max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 mb-6 border-b">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Book className="w-6 h-6 text-primary" />
+        <div className="flex items-center justify-between pb-3 sm:pb-4 mb-4 sm:mb-6 border-b">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 flex-shrink-0">
+              <Book className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             </div>
-            <h1 className="text-xl font-semibold text-gray-800">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">
               Application Details
             </h1>
           </div>
           <button
             onClick={onClose}
-            className="p-2 transition rounded-full hover:bg-gray-100"
+            className="p-1.5 sm:p-2 transition rounded-full hover:bg-gray-100 flex-shrink-0"
           >
-            <X className="w-5 h-5 text-gray-600" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </button>
         </div>
 
         {/* Module Info */}
-        <div className="p-4 mb-6 border rounded-lg bg-gradient-to-r from-primary/5 to-accent/5">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex gap-2">
-              <span className="px-3 py-1 text-sm font-medium rounded-full bg-primary/10 text-primary">
+        <div className="p-3 sm:p-4 mb-4 sm:mb-6 border rounded-lg bg-gradient-to-r from-primary/5 to-accent/5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+            <div className="flex flex-wrap gap-2">
+              <span className="px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-full bg-primary/10 text-primary">
                 {moduleCode}
               </span>
-              <span className="px-3 py-1 text-sm font-medium rounded-full bg-secondary/10 text-secondary">
+              <span className="px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-full bg-secondary/10 text-secondary">
                 {status}
               </span>
             </div>
-            <span className="text-sm text-gray-500">
+            <span className="text-xs sm:text-sm text-gray-500">
               Applied on: {appliedDate}
             </span>
           </div>
-          <h2 className="text-lg font-semibold text-gray-800">{moduleName}</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800">{moduleName}</h2>
         </div>
 
         {/* Coordinators & Position */}
-        <div className="grid gap-4 mb-6 md:grid-cols-2">
-          <div className="p-4 border rounded-lg">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold text-gray-800">
+        <div className="grid gap-3 sm:gap-4 mb-4 sm:mb-6 lg:grid-cols-2">
+          <div className="p-3 sm:p-4 border rounded-lg">
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <h3 className="text-sm sm:text-base font-semibold text-gray-800">
                 Module Coordinators
               </h3>
             </div>
@@ -92,19 +92,19 @@ const TADetailedCard: React.FC<TADetailedCardProps> = ({
               {coordinators.map((c, i) => (
                 <span
                   key={i}
-                  className="inline-block px-2 py-1 mr-2 text-sm text-gray-700 bg-gray-100 rounded"
+                  className="inline-block px-2 py-1 mr-2 mb-1 text-xs sm:text-sm text-gray-700 bg-gray-100 rounded"
                 >
                   {c}
                 </span>
               ))}
             </div>
           </div>
-          <div className="p-4 border rounded-lg">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold text-gray-800">Position Details</h3>
+          <div className="p-3 sm:p-4 border rounded-lg">
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <h3 className="text-sm sm:text-base font-semibold text-gray-800">Position Details</h3>
             </div>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-xs sm:text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Required Hours:</span>
                 <span className="font-medium">{requiredTAHours} hrs/week</span>
@@ -122,17 +122,17 @@ const TADetailedCard: React.FC<TADetailedCardProps> = ({
         </div>
 
         {/* Deadlines */}
-        <div className="p-4 mb-6 border rounded-lg">
-          <div className="flex items-center gap-2 mb-3">
-            <Calendar className="w-5 h-5 text-primary" />
-            <h3 className="font-semibold text-gray-800">Important Deadlines</h3>
+        <div className="p-3 sm:p-4 mb-4 sm:mb-6 border rounded-lg">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            <h3 className="text-sm sm:text-base font-semibold text-gray-800">Important Deadlines</h3>
           </div>
-          <div className="grid gap-4 text-sm md:grid-cols-2">
-            <div className="p-3 rounded-lg bg-primary/5">
+          <div className="grid gap-3 sm:gap-4 text-xs sm:text-sm lg:grid-cols-2">
+            <div className="p-2 sm:p-3 rounded-lg bg-primary/5">
               <p className="text-gray-500">Application Due Date</p>
               <p className="font-medium">{applicationDueDate}</p>
             </div>
-            <div className="p-3 rounded-lg bg-accent/5">
+            <div className="p-2 sm:p-3 rounded-lg bg-accent/5">
               <p className="text-gray-500">Document Due Date</p>
               <p className="font-medium">{documentDueDate}</p>
             </div>
@@ -140,14 +140,14 @@ const TADetailedCard: React.FC<TADetailedCardProps> = ({
         </div>
 
         {/* Requirements */}
-        <div className="p-4 border rounded-lg">
-          <div className="flex items-center gap-2 mb-3">
-            <File className="w-5 h-5 text-primary" />
-            <h3 className="font-semibold text-gray-800">
+        <div className="p-3 sm:p-4 border rounded-lg">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
+            <File className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            <h3 className="text-sm sm:text-base font-semibold text-gray-800">
               Position Requirements
             </h3>
           </div>
-          <ul className="pl-5 space-y-1 text-sm text-gray-600 list-disc">
+          <ul className="pl-4 sm:pl-5 space-y-1 text-xs sm:text-sm text-gray-600 list-disc">
             {requirements.map((req, i) => (
               <li key={i}>{req}</li>
             ))}
