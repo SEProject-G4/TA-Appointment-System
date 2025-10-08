@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axiosInstance from "../api/axiosConfig";
+import axiosInstance from "../../api/axiosConfig";
 import { FaRegEdit } from "react-icons/fa";
 
 interface ModuleEditData {
@@ -161,10 +161,31 @@ const EditModuleDetails: React.FC = () => {
         requirements: moduleData.requirements,
       };
 
-      await axiosInstance.patch(
+      const response = await axiosInstance.patch(
         `/lecturer/modules/${pendingModuleId}`,
         payload
       );
+
+      // Update the local state with the response data
+      if (response.data) {
+        setModuleEdits((prev) => ({
+          ...prev,
+          [pendingModuleId]: {
+            ...prev[pendingModuleId],
+            requiredUndergraduateTACount: response.data.undergraduateCounts?.required || 0,
+            requiredPostgraduateTACount: response.data.postgraduateCounts?.required || 0,
+            requiredTAHoursPerWeek: response.data.requiredTAHours || 0,
+            requirements: response.data.requirements || "",
+          },
+        }));
+        
+        // Update the modules array with the latest data
+        setModules((prev) =>
+          prev.map((module) =>
+            module._id === pendingModuleId ? response.data : module
+          )
+        );
+      }
 
       // Exit editing mode after successful submit
       setEditing((prev) => ({ ...prev, [pendingModuleId]: false }));

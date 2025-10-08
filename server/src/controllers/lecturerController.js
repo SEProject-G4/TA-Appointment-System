@@ -88,16 +88,92 @@ const editModuleRequirments = async (req, res) => {
       updatedBy: req.user._id,
     };
 
-    // Set the new values directly as required and remaining counts for undergraduate
-    if (moduleDoc.undergraduateCounts) {
-      updateFields['undergraduateCounts.required'] = requiredUndergraduateTACount || 0;
-      updateFields['undergraduateCounts.remaining'] = requiredUndergraduateTACount || 0;
+    // Handle undergraduate TA count changes
+    // Convert to number and handle undefined/null cases
+    const undergradCount = Number(requiredUndergraduateTACount) || 0;
+    
+    if (undergradCount > 0) {
+      // Set openForUndergraduates to true
+      updateFields.openForUndergraduates = true;
+      
+      // Get current counts or initialize with zeros
+      const currentApplied = moduleDoc.undergraduateCounts?.applied || 0;
+      const currentAccepted = moduleDoc.undergraduateCounts?.accepted || 0;
+      const currentReviewed = moduleDoc.undergraduateCounts?.reviewed || 0;
+      const currentDocSubmitted = moduleDoc.undergraduateCounts?.docSubmitted || 0;
+      const currentAppointed = moduleDoc.undergraduateCounts?.appointed || 0;
+      
+      // Calculate remaining count (required - accepted)
+      const remainingCount = Math.max(0, undergradCount - currentAccepted);
+      
+      // Initialize or update undergraduateCounts
+      updateFields.undergraduateCounts = {
+        required: undergradCount,
+        remaining: remainingCount,
+        applied: currentApplied,
+        reviewed: currentReviewed,
+        accepted: currentAccepted,
+        docSubmitted: currentDocSubmitted,
+        appointed: currentAppointed
+      };
+    } else {
+      // If undergraduate count is 0 or undefined, set openForUndergraduates to false
+      updateFields.openForUndergraduates = false;
+      
+      // Reset all undergraduate counts to 0
+      updateFields.undergraduateCounts = {
+        required: 0,
+        remaining: 0,
+        applied: 0,
+        reviewed: 0,
+        accepted: 0,
+        docSubmitted: 0,
+        appointed: 0
+      };
     }
 
-    // Set the new values directly as required and remaining counts for postgraduate
-    if (moduleDoc.postgraduateCounts) {
-      updateFields['postgraduateCounts.required'] = requiredPostgraduateTACount || 0;
-      updateFields['postgraduateCounts.remaining'] = requiredPostgraduateTACount || 0;
+    // Handle postgraduate TA count changes
+    // Convert to number and handle undefined/null cases
+    const postgradCount = Number(requiredPostgraduateTACount) || 0;
+    
+    if (postgradCount > 0) {
+      // Set openForPostgraduates to true
+      updateFields.openForPostgraduates = true;
+      
+      // Get current counts or initialize with zeros
+      const currentApplied = moduleDoc.postgraduateCounts?.applied || 0;
+      const currentAccepted = moduleDoc.postgraduateCounts?.accepted || 0;
+      const currentReviewed = moduleDoc.postgraduateCounts?.reviewed || 0;
+      const currentDocSubmitted = moduleDoc.postgraduateCounts?.docSubmitted || 0;
+      const currentAppointed = moduleDoc.postgraduateCounts?.appointed || 0;
+      
+      // Calculate remaining count (required - accepted)
+      const remainingCount = Math.max(0, postgradCount - currentAccepted);
+      
+      // Initialize or update postgraduateCounts
+      updateFields.postgraduateCounts = {
+        required: postgradCount,
+        remaining: remainingCount,
+        applied: currentApplied,
+        reviewed: currentReviewed,
+        accepted: currentAccepted,
+        docSubmitted: currentDocSubmitted,
+        appointed: currentAppointed
+      };
+    } else {
+      // If postgraduate count is 0 or undefined, set openForPostgraduates to false
+      updateFields.openForPostgraduates = false;
+      
+      // Reset all postgraduate counts to 0
+      updateFields.postgraduateCounts = {
+        required: 0,
+        remaining: 0,
+        applied: 0,
+        reviewed: 0,
+        accepted: 0,
+        docSubmitted: 0,
+        appointed: 0
+      };
     }
 
     // Determine the new status based on current status
@@ -119,7 +195,19 @@ const editModuleRequirments = async (req, res) => {
     );
 
     console.log('lecturer editModuleRequirments -> updated module', id, 'for', req.user._id);
-    console.log('Undergraduate count set to:', requiredUndergraduateTACount, 'Postgraduate count set to:', requiredPostgraduateTACount);
+    console.log('Request body:', req.body);
+    console.log('Update fields before save:', updateFields);
+    console.log('Undergraduate count set to:', undergradCount, 'Postgraduate count set to:', postgradCount);
+    console.log('Open for undergraduates:', updateFields.openForUndergraduates ? 'enabled' : 'disabled');
+    console.log('Open for postgraduates:', updateFields.openForPostgraduates ? 'enabled' : 'disabled');
+    console.log('Undergraduate remaining slots:', updateFields.undergraduateCounts?.remaining || 0);
+    console.log('Postgraduate remaining slots:', updateFields.postgraduateCounts?.remaining || 0);
+    console.log('Updated module after save:', {
+      openForUndergraduates: updatedModule.openForUndergraduates,
+      openForPostgraduates: updatedModule.openForPostgraduates,
+      undergraduateCounts: updatedModule.undergraduateCounts,
+      postgraduateCounts: updatedModule.postgraduateCounts
+    });
     return res.status(200).json(updatedModule);
   } catch (error) {
     console.error('Error updating module requirements:', error);
