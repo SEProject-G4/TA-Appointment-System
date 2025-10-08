@@ -222,6 +222,27 @@ const EditModuleDetails: React.FC = () => {
     setErrorMessage("");
   };
 
+  const resetModuleData = (moduleId: string) => {
+    const module = modules.find(m => m._id === moduleId);
+    if (!module) return;
+
+    setModuleEdits((prev) => ({
+      ...prev,
+      [moduleId]: {
+        moduleCode: module.moduleCode,
+        moduleName: module.moduleName,
+        semester: module.semester,
+        year: module.year,
+        applicationDueDate: module.applicationDueDate,
+        documentDueDate: module.documentDueDate || undefined,
+        requiredTAHoursPerWeek: module.requiredTAHours ?? 0,
+        requiredUndergraduateTACount: module.undergraduateCounts?.required ?? 0,
+        requiredPostgraduateTACount: module.postgraduateCounts?.required ?? 0,
+        requirements: module.requirements ?? "",
+      },
+    }));
+  };
+
   if (loading) {
     return <div className="min-h-screen px-20 py-5 text-text-primary">Loading modules...</div>;
   }
@@ -431,7 +452,10 @@ const EditModuleDetails: React.FC = () => {
                     {isEditing && (
                       <button
                         type="button"
-                        onClick={() => setEditing((prev) => ({ ...prev, [m._id]: false }))}
+                        onClick={() => {
+                          resetModuleData(m._id);
+                          setEditing((prev) => ({ ...prev, [m._id]: false }));
+                        }}
                         className="btn btn-outline"
                       >
                         Cancel
