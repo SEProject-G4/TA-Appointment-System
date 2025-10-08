@@ -30,12 +30,31 @@ const EditModuleDetails: React.FC = () => {
     requiredPostgraduateTACount?: number | null;
     requirements?: string | null;
     moduleStatus?: string;
+    undergraduateCounts?: {
+      required: number;
+      remaining: number;
+      applied: number;
+      reviewed: number;
+      accepted: number;
+      docSubmitted: number;
+      appointed: number;
+    } | null;
+    postgraduateCounts?: {
+      required: number;
+      remaining: number;
+      applied: number;
+      reviewed: number;
+      accepted: number;
+      docSubmitted: number;
+      appointed: number;
+    } | null;
   };
 
   // Update the type definition to match the backend response
   type ModulesResponse = {
     pendingChanges: ModuleFromApi[];
     changesSubmitted: ModuleFromApi[];
+    advertised: ModuleFromApi[];
   };
 
   const [modules, setModules] = useState<ModuleFromApi[]>([]);
@@ -45,7 +64,6 @@ const EditModuleDetails: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [updating, setUpdating] = useState<Record<string, boolean>>({});
-  const [changesSubmitted, setChangesSubmitted] = useState<Record<string, boolean>>({});
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingModuleId, setPendingModuleId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Record<string, boolean>>({});
@@ -66,10 +84,11 @@ const EditModuleDetails: React.FC = () => {
         setError("");
         const res = await axiosInstance.get<ModulesResponse>("/lecturer/modules");
         
-        // Combine both arrays of modules
+        // Combine all arrays of modules
         const allModules = [
           ...res.data.pendingChanges,
-          ...res.data.changesSubmitted
+          ...res.data.changesSubmitted,
+          ...res.data.advertised
         ];
         
         setModules(allModules);
@@ -86,16 +105,12 @@ const EditModuleDetails: React.FC = () => {
             applicationDueDate: m.applicationDueDate,
             documentDueDate: m.documentDueDate || undefined,
             requiredTAHoursPerWeek: m.requiredTAHours ?? 0,
-            requiredUndergraduateTACount: m.requiredUndergraduateTACount ?? 0,
-            requiredPostgraduateTACount: m.requiredPostgraduateTACount ?? 0,
+            requiredUndergraduateTACount: m.undergraduateCounts?.required ?? 0,
+            requiredPostgraduateTACount: m.postgraduateCounts?.required ?? 0,
             requirements: m.requirements ?? "",
           };
           // Initially show read-only view for all modules
           initialEditing[m._id] = false;
-
-          if (m.moduleStatus === "changes submitted") {
-            setChangesSubmitted((prev) => ({ ...prev, [m._id]: true }));
-          }
         }
         setModuleEdits(mapped);
         setEditing(initialEditing);
@@ -151,7 +166,6 @@ const EditModuleDetails: React.FC = () => {
         payload
       );
 
-      setChangesSubmitted((prev) => ({ ...prev, [pendingModuleId]: true }));
       // Exit editing mode after successful submit
       setEditing((prev) => ({ ...prev, [pendingModuleId]: false }));
 
@@ -198,7 +212,6 @@ const EditModuleDetails: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full">
           {modules.map((m) => {
             const d = moduleEdits[m._id];
-            const isSubmitted = changesSubmitted[m._id] || m.moduleStatus === "changes submitted";
             const isEditing = editing[m._id];
             return (
               <div
@@ -215,19 +228,28 @@ const EditModuleDetails: React.FC = () => {
                           </div>
                     <p className="text-text-primary text-sm mt-1">{m.moduleName}</p>
                             </div>
-                  {isSubmitted ? (
-                    <span className="badge badge-accepted">Changes Submitted</span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setEditing((prev) => ({ ...prev, [m._id]: true }))}
-                      className="p-2 rounded-full bg-red-500/10 text-red-700 hover:bg-red-500/20"
-                      title="Edit module requirements"
-                      aria-label="Edit module"
-                    >
-                      <FaRegEdit className="w-4 h-4" />
-                    </button>
-                  )}
+                  <>
+                    {m.moduleStatus === "pending changes" && (
+                      <span className="badge badge-warning mr-2">Pending Changes</span>
+                    )}
+                    {m.moduleStatus === "changes submitted" && (
+                      <span className="badge badge-accepted mr-2">Changes Submitted</span>
+                    )}
+                    {m.moduleStatus === "advertised" && (
+                      <span className="badge badge-info mr-2">Advertised</span>
+                    )}
+                    {(m.moduleStatus === "pending changes" || m.moduleStatus === "changes submitted" || m.moduleStatus === "advertised") && (
+                      <button
+                        type="button"
+                        onClick={() => setEditing((prev) => ({ ...prev, [m._id]: true }))}
+                        className="p-2 rounded-full bg-red-500/10 text-red-700 hover:bg-red-500/20"
+                        title="Edit module requirements"
+                        aria-label="Edit module"
+                      >
+                        <FaRegEdit className="w-4 h-4" />
+                      </button>
+                    )}
+                  </>
                         </div>
 
                 <form onSubmit={handleSubmit(m._id)} className="p-4 space-y-4 w-full">
@@ -378,7 +400,7 @@ const EditModuleDetails: React.FC = () => {
                         Cancel
                       </button>
                     )}
-                    {!isSubmitted && isEditing && (
+                    {(m.moduleStatus === "pending changes" || m.moduleStatus === "changes submitted" || m.moduleStatus === "advertised") && isEditing && (
                     <button
                       type="submit"
                       disabled={updating[m._id] || !areAllFieldsEdited(m._id)}
@@ -429,5 +451,3 @@ const EditModuleDetails: React.FC = () => {
 };
 
 export default EditModuleDetails;
-
-

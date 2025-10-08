@@ -2,7 +2,7 @@ const ModuleDetails = require('../models/ModuleDetails');
 const TaApplication = require('../models/TaApplication');
 const User = require('../models/User');
 const TaDocumentSubmission = require('../models/TaDocumentSubmission');
-const RecruitmentRound = require('../models/RecruitmentRound');
+const RecruitmentSeries = require('../models/RecruitmentRound');
 
 // GET /api/lecturer/modules
 // Returns modules where the logged-in lecturer (by id) is listed in coordinators
@@ -14,14 +14,15 @@ const getMyModules = async (req, res) => {
 
     const coordinatorId = req.user._id;
 
-    // Get all modules where user is coordinator with either status
+    // Get all modules where user is coordinator with editable statuses
     const modules = await ModuleDetails
       .find({ 
         coordinators: coordinatorId,
         moduleStatus: { 
-          $in: ['pending changes', 'changes submitted'] 
+          $in: ['pending changes', 'changes submitted', 'advertised'] 
         }
       })
+      .select('_id moduleCode moduleName semester year coordinators applicationDueDate documentDueDate requiredTAHours requiredUndergraduateTACount requiredPostgraduateTACount requirements moduleStatus undergraduateCounts postgraduateCounts')
       .sort({ createdAt: -1 });
 
     // No recruitment series status filtering; consider all modules for the coordinator
@@ -30,12 +31,14 @@ const getMyModules = async (req, res) => {
     // Group modules by status
     const groupedModules = {
       pendingChanges: activeModules.filter(m => m.moduleStatus === 'pending changes'),
-      changesSubmitted: activeModules.filter(m => m.moduleStatus === 'changes submitted')
+      changesSubmitted: activeModules.filter(m => m.moduleStatus === 'changes submitted'),
+      advertised: activeModules.filter(m => m.moduleStatus === 'advertised')
     };
 
     console.log('lecturer getMyModules -> matched', 
-      groupedModules.pendingChanges.length, 'pending changes and',
-      groupedModules.changesSubmitted.length, 'changes submitted modules for', 
+      groupedModules.pendingChanges.length, 'pending changes,',
+      groupedModules.changesSubmitted.length, 'changes submitted, and',
+      groupedModules.advertised.length, 'advertised modules for', 
       coordinatorId
     );
 
@@ -70,28 +73,53 @@ const editModuleRequirments = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to edit this module' });
     }
 
-    // Verify the module is in "pending changes" status
-    if (moduleDoc.moduleStatus !== 'pending changes') {
-      return res.status(400).json({ error: 'Module is not in pending changes status' });
+    // Verify the module is in an editable status
+    const editableStatuses = ['pending changes', 'changes submitted', 'advertised'];
+    if (!editableStatuses.includes(moduleDoc.moduleStatus)) {
+      return res.status(400).json({ error: 'Module is not in an editable status' });
     }
 
-    // Update the module fields and set status to "changes submitted"
+    // Prepare update object
+    const updateFields = {
+      requiredTAHours,
+      requiredUndergraduateTACount,
+      requiredPostgraduateTACount,
+      requirements,
+      updatedBy: req.user._id,
+    };
+
+    // Set the new values directly as required and remaining counts for undergraduate
+    if (moduleDoc.undergraduateCounts) {
+      updateFields['undergraduateCounts.required'] = requiredUndergraduateTACount || 0;
+      updateFields['undergraduateCounts.remaining'] = requiredUndergraduateTACount || 0;
+    }
+
+    // Set the new values directly as required and remaining counts for postgraduate
+    if (moduleDoc.postgraduateCounts) {
+      updateFields['postgraduateCounts.required'] = requiredPostgraduateTACount || 0;
+      updateFields['postgraduateCounts.remaining'] = requiredPostgraduateTACount || 0;
+    }
+
+    // Determine the new status based on current status
+    let newStatus = moduleDoc.moduleStatus;
+    if (moduleDoc.moduleStatus === 'pending changes') {
+      newStatus = 'changes submitted';
+    } else if (moduleDoc.moduleStatus === 'changes submitted' || moduleDoc.moduleStatus === 'advertised') {
+      // Keep the same status for these stages
+      newStatus = moduleDoc.moduleStatus;
+    }
+
+    updateFields.moduleStatus = newStatus;
+
+    // Update the module fields with appropriate status
     const updatedModule = await ModuleDetails.findByIdAndUpdate(
       id,
-      {
-        $set: {
-          requiredTAHours,
-          requiredUndergraduateTACount,
-          requiredPostgraduateTACount,
-          requirements,
-          moduleStatus: 'changes submitted',
-          updatedBy: req.user._id,
-        },
-      },
+      { $set: updateFields },
       { new: true, runValidators: true }
     );
 
     console.log('lecturer editModuleRequirments -> updated module', id, 'for', req.user._id);
+    console.log('Undergraduate count set to:', requiredUndergraduateTACount, 'Postgraduate count set to:', requiredPostgraduateTACount);
     return res.status(200).json(updatedModule);
   } catch (error) {
     console.error('Error updating module requirements:', error);
