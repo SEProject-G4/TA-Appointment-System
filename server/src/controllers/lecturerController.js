@@ -88,9 +88,44 @@ const editModuleRequirments = async (req, res) => {
       updatedBy: req.user._id,
     };
 
-    // Handle undergraduate TA count changes
-    // Convert to number and handle undefined/null cases
+    // Handle undergraduate and postgraduate TA count changes
+    // Convert to numbers and handle undefined/null cases
     const undergradCount = Number(requiredUndergraduateTACount) || 0;
+    const postgradCount = Number(requiredPostgraduateTACount) || 0;
+    
+    // Validation for advertised modules: check if applied count exceeds new required count
+    if (moduleDoc.moduleStatus === 'advertised') {
+      const currentAppliedUndergrad = moduleDoc.undergraduateCounts?.applied || 0;
+      const currentAppliedPostgrad = moduleDoc.postgraduateCounts?.applied || 0;
+      
+      // Prevent setting undergraduate count to 0 when there are applied TAs
+      if (undergradCount === 0 && currentAppliedUndergrad > 0) {
+        return res.status(400).json({ 
+          error: `Cannot set undergraduate TA count to 0. There are ${currentAppliedUndergrad} applied undergraduate TAs. You must set the required count to at least ${currentAppliedUndergrad}.` 
+        });
+      }
+      
+      // Prevent reducing undergraduate count below applied count
+      if (undergradCount > 0 && currentAppliedUndergrad > undergradCount) {
+        return res.status(400).json({ 
+          error: `Cannot reduce undergraduate TA count to ${undergradCount}. Current applied count is ${currentAppliedUndergrad} which exceeds the new required count.` 
+        });
+      }
+      
+      // Prevent setting postgraduate count to 0 when there are applied TAs
+      if (postgradCount === 0 && currentAppliedPostgrad > 0) {
+        return res.status(400).json({ 
+          error: `Cannot set postgraduate TA count to 0. There are ${currentAppliedPostgrad} applied postgraduate TAs. You must set the required count to at least ${currentAppliedPostgrad}.` 
+        });
+      }
+      
+      // Prevent reducing postgraduate count below applied count
+      if (postgradCount > 0 && currentAppliedPostgrad > postgradCount) {
+        return res.status(400).json({ 
+          error: `Cannot reduce postgraduate TA count to ${postgradCount}. Current applied count is ${currentAppliedPostgrad} which exceeds the new required count.` 
+        });
+      }
+    }
     
     if (undergradCount > 0) {
       // Set openForUndergraduates to true
@@ -133,8 +168,6 @@ const editModuleRequirments = async (req, res) => {
     }
 
     // Handle postgraduate TA count changes
-    // Convert to number and handle undefined/null cases
-    const postgradCount = Number(requiredPostgraduateTACount) || 0;
     
     if (postgradCount > 0) {
       // Set openForPostgraduates to true

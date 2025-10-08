@@ -193,8 +193,15 @@ const EditModuleDetails: React.FC = () => {
 
       setShowConfirmModal(false);
       setPendingModuleId(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update module:", error);
+      
+      // Display error message to user
+      if (error.response?.data?.error) {
+        alert(error.response.data.error);
+      } else {
+        alert("Failed to update module. Please try again.");
+      }
     } finally {
       setUpdating((prev) => ({ ...prev, [pendingModuleId]: false }));
       setShowConfirmModal(false);
