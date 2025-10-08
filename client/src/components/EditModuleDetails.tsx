@@ -211,6 +211,9 @@ const EditModuleDetails: React.FC = () => {
                     <p className="text-text-primary text-sm mt-1">{m.moduleName}</p>
                             </div>
                   <>
+                    {m.moduleStatus === "pending changes" && (
+                      <span className="badge badge-warning mr-2">Pending Changes</span>
+                    )}
                     {m.moduleStatus === "changes submitted" && (
                       <span className="badge badge-accepted mr-2">Changes Submitted</span>
                     )}
