@@ -101,28 +101,28 @@ const editModuleRequirments = async (req, res) => {
       // Prevent setting undergraduate count to 0 when there are applied TAs
       if (undergradCount === 0 && currentAppliedUndergrad > 0) {
         return res.status(400).json({ 
-          error: `Cannot set undergraduate TA count to 0. There are ${currentAppliedUndergrad} applied undergraduate TAs. You must set the required count to at least ${currentAppliedUndergrad}.` 
+          error: `Cannot set undergraduate TA count to 0 because ${currentAppliedUndergrad} students have already applied.` 
         });
       }
       
       // Prevent reducing undergraduate count below applied count
       if (undergradCount > 0 && currentAppliedUndergrad > undergradCount) {
         return res.status(400).json({ 
-          error: `Cannot reduce undergraduate TA count to ${undergradCount}. Current applied count is ${currentAppliedUndergrad} which exceeds the new required count.` 
+          error: `Cannot reduce undergraduate TA count to ${undergradCount} because ${currentAppliedUndergrad} students have already applied.` 
         });
       }
       
       // Prevent setting postgraduate count to 0 when there are applied TAs
       if (postgradCount === 0 && currentAppliedPostgrad > 0) {
         return res.status(400).json({ 
-          error: `Cannot set postgraduate TA count to 0. There are ${currentAppliedPostgrad} applied postgraduate TAs. You must set the required count to at least ${currentAppliedPostgrad}.` 
+          error: `Cannot set postgraduate TA count to 0 because ${currentAppliedPostgrad} students have already applied.` 
         });
       }
       
       // Prevent reducing postgraduate count below applied count
       if (postgradCount > 0 && currentAppliedPostgrad > postgradCount) {
         return res.status(400).json({ 
-          error: `Cannot reduce postgraduate TA count to ${postgradCount}. Current applied count is ${currentAppliedPostgrad} which exceeds the new required count.` 
+          error: `Cannot reduce postgraduate TA count to ${postgradCount} because ${currentAppliedPostgrad} students have already applied.` 
         });
       }
     }

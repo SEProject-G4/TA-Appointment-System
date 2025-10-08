@@ -68,6 +68,8 @@ const EditModuleDetails: React.FC = () => {
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingModuleId, setPendingModuleId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Record<string, boolean>>({});
+  const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
   // card view only
 
   // Function to check if all three fields have been edited for a specific module
@@ -196,12 +198,13 @@ const EditModuleDetails: React.FC = () => {
     } catch (error: any) {
       console.error("Failed to update module:", error);
       
-      // Display error message to user
+      // Display error message to user with styled modal
       if (error.response?.data?.error) {
-        alert(error.response.data.error);
+        setErrorMessage(error.response.data.error);
       } else {
-        alert("Failed to update module. Please try again.");
+        setErrorMessage("Failed to update module. Please try again.");
       }
+      setShowErrorModal(true);
     } finally {
       setUpdating((prev) => ({ ...prev, [pendingModuleId]: false }));
       setShowConfirmModal(false);
@@ -212,6 +215,11 @@ const EditModuleDetails: React.FC = () => {
   const cancelSubmission = () => {
     setShowConfirmModal(false);
     setPendingModuleId(null);
+  };
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage("");
   };
 
   if (loading) {
@@ -474,6 +482,44 @@ const EditModuleDetails: React.FC = () => {
           <div className="flex gap-3">
             <button onClick={cancelSubmission} className="btn btn-outline flex-1">Cancel</button>
             <button onClick={confirmSubmission} disabled={updating[pendingModuleId || ""]} className={`btn btn-primary flex-1 ${updating[pendingModuleId || ""] ? 'btn-disabled' : ''}`}>{updating[pendingModuleId || ""] ? "Submitting..." : "Confirm & Submit"}</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal 
+        isOpen={showErrorModal} 
+        onClose={closeErrorModal} 
+        showCloseButton={true}
+      >
+        <div className="max-w-md w-full">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-error/20 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-error" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Update Failed</h3>
+              <p className="text-sm text-gray-600">Unable to save changes</p>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <div className="bg-error/5 border border-error/20 rounded-lg p-4">
+              <p className="text-error text-sm leading-relaxed font-medium">
+                {errorMessage}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button 
+              onClick={closeErrorModal} 
+              className="btn btn-primary px-6"
+            >
+              Got it
+            </button>
           </div>
         </div>
       </Modal>
