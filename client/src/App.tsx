@@ -17,9 +17,9 @@ import AddUser from "./pages/admin/AddUser";
 import UndergraduateUsers from "./pages/admin/UndergraduateUsers";
 import ModuleDetails from "./pages/admin/ModuleDetails";
 
-import ViewModuleDetails from "./components/ViewModuleDetails";
-import EditModuleDetails from "./components/EditModuleDetails";
-import HandleTARequests from "./components/HandleTARequests";
+import ViewModuleDetails from "./pages/lecturer/ViewModuleDetails";
+import EditModuleDetails from "./pages/lecturer/EditModuleDetails";
+import HandleTARequests from "./pages/lecturer/HandleTARequests";
 
 import CSEofficeDashboard from "./pages/CSEofficeDashboard";
 
