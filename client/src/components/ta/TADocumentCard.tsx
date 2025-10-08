@@ -68,32 +68,32 @@ export default function DocumentSubmissionModal({
   if (!isDocOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 mb-6 border-b">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <FileText className="w-6 h-6 text-primary" />
+        <div className="flex items-center justify-between pb-3 sm:pb-4 mb-4 sm:mb-6 border-b">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             </div>
-            <h1 className="text-xl font-semibold text-gray-800">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-800">
               Document Submission
             </h1>
           </div>
           <button
             onClick={onClose}
-            className="p-2 transition rounded-full hover:bg-gray-100"
+            className="p-1.5 sm:p-2 transition rounded-full hover:bg-gray-100"
           >
-            <X className="w-5 h-5 text-gray-600" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Position Info */}
-          <div className="p-4 mb-6 border rounded-lg bg-gradient-to-r from-primary/5 to-accent/5">
-            <div className="flex items-center gap-2 mb-3">
-              <GraduationCap className="w-5 h-5 text-primary" />
-              <h2 className="font-semibold text-gray-800">
+          <div className="p-3 sm:p-4 mb-4 sm:mb-6 border rounded-lg bg-gradient-to-r from-primary/5 to-accent/5">
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
+              <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <h2 className="text-sm sm:text-base font-semibold text-gray-800">
                 Position Information
               </h2>
             </div>

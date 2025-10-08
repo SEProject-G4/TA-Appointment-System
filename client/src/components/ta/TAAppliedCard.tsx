@@ -52,30 +52,30 @@ const TAAppliedCard: React.FC<AppliedRequestProps> = ({
   if (viewMode === 'cards') {
     return (
       <>
-        <div className="w-full max-w-sm p-6 transition-all duration-300 border rounded-lg shadow-sm bg-bg-card hover:shadow-md border-border/50">
+        <div className="w-full p-4 sm:p-6 transition-all duration-300 border rounded-lg shadow-sm bg-bg-card hover:shadow-md border-border/50">
           {/* Header */}
-          <div className="mb-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <BookOpen className="w-5 h-5 text-primary" />
+          <div className="mb-3 sm:mb-4">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               </div>
-              <div className="text-xs font-medium border-transparent bg-bg-card text-text-secondary hover:bg-primary-light/80 inline-flex items-center rounded-full border px-2.5 py-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+              <div className="text-xs font-medium border-transparent bg-bg-card text-text-secondary hover:bg-primary-light/80 inline-flex items-center rounded-full border px-2 sm:px-2.5 py-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 flex-shrink-0">
                 {moduleCode}
               </div>
             </div>
-            <h3 className="mb-3 text-lg font-semibold leading-tight text-foreground">
+            <h3 className="mb-2 sm:mb-3 text-base sm:text-lg font-semibold leading-tight text-foreground">
               {moduleName}
             </h3>
             
             {/* Status Badge */}
-            <div className={`${getStatusColor(status)} text-sm font-medium inline-flex items-center rounded-full px-3 py-1.5 border mb-4`}>
+            <div className={`${getStatusColor(status)} text-xs sm:text-sm font-medium inline-flex items-center rounded-full px-2 sm:px-3 py-1 sm:py-1.5 border mb-3 sm:mb-4`}>
               {status}
             </div>
           </div>
 
           {/* Applied Date */}
-          <div className="flex items-center gap-2 mb-6 text-sm text-text-secondary">
-            <Calendar className="w-4 h-4" />
+          <div className="flex items-center gap-2 mb-4 sm:mb-6 text-xs sm:text-sm text-text-secondary">
+            <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
             <span>Applied: {appliedDate}</span>
           </div>
 

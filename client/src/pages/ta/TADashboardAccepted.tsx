@@ -20,7 +20,7 @@ function TADashboardAccepted() {
   const { user } = useAuth();
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<"cards" | "list">("list");
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [isDocOpen, setIsDocOpen] = useState(false);
   const userRole = user?.role;
   const userId = user?.id; //check weather this correct------------------------------
@@ -65,24 +65,24 @@ const totalTAHours = modules.reduce(
   return (
     <div>
       <div className="min-h-screen bg-bg-card text-text-primary">
-        <div className="container px-4 py-8 mx-auto">
+        <div className="container px-2 sm:px-4 py-4 sm:py-8 mx-auto">
           {/* header */}
-          <div className="mb-12 text-center">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="p-3 rounded-xl bg-primary/10">
-                <CircleCheckBig className="w-8 h-8 text-success" />
+          <div className="mb-8 sm:mb-12 text-center">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-4">
+              <div className="p-2 sm:p-3 rounded-xl bg-primary/10">
+                <CircleCheckBig className="w-6 h-6 sm:w-8 sm:h-8 text-success" />
               </div>
-              <h1 className="text-4xl font-bold text-text-primary">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-primary text-center">
                 Accepted TA Positions
               </h1>
             </div>
-            <p className="max-w-2xl mx-auto text-lg text-text-secondary">
+            {/* <p className="max-w-2xl mx-auto text-lg text-text-secondary">
               Congratulations! Manage your accepted Teaching Assistant positions
               and stay organized with your responsibilities.
-            </p>
+            </p> */}
           </div>
           {/* stats */}
-          <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8 sm:grid-cols-2 lg:grid-cols-3">
             <TAStatCard
               statName="Total Hours per Week"
               statValue={3}
@@ -93,31 +93,33 @@ const totalTAHours = modules.reduce(
               statValue={2}
               icon={Trophy}
             />
-            <TAStatCard
-              statName="Documents Pending"
-              statValue={0}
-              icon={File}
-            />
+            <div className="sm:col-span-2 lg:col-span-1">
+              <TAStatCard
+                statName="Documents Pending"
+                statValue={0}
+                icon={File}
+              />
+            </div>
           </div>
         </div>
-        <div className="m-16">
-          <div className="p-6 mb-8 border border-blue-200 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <FileIcon className="w-6 h-6 text-blue-600" />
+        <div className="m-2 sm:m-4 lg:m-8 xl:m-16">
+          <div className="p-4 sm:p-6 mb-6 sm:mb-8 border border-blue-200 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 flex-1">
+                <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
+                  <FileIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                 </div>
-                <div>
-                  <h2 className="mb-1 text-xl font-semibold text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <h2 className="mb-1 text-lg sm:text-xl font-semibold text-gray-900">
                     Document Submissions Required
                   </h2>
-                  <p className="text-gray-600">
+                  <p className="text-sm sm:text-base text-gray-600">
                     Submit your documents for the following accepted TA
                     positions to complete your onboarding process.
                   </p>
                 </div>
               </div>
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 w-full sm:w-auto">
                 <Button
                   icon={<UploadIcon className="w-4 h-4" />}
                   label="Submit Documents"
@@ -129,25 +131,31 @@ const totalTAHours = modules.reduce(
         </div>
 
         {/* accepted TA positions */}
-        <div className="gap-2 m-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="mb-4 text-2xl font-semibold text-foreground">
+        <div className="gap-2 m-2 sm:m-4 lg:m-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <h2 className="text-xl sm:text-2xl font-semibold text-foreground">
               Accepted TA Positions
             </h2>
-            <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
+            <div className="flex justify-center sm:justify-start w-full sm:w-auto">
+              <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
+            </div>
           </div>
           {loading ? (
-            <p>Loading...</p>
+            <div className="flex items-center justify-center py-8 sm:py-12">
+              <p className="text-base sm:text-lg text-text-secondary">Loading...</p>
+            </div>
           ) : applications.length === 0 ? (
-            <p className="text-text-secondary">
-              You have not applied for any TA positions yet.
-            </p>
+            <div className="py-8 sm:py-12 text-center">
+              <p className="text-base sm:text-lg text-text-secondary">
+                You have not applied for any TA positions yet.
+              </p>
+            </div>
           ) : (
             <div
               className={
                 viewMode === "cards"
-                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                  : "space-y-4"
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
+                  : "space-y-3 sm:space-y-4"
               }
             >
               {applications.flatMap((app) =>

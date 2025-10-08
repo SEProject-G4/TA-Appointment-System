@@ -11,7 +11,7 @@ function TADashboardApplied() {
 
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<"cards" | "list">("list");
+  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const userId = user?.id; //check weather this correct------------------------------
   const userRole = user?.role;
 
@@ -40,22 +40,22 @@ function TADashboardApplied() {
   return (
     <div>
       <div className="min-h-screen bg-bg-card text-text-primary">
-        <div className="container px-4 py-8 mx-auto">
+        <div className="container px-2 sm:px-4 py-4 sm:py-8 mx-auto">
           {/* header */}
-          <div className="mb-12 text-center">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="p-3 rounded-xl bg-primary/10">
-                <FileUser className="w-8 h-8 text-text-primary" />
+          <div className="mb-8 sm:mb-12 text-center">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-4">
+              <div className="p-2 sm:p-3 rounded-xl bg-primary/10">
+                <FileUser className="w-6 h-6 sm:w-8 sm:h-8 text-text-primary" />
               </div>
-              <h1 className="text-4xl font-bold ">Applied TA Positions</h1>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center">Applied TA Positions</h1>
             </div>
-            <p className="max-w-2xl mx-auto text-lg text-text-secondary">
+            {/* <p className="max-w-2xl mx-auto text-lg text-text-secondary">
               Track the status of your TA position applications. Stay updated on
               application progress.
-            </p>
+            </p> */}
           </div>
           {/* stats */}
-          <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8 sm:grid-cols-2 lg:grid-cols-3">
             <TAStatCard
               statName="Applications Submitted"
               statValue={applications.length}
@@ -68,35 +68,43 @@ function TADashboardApplied() {
               }
               icon={Trophy}
             />
-            <TAStatCard
-              statName="Rejected Positions"
-              statValue={
-                applications.filter((app) => app.status === "rejected").length
-              }
-              icon={Delete}
-            />
+            <div className="sm:col-span-2 lg:col-span-1">
+              <TAStatCard
+                statName="Rejected Positions"
+                statValue={
+                  applications.filter((app) => app.status === "rejected").length
+                }
+                icon={Delete}
+              />
+            </div>
           </div>
         </div>
         {/* applied TA positions */}
-        <div className="gap-2 m-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-foreground">
+        <div className="gap-2 m-2 sm:m-4 lg:m-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <h2 className="text-xl sm:text-2xl font-semibold text-foreground">
               Applied TA Positions
             </h2>
-            <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
+            <div className="flex justify-center sm:justify-start w-full sm:w-auto">
+              <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
+            </div>
           </div>
           {loading ? (
-            <p>Loading...</p>
+            <div className="flex items-center justify-center py-8 sm:py-12">
+              <p className="text-base sm:text-lg text-text-secondary">Loading...</p>
+            </div>
           ) : applications.length === 0 ? (
-            <p className="text-text-secondary">
-              You have not applied for any TA positions yet.
-            </p>
+            <div className="py-8 sm:py-12 text-center">
+              <p className="text-base sm:text-lg text-text-secondary">
+                You have not applied for any TA positions yet.
+              </p>
+            </div>
           ) : (
             <div
               className={
                 viewMode === "cards"
-                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                  : "space-y-4"
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
+                  : "space-y-3 sm:space-y-4"
               }
             >
               {applications.map((app) => (
