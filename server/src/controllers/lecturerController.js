@@ -14,12 +14,12 @@ const getMyModules = async (req, res) => {
 
     const coordinatorId = req.user._id;
 
-    // Get all modules where user is coordinator with either status
+    // Get all modules where user is coordinator with editable statuses
     const modules = await ModuleDetails
       .find({ 
         coordinators: coordinatorId,
         moduleStatus: { 
-          $in: ['pending changes', 'changes submitted'] 
+          $in: ['pending changes', 'changes submitted', 'advertised'] 
         }
       })
       .sort({ createdAt: -1 });
@@ -30,12 +30,14 @@ const getMyModules = async (req, res) => {
     // Group modules by status
     const groupedModules = {
       pendingChanges: activeModules.filter(m => m.moduleStatus === 'pending changes'),
-      changesSubmitted: activeModules.filter(m => m.moduleStatus === 'changes submitted')
+      changesSubmitted: activeModules.filter(m => m.moduleStatus === 'changes submitted'),
+      advertised: activeModules.filter(m => m.moduleStatus === 'advertised')
     };
 
     console.log('lecturer getMyModules -> matched', 
-      groupedModules.pendingChanges.length, 'pending changes and',
-      groupedModules.changesSubmitted.length, 'changes submitted modules for', 
+      groupedModules.pendingChanges.length, 'pending changes,',
+      groupedModules.changesSubmitted.length, 'changes submitted, and',
+      groupedModules.advertised.length, 'advertised modules for', 
       coordinatorId
     );
 
@@ -70,12 +72,22 @@ const editModuleRequirments = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to edit this module' });
     }
 
-    // Verify the module is in "pending changes" status
-    if (moduleDoc.moduleStatus !== 'pending changes') {
-      return res.status(400).json({ error: 'Module is not in pending changes status' });
+    // Verify the module is in an editable status
+    const editableStatuses = ['pending changes', 'changes submitted', 'advertised'];
+    if (!editableStatuses.includes(moduleDoc.moduleStatus)) {
+      return res.status(400).json({ error: 'Module is not in an editable status' });
     }
 
-    // Update the module fields and set status to "changes submitted"
+    // Determine the new status based on current status
+    let newStatus = moduleDoc.moduleStatus;
+    if (moduleDoc.moduleStatus === 'pending changes') {
+      newStatus = 'changes submitted';
+    } else if (moduleDoc.moduleStatus === 'changes submitted' || moduleDoc.moduleStatus === 'advertised') {
+      // Keep the same status for these stages
+      newStatus = moduleDoc.moduleStatus;
+    }
+
+    // Update the module fields with appropriate status
     const updatedModule = await ModuleDetails.findByIdAndUpdate(
       id,
       {
@@ -84,7 +96,7 @@ const editModuleRequirments = async (req, res) => {
           requiredUndergraduateTACount,
           requiredPostgraduateTACount,
           requirements,
-          moduleStatus: 'changes submitted',
+          moduleStatus: newStatus,
           updatedBy: req.user._id,
         },
       },
