@@ -137,14 +137,16 @@ const editModuleRequirments = async (req, res) => {
       const currentReviewed = moduleDoc.undergraduateCounts?.reviewed || 0;
       const currentDocSubmitted = moduleDoc.undergraduateCounts?.docSubmitted || 0;
       const currentAppointed = moduleDoc.undergraduateCounts?.appointed || 0;
+      const currentRemaining = moduleDoc.undergraduateCounts?.remaining || 0;
+      const oldRequired = moduleDoc.undergraduateCounts?.required || 0;
       
-      // Calculate remaining count (required - accepted)
-      const remainingCount = Math.max(0, undergradCount - currentAccepted);
+      // Calculate new remaining: remaining = remaining + new_required - old_required
+      const newRemaining = Math.max(0, currentRemaining + undergradCount - oldRequired);
       
       // Initialize or update undergraduateCounts
       updateFields.undergraduateCounts = {
         required: undergradCount,
-        remaining: remainingCount,
+        remaining: newRemaining,
         applied: currentApplied,
         reviewed: currentReviewed,
         accepted: currentAccepted,
@@ -179,14 +181,16 @@ const editModuleRequirments = async (req, res) => {
       const currentReviewed = moduleDoc.postgraduateCounts?.reviewed || 0;
       const currentDocSubmitted = moduleDoc.postgraduateCounts?.docSubmitted || 0;
       const currentAppointed = moduleDoc.postgraduateCounts?.appointed || 0;
+      const currentRemaining = moduleDoc.postgraduateCounts?.remaining || 0;
+      const oldRequired = moduleDoc.postgraduateCounts?.required || 0;
       
-      // Calculate remaining count (required - accepted)
-      const remainingCount = Math.max(0, postgradCount - currentAccepted);
+      // Calculate new remaining: remaining = remaining + new_required - old_required
+      const newRemaining = Math.max(0, currentRemaining + postgradCount - oldRequired);
       
       // Initialize or update postgraduateCounts
       updateFields.postgraduateCounts = {
         required: postgradCount,
-        remaining: remainingCount,
+        remaining: newRemaining,
         applied: currentApplied,
         reviewed: currentReviewed,
         accepted: currentAccepted,
@@ -233,8 +237,6 @@ const editModuleRequirments = async (req, res) => {
     console.log('Undergraduate count set to:', undergradCount, 'Postgraduate count set to:', postgradCount);
     console.log('Open for undergraduates:', updateFields.openForUndergraduates ? 'enabled' : 'disabled');
     console.log('Open for postgraduates:', updateFields.openForPostgraduates ? 'enabled' : 'disabled');
-    console.log('Undergraduate remaining slots:', updateFields.undergraduateCounts?.remaining || 0);
-    console.log('Postgraduate remaining slots:', updateFields.postgraduateCounts?.remaining || 0);
     console.log('Updated module after save:', {
       openForUndergraduates: updatedModule.openForUndergraduates,
       openForPostgraduates: updatedModule.openForPostgraduates,
