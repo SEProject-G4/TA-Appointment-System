@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../../api/axiosConfig";
-import { FaRegEdit } from "react-icons/fa";
 import Modal from "../../components/common/Modal";
+import EditModuleDetailsCard from "../../components/lecturer/EditModuleDetailsCard";
 
 interface ModuleEditData {
   moduleCode: string;
@@ -264,217 +264,29 @@ const EditModuleDetails: React.FC = () => {
         </div>
         <div className="flex items-center space-x-2" />
       </div>
-      {
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full">
-          {modules.map((m) => {
-            const d = moduleEdits[m._id];
-            const isEditing = editing[m._id];
-            return (
-              <div
-                key={m._id}
-                className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-0 bg-bg-card shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="flex w-full items-center justify-between px-4 py-3 border-b border-border-default">
-                  <div className="flex flex-col">
-                    <div className="flex items-center space-x-3">
-                      <h2 className="text-text-primary font-semibold text-base">{m.moduleCode}</h2>
-                      <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
-                        Semester {m.semester} {m.year}
-                            </span>
-                          </div>
-                    <p className="text-text-primary text-sm mt-1">{m.moduleName}</p>
-                            </div>
-                  <>
-                    {m.moduleStatus === "pending changes" && (
-                      <span className="badge badge-warning mr-2">Pending Changes</span>
-                    )}
-                    {m.moduleStatus === "changes submitted" && (
-                      <span className="badge badge-accepted mr-2">Changes Submitted</span>
-                    )}
-                    {m.moduleStatus === "advertised" && (
-                      <span className="badge badge-info mr-2">Advertised</span>
-                    )}
-                    {(m.moduleStatus === "pending changes" || m.moduleStatus === "changes submitted" || m.moduleStatus === "advertised") && (
-                      <button
-                        type="button"
-                        onClick={() => setEditing((prev) => ({ ...prev, [m._id]: true }))}
-                        className="p-2 rounded-full bg-red-500/10 text-red-700 hover:bg-red-500/20"
-                        title="Edit module requirements"
-                        aria-label="Edit module"
-                      >
-                        <FaRegEdit className="w-4 h-4" />
-                      </button>
-                    )}
-                  </>
-                        </div>
-
-                <form onSubmit={handleSubmit(m._id)} className="p-4 space-y-4 w-full">
-                  <div className="bg-bg-page rounded-lg p-3 mb-2 border border-border-default">
-                    <div className="grid grid-cols-1 gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-text-secondary">Application Due</span>
-                        <span className="text-sm font-semibold text-text-primary">
-                          {new Date(m.applicationDueDate).toLocaleDateString()}
-                            </span>
-                          </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-text-secondary">Document Due</span>
-                        <span className="text-sm font-semibold text-text-primary">
-                          {m.documentDueDate
-                            ? new Date(m.documentDueDate).toLocaleDateString()
-                            : "N/A"}
-                        </span>
-                          </div>
-                        </div>
-                      </div>
-
-                  {!isEditing ? (
-                    <div className="space-y-4">
-                      <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
-                        <h3 className="text-sm font-semibold text-text-primary mb-2">Submitted TA Requirements</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div className="bg-white rounded-lg p-3 border border-border-default">
-                            <div className="text-xs text-text-secondary">Required TA Hours</div>
-                            <div className="text-text-primary text-sm">
-                              {Number(d?.requiredTAHoursPerWeek ?? 0)} {Number(d?.requiredTAHoursPerWeek ?? 0) === 1 ? 'hour' : 'hours'} per week
-                            </div>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 border border-border-default">
-                            <div className="text-xs text-text-secondary">Undergraduate TAs</div>
-                            <div className="text-text-primary text-sm">
-                              {Number(d?.requiredUndergraduateTACount ?? 0)} {Number(d?.requiredUndergraduateTACount ?? 0) === 1 ? 'TA' : 'TAs'}
-                            </div>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 border border-border-default">
-                            <div className="text-xs text-text-secondary">Postgraduate TAs</div>
-                            <div className="text-text-primary text-sm">
-                              {Number(d?.requiredPostgraduateTACount ?? 0)} {Number(d?.requiredPostgraduateTACount ?? 0) === 1 ? 'TA' : 'TAs'}
-                            </div>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 border border-border-default sm:col-span-2">
-                            <div className="text-xs text-text-secondary mb-1">Requirements</div>
-                            <div className="text-sm text-text-primary leading-relaxed">
-                              {d?.requirements || "No specific requirements specified for this TA position."}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-text-primary mb-2">
-                          TA Hours per Week
-                        </label>
-                        <input
-                          type="number"
-                          value={d?.requiredTAHoursPerWeek ?? 0}
-                          onChange={(e) =>
-                            handleInputChange(
-                              m._id,
-                              "requiredTAHoursPerWeek",
-                              parseInt(e.target.value)
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-page text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          placeholder="e.g., 6"
-                          min={0}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-text-primary mb-2">
-                          Undergraduate TAs Required
-                        </label>
-                        <input
-                          type="number"
-                          value={d?.requiredUndergraduateTACount ?? 0}
-                          onChange={(e) =>
-                            handleInputChange(
-                              m._id,
-                              "requiredUndergraduateTACount",
-                              parseInt(e.target.value)
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-page text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          placeholder="e.g., 3"
-                          min={0}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-text-primary mb-2">
-                          Postgraduate TAs Required
-                        </label>
-                        <input
-                          type="number"
-                          value={d?.requiredPostgraduateTACount ?? 0}
-                          onChange={(e) =>
-                            handleInputChange(
-                              m._id,
-                              "requiredPostgraduateTACount",
-                              parseInt(e.target.value)
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-page text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          placeholder="e.g., 2"
-                          min={0}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-text-primary mb-2">
-                        Requirements for TA Position
-                      </label>
-                      <textarea
-                        value={d?.requirements ?? ""}
-                        onChange={(e) =>
-                          handleInputChange(
-                            m._id,
-                            "requirements",
-                            e.target.value
-                          )
-                        }
-                        rows={4}
-                        className="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-page text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                        placeholder="Enter detailed requirements for TA applicants..."
-                      />
-                    </div>
-                  </>
-                )}
-
-                  <div className="flex justify-end space-x-2">
-                    {isEditing && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          resetModuleData(m._id);
-                          setEditing((prev) => ({ ...prev, [m._id]: false }));
-                        }}
-                        className="btn btn-outline"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                    {(m.moduleStatus === "pending changes" || m.moduleStatus === "changes submitted" || m.moduleStatus === "advertised") && isEditing && (
-                    <button
-                      type="submit"
-                      disabled={updating[m._id] || !areAllFieldsEdited(m._id)}
-                        className={`btn btn-primary ${updating[m._id] || !areAllFieldsEdited(m._id) ? 'btn-disabled' : ''}`}
-                      >
-                        {updating[m._id] ? "Saving..." : "Save Changes"}
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full">
+        {modules.map((m) => {
+          const d = moduleEdits[m._id];
+          const isEditing = editing[m._id];
+          return (
+            <EditModuleDetailsCard
+              key={m._id}
+              module={m}
+              moduleData={d}
+              isEditing={isEditing}
+              updating={updating[m._id]}
+              onEditClick={() => setEditing((prev) => ({ ...prev, [m._id]: true }))}
+              onInputChange={(field, value) => handleInputChange(m._id, field, value)}
+              onSubmit={handleSubmit(m._id)}
+              onCancel={() => {
+                resetModuleData(m._id);
+                setEditing((prev) => ({ ...prev, [m._id]: false }));
+              }}
+              areAllFieldsEdited={areAllFieldsEdited(m._id)}
+            />
           );
         })}
       </div>
-      }
 
       <Modal 
         isOpen={showConfirmModal} 
