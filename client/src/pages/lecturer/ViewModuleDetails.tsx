@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../../api/axiosConfig";
 import { FaTimes, FaUserGraduate } from "react-icons/fa";
+import ViewModuleDetailsCard from "../../components/lecturer/ViewModuleDetailsCard";
 
 interface AcceptedTA { userId: string; name: string; indexNumber: string; documents?: any; docStatus?: 'pending' | 'submitted'; role?: 'undergraduate' | 'postgraduate' }
 interface ModuleWithAccepted {
@@ -116,34 +117,6 @@ const ViewModuleDetails: React.FC = () => {
     );
   };
 
-  const renderTAItem = (ta: AcceptedTA, _moduleIndex: number, taIndex: number) => {
-    const canShowDocs = ta.docStatus === 'submitted';
-
-    return (
-      <div key={taIndex} className="relative bg-bg-page rounded-lg border border-border-default p-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="flex flex-col">
-              <span className="font-medium text-text-primary">{ta.name}</span>
-              <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
-            </div>
-          </div>
-          {!canShowDocs && (
-            <span className="badge badge-pending">Not submitted</span>
-          )}
-        </div>
-
-        {canShowDocs && (
-          <button
-            onClick={() => openDocModal(ta)}
-            className="absolute bottom-2 right-2 btn btn-outline btn-xs"
-          >
-            View more
-          </button>
-        )}
-      </div>
-    );
-  }
 
   const renderDocModal = () => {
     if (!docModal?.open || !docModal.ta) return null;
@@ -190,79 +163,14 @@ const ViewModuleDetails: React.FC = () => {
         // Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
           {modules.map((module, moduleIndex) => (
-            <div key={moduleIndex} 
-              className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-0 bg-bg-card shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="flex w-full items-center justify-between p-4 border-b border-border-default">
-                <div className="flex flex-col">
-                  <div className="flex items-center space-x-3">
-                    <h2 className="text-text-primary font-semibold text-base">{module.moduleCode}</h2>
-                    <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
-                      Semester {module.semester} {module.year}
-                    </span>
-                  </div>
-                  <p className="text-text-primary text-sm mt-1">{module.moduleName}</p>
-                </div>
-              </div>
-
-              <div className="p-4 space-y-4 w-full">
-                {/* Module Stats */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-bg-page rounded-lg p-3 border border-border-default">
-                    <div className="text-xs text-text-secondary">TA Hours</div>
-                    <div className="text-sm font-semibold text-text-primary">{Number(module.requiredTAHours ?? 0)}h</div>
-                  </div>
-                  <div className="bg-bg-page rounded-lg p-3 border border-border-default">
-                    <div className="text-xs text-text-secondary">{((activeTabByModule[module.moduleId] || 'undergraduate') === 'undergraduate') ? 'Accepted Undergraduates' : 'Accepted Postgraduates'}</div>
-                    <div className="text-sm font-semibold text-text-primary">{Number((module.acceptedTAs || []).filter(ta => (ta.role || 'undergraduate') === (activeTabByModule[module.moduleId] || 'undergraduate')).length)}</div>
-                  </div>
-                </div>
-
-                {/* Tabs */}
-                {(() => {
-                  const ugCount = (module.acceptedTAs || []).filter(t => (t.role || 'undergraduate') === 'undergraduate').length;
-                  const pgCount = (module.acceptedTAs || []).filter(t => (t.role || 'undergraduate') === 'postgraduate').length;
-                  const currentTab = activeTabByModule[module.moduleId] || 'undergraduate';
-                  // If current tab has zero and the other has > 0, auto-switch for better UX
-                  const shouldSwitchToPG = currentTab === 'undergraduate' && ugCount === 0 && pgCount > 0;
-                  const shouldSwitchToUG = currentTab === 'postgraduate' && pgCount === 0 && ugCount > 0;
-                  if (shouldSwitchToPG) {
-                    setActiveTabByModule(prev => ({ ...prev, [module.moduleId]: 'postgraduate' }));
-                  } else if (shouldSwitchToUG) {
-                    setActiveTabByModule(prev => ({ ...prev, [module.moduleId]: 'undergraduate' }));
-                  }
-                  return (
-                <div className="flex w-full border-b border-border-default">
-                  {(['undergraduate','postgraduate'] as const).map(tab => {
-                    const count = tab === 'undergraduate' ? ugCount : pgCount;
-                    const isActive = (activeTabByModule[module.moduleId] || 'undergraduate') === tab;
-                    const isDisabled = count === 0;
-                    const baseCls = `px-3 py-2 text-sm font-medium ${isActive ? 'text-primary border-b-2 border-primary' : 'text-text-secondary'}`;
-                    const disabledCls = isDisabled ? ' opacity-50 cursor-not-allowed' : '';
-                    return (
-                      <button
-                        key={tab}
-                        onClick={() => { if (!isDisabled) setActiveTabByModule(prev => ({ ...prev, [module.moduleId]: tab })); }}
-                        className={baseCls + disabledCls}
-                        disabled={isDisabled}
-                        title={isDisabled ? 'No accepted TAs in this category' : undefined}
-                      >
-                        {tab === 'undergraduate' ? 'Undergraduates' : 'Postgraduates'} ({count})
-                      </button>
-                    );
-                  })}
-                </div>
-                  );
-                })()}
-
-                {/* TA List */}
-                <div className="space-y-3">
-                  {module.acceptedTAs
-                    .filter(ta => (ta.role || 'undergraduate') === (activeTabByModule[module.moduleId] || 'undergraduate'))
-                    .map((ta, taIndex) => renderTAItem(ta, moduleIndex, taIndex))}
-                </div>
-              </div>
-            </div>
+            <ViewModuleDetailsCard
+              key={moduleIndex}
+              module={module}
+              moduleIndex={moduleIndex}
+              activeTabByModule={activeTabByModule}
+              onTabChange={(moduleId, tab) => setActiveTabByModule(prev => ({ ...prev, [moduleId]: tab }))}
+              onViewDocuments={openDocModal}
+            />
           ))}
         </div>
       }
