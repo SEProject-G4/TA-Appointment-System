@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
 const config = require('./config');
-const { protected, authorize } = require('./middleware/authMiddleware');
+const { protected: protectedMiddleware, authorize } = require('./middleware/authMiddleware');
 
 const app = express();
 
@@ -27,7 +27,7 @@ app.use(session({
 
 // ... mount your other routes here
 app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/user-management', protected, authorize("admin"), require('./routes/userGroupRoutes'));
+app.use('/api/user-management', protectedMiddleware, authorize("admin"), require('./routes/userGroupRoutes'));
 app.use('/api/lecturer', require('./routes/lecturerRoutes'));
 app.use('/api/recruitment-series', require('./routes/recruitmentSeriesRoutes'));
 app.use('/api/modules', require('./routes/moduleRoutes'));

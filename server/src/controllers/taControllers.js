@@ -1,5 +1,4 @@
 const { get, default: mongoose, model } = require("mongoose");
-const app = require("../app");
 const ModuleDetails = require("../models/ModuleDetails");
 const TaApplication = require("../models/TaApplication");
 const User = require("../models/User");
