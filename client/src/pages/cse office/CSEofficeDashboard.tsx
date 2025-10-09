@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import axios from '../api/axiosConfig'
+import axios from '../../api/axiosConfig'
 import { FaTimes, FaUserGraduate } from 'react-icons/fa'
 
 type FileMeta = {
