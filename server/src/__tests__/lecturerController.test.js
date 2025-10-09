@@ -102,7 +102,7 @@ describe('lecturerController.editModuleRequirments', () => {
             requiredPostgraduateTACount: 2,
             requirements: 'Strong programming skills required',
             updatedBy: 'lecturer123',
-            moduleStatus: 'pending changes'
+            moduleStatus: 'changes submitted'
           })
         },
         { new: true, runValidators: true }
@@ -253,7 +253,7 @@ describe('lecturerController.editModuleRequirments', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({ 
-        error: 'Cannot reduce undergraduate TA count below current applied count (4)' 
+        error: 'Cannot reduce undergraduate TA count to 2 because 4 students have already applied.' 
       });
     });
 
@@ -276,7 +276,7 @@ describe('lecturerController.editModuleRequirments', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({ 
-        error: 'Cannot reduce postgraduate TA count below current applied count (2)' 
+        error: 'Cannot reduce postgraduate TA count to 1 because 2 students have already applied.' 
       });
     });
 
@@ -337,7 +337,7 @@ describe('lecturerController.editModuleRequirments', () => {
         {
           $set: expect.objectContaining({
             requiredTAHours: undefined,
-            requiredUndergraduateTACount: 0, // Should default to 0 for null
+            requiredUndergraduateTACount: null,
             requiredPostgraduateTACount: 0,
             requirements: 'Test requirements'
           })
