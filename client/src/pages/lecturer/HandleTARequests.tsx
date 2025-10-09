@@ -49,8 +49,9 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
 
   const filteredTAs = appliedTAs.filter(ta => (ta.role || 'undergraduate') === activeTab);
   const acceptedInTab = filteredTAs.filter(ta => (ta.status || '').toLowerCase() === 'accepted').length;
+  const appliedInTab = filteredTAs.length;
   const requiredForTab = activeTab === 'undergraduate' ? Number(requiredUndergraduateTAs ?? 0) : Number(requiredPostgraduateTAs ?? 0);
-  const progress = Math.min(requiredForTab > 0 ? (acceptedInTab / requiredForTab) * 100 : 0, 100);
+  const progress = Math.min(appliedInTab > 0 ? (acceptedInTab / appliedInTab) * 100 : 0, 100);
 
   return (
     <div className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-4 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
@@ -77,7 +78,7 @@ const TARequestCard: React.FC<TARequestCardProps> = ({
         <div className="flex items-center space-x-4">
           <div className="text-right">
             <div className="text-sm text-text-secondary">Progress</div>
-            <div className="text-lg font-semibold text-text-primary">{acceptedInTab}/{requiredForTab}</div>
+            <div className="text-lg font-semibold text-text-primary">{acceptedInTab}/{appliedInTab}</div>
           </div>
           <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
