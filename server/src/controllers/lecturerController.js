@@ -420,9 +420,32 @@ const acceptApplication = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to manage this application' });
     }
 
+    // Get user details to determine role (undergraduate/postgraduate)
+    const user = await User.findById(application.userId).select('role');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     // Update application status
     application.status = 'accepted';
     await application.save();
+
+    // Update module counts based on user role
+    if (user.role === 'undergraduate') {
+      await ModuleDetails.findByIdAndUpdate(applicationModuleId, {
+        $inc: {
+          'undergraduateCounts.reviewed': 1,
+          'undergraduateCounts.accepted': 1
+        }
+      });
+    } else if (user.role === 'postgraduate') {
+      await ModuleDetails.findByIdAndUpdate(applicationModuleId, {
+        $inc: {
+          'postgraduateCounts.reviewed': 1,
+          'postgraduateCounts.accepted': 1
+        }
+      });
+    }
 
     console.log('lecturer acceptApplication -> accepted application', applicationId, 'for', coordinatorId);
 
@@ -459,9 +482,32 @@ const rejectApplication = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to manage this application' });
     }
 
+    // Get user details to determine role (undergraduate/postgraduate)
+    const user = await User.findById(application.userId).select('role');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     // Update application status
     application.status = 'rejected';
     await application.save();
+
+    // Update module counts based on user role
+    if (user.role === 'undergraduate') {
+      await ModuleDetails.findByIdAndUpdate(applicationModuleId, {
+        $inc: {
+          'undergraduateCounts.reviewed': 1,
+          'undergraduateCounts.remaining': 1
+        }
+      });
+    } else if (user.role === 'postgraduate') {
+      await ModuleDetails.findByIdAndUpdate(applicationModuleId, {
+        $inc: {
+          'postgraduateCounts.reviewed': 1,
+          'postgraduateCounts.remaining': 1
+        }
+      });
+    }
 
     console.log('lecturer rejectApplication -> rejected application', applicationId, 'for', coordinatorId);
 
