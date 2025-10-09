@@ -1,4 +1,4 @@
-const RecruitmentSeries = require('../models/recruitmentSeries');
+const RecruitmentRound = require('../models/RecruitmentRound');
 const ModuleDetails = require('../models/ModuleDetails');
 const TaApplication = require('../models/TaApplication');
 const TaDocumentSubmission = require('../models/TaDocumentSubmission');
@@ -11,7 +11,7 @@ const User = require('../models/User');
 //     }
 
 //     // Active recruitment series
-//     const activeSeries = await RecruitmentSeries.find({ status: 'initialised' }).select('_id');
+//     const activeSeries = await RecruitmentRound.find({ status: 'initialised' }).select('_id');
 //     const activeSeriesIds = new Set(activeSeries.map(rs => rs._id.toString()));
 
 //     // Modules in active series
@@ -121,7 +121,7 @@ const viewTADocuments = async (req, res) => {
         }
 
         // 1) Active recruitment series
-        const activeSeries = await RecruitmentSeries.find({ status: 'initialised' }).select('_id');
+        const activeSeries = await RecruitmentRound.find({ status: 'initialised' }).select('_id');
         const activeSeriesIds = new Set(activeSeries.map(rs => rs._id.toString()));
 
         // 2) Modules in active series
