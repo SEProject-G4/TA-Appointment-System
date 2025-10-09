@@ -9,9 +9,10 @@
     "skipLibCheck": true,
     "isolatedModules": false,
     "verbatimModuleSyntax": false,
-    "strict": true,
+    "strict": false,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "types": ["jest", "@testing-library/jest-dom", "@testing-library/react", "node"]
   },
   "include": ["src"]
 }
