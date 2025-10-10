@@ -244,22 +244,22 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
     );
   };
 
-  const isFormValid = () => {
-    return (
-      !formData.name ||
-      !!inputErrors.name ||
-      !formData.undergradHourLimit ||
-      !!inputErrors.undergradHourLimit ||
-      !formData.postgradHourLimit ||
-      !!inputErrors.postgradHourLimit ||
-      !formData.applicationDueDate ||
-      !!inputErrors.applicationDueDate ||
-      !formData.documentDueDate ||
-      !!inputErrors.documentDueDate ||
-      (formData.undergradMailingList.length === 0 &&
-        formData.postgradMailingList.length === 0)
-    );
-  };
+  // const isFormValid = () => {
+  //   return (
+  //     !formData.name ||
+  //     !!inputErrors.name ||
+  //     !formData.undergradHourLimit ||
+  //     !!inputErrors.undergradHourLimit ||
+  //     !formData.postgradHourLimit ||
+  //     !!inputErrors.postgradHourLimit ||
+  //     !formData.applicationDueDate ||
+  //     !!inputErrors.applicationDueDate ||
+  //     !formData.documentDueDate ||
+  //     !!inputErrors.documentDueDate ||
+  //     (formData.undergradMailingList.length === 0 &&
+  //       formData.postgradMailingList.length === 0)
+  //   );
+  // };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -321,7 +321,7 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
         <h2 className="text-xl font-semibold text-text-primary">
           Copy Recruitment Series
         </h2>
-        <p className="text-sm text-text-secondary mt-1">
+        <p className="mt-1 text-sm text-text-secondary">
           Making a copy using: {recruitmentSeriesData.name}
         </p>
       </div>
@@ -345,13 +345,13 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
           style={{ transform: `translateX(-${currentStep * 100}%)` }}
         >
           {/* Step 1 */}
-          <div className="w-full flex-shrink-0 px-6 py-6">
-            <p className="text-text-primary w-full text-center mb-2">
+          <div className="flex-shrink-0 w-full px-6 py-6">
+            <p className="w-full mb-2 text-center text-text-primary">
               Edit basic info of the new recruitment series.
             </p>
             <div className="flex flex-col gap-y-6">
               {/* Series Name */}
-              <div className="form-control mt-5">
+              <div className="mt-5 form-control">
                 <label className="label">
                   <span className="label-text">Name</span>
                 </label>
@@ -365,7 +365,7 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
                   style={{ width: "300px" }}
                 />
                 {inputErrors.name && (
-                  <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+                  <span className="px-3 py-1 ml-8 text-sm rounded-sm text-warning bg-warning/10 w-fit">
                     {inputErrors.name}
                   </span>
                 )}
@@ -374,7 +374,7 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
 
             {/* Application Due Date */}
             <div className="flex flex-col gap-y-4">
-              <div className="form-control mt-5">
+              <div className="mt-5 form-control">
                 <label className="label">
                   <span className="label-text">Application Due Date</span>
                 </label>
@@ -387,7 +387,7 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
                 />
               </div>
               {inputErrors.applicationDueDate && (
-                <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+                <span className="px-3 py-1 ml-8 text-sm rounded-sm text-warning bg-warning/10 w-fit">
                   {inputErrors.applicationDueDate}
                 </span>
               )}
@@ -395,7 +395,7 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
 
             {/* Document Submission Deadline */}
             <div className="flex flex-col gap-y-4">
-              <div className="form-control mt-5">
+              <div className="mt-5 form-control">
                 <label className="label">
                   <span className="label-text">
                     Document Submission Deadline
@@ -410,21 +410,21 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
                 />
               </div>
               {inputErrors.documentDueDate && (
-                <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+                <span className="px-3 py-1 ml-8 text-sm rounded-sm text-warning bg-warning/10 w-fit">
                   {inputErrors.documentDueDate}
                 </span>
               )}
             </div>
 
             {/* Undergraduate TA hours limit/week */}
-            <div className="form-control flex flex-col space-y-4">
-              <label className="label mt-5">
+            <div className="flex flex-col space-y-4 form-control">
+              <label className="mt-5 label">
                 <span className="label-text">
                   Undergraduate TA hours limit/week
                 </span>
               </label>
               <div className="flex ml-8 space-x-8">
-                <label className="text-text-secondary flex flex-row items-center new-module-input">
+                <label className="flex flex-row items-center text-text-secondary new-module-input">
                   <input
                     type="number"
                     min={0}
@@ -432,13 +432,13 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
                     name="undergradHourLimit"
                     value={formData.undergradHourLimit}
                     onChange={handleChange}
-                    className="pl-2 text-text-primary focus:outline-0 pr-2 border mr-2 border-0 border-r-2 border-r-text-secondary w-full"
+                    className="w-full pl-2 pr-2 mr-2 border border-0 border-r-2 text-text-primary focus:outline-0 border-r-text-secondary"
                     placeholder="Hours"
                   />
                   hours
                 </label>
                 {inputErrors.undergradHourLimit && (
-                  <span className="text-warning items-center flex text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+                  <span className="flex items-center px-3 py-1 ml-8 text-sm rounded-sm text-warning bg-warning/10 w-fit">
                     {inputErrors.undergradHourLimit}
                   </span>
                 )}
@@ -446,14 +446,14 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
             </div>
 
             {/* Postgraduate TA hours limit/week */}
-            <div className="form-control flex flex-col space-y-4">
-              <label className="label mt-5">
+            <div className="flex flex-col space-y-4 form-control">
+              <label className="mt-5 label">
                 <span className="label-text">
                   Postgraduate TA hours limit/week
                 </span>
               </label>
               <div className="flex ml-8 space-x-8">
-                <label className="text-text-secondary flex flex-row items-center new-module-input">
+                <label className="flex flex-row items-center text-text-secondary new-module-input">
                   <input
                     type="number"
                     min={0}
@@ -461,13 +461,13 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
                     name="postgradHourLimit"
                     value={formData.postgradHourLimit}
                     onChange={handleChange}
-                    className="pl-2 text-text-primary focus:outline-0 pr-2 border mr-2 border-0 border-r-2 border-r-text-secondary w-full"
+                    className="w-full pl-2 pr-2 mr-2 border border-0 border-r-2 text-text-primary focus:outline-0 border-r-text-secondary"
                     placeholder="Hours"
                   />
                   hours
                 </label>
                 {inputErrors.postgradHourLimit && (
-                  <span className="text-warning items-center flex text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+                  <span className="flex items-center px-3 py-1 ml-8 text-sm rounded-sm text-warning bg-warning/10 w-fit">
                     {inputErrors.postgradHourLimit}
                   </span>
                 )}
@@ -476,18 +476,18 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
           </div>
 
           {/* Step 2 */}
-          <div className="w-full flex-shrink-0 px-6 py-6">
+          <div className="flex-shrink-0 w-full px-6 py-6">
             {/* Undergraduate mailing list */}
-            <p className="text-text-primary w-full text-center mb-2">
+            <p className="w-full mb-2 text-center text-text-primary">
               Edit Usergroups of potential TAs for the Recruitment Round.
             </p>
-            <p className="text-text-secondary mt-2 mb-2 label-text">
+            <p className="mt-2 mb-2 text-text-secondary label-text">
               Potential TAs - Undergraduates
             </p>
             <div className="flex flex-col rounded-md outline outline-text-secondary/80 outline-1 h-[20vh] overflow-hidden mx-2">
-              <div className="flex py-1 px-3 items-start shadow-md w-full gap-x-3">
-                <p className="text-text-secondary ml-2 mt-3">User group: </p>
-                <div className="flex p-1 flex-1 flex-col items-start">
+              <div className="flex items-start w-full px-3 py-1 shadow-md gap-x-3">
+                <p className="mt-3 ml-2 text-text-secondary">User group: </p>
+                <div className="flex flex-col items-start flex-1 p-1">
                   <AutoSelect
                     options={availableUndergradGroups.map((group) => ({
                       id: group._id,
@@ -498,7 +498,7 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
                     onSelect={handleUndergradGroupSelect}
                   />
                   {availableUndergradGroups.length === 0 && (
-                    <p className="text-text-secondary text-xs mt-1">
+                    <p className="mt-1 text-xs text-text-secondary">
                       All available undergraduate groups are already added to
                       the mailing list.
                     </p>
@@ -506,15 +506,15 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex flex-1 p-2 pt-4 flex-wrap items-start justify-start gap-x-3 gap-y-2 overflow-x-hidden overflow-y-auto">
+              <div className="flex flex-wrap items-start justify-start flex-1 p-2 pt-4 overflow-x-hidden overflow-y-auto gap-x-3 gap-y-2">
                 {formData.undergradMailingList.map((group, index) => (
                   <div
                     key={index}
-                    className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-md drop-shadow bg-bg-card flex items-center text-text-primary space-x-5"
+                    className="flex items-center py-2 pl-4 pr-3 space-x-5 rounded-md outline outline-1 outline-text-secondary drop-shadow bg-bg-card text-text-primary"
                   >
                     <div className="flex flex-col items-start">
                       <p className="text-text-primary">{group.name}</p>
-                      <p className="text-text-secondary font-semibold text-xs">
+                      <p className="text-xs font-semibold text-text-secondary">
                         {group.userCount} Users
                       </p>
                     </div>
@@ -547,19 +547,19 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
               </p>
             </div>
             {inputErrors.undergradMailingList && (
-              <span className="text-warning text-xs ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+              <span className="px-3 py-1 ml-8 text-xs rounded-sm text-warning bg-warning/10 w-fit">
                 {inputErrors.undergradMailingList}
               </span>
             )}
 
             {/* Postgraduate mailing list */}
-            <p className="text-text-secondary mt-6 mb-2 label-text">
+            <p className="mt-6 mb-2 text-text-secondary label-text">
               Potential TAs - Postgraduates
             </p>
             <div className="flex flex-col rounded-md outline outline-text-secondary/80 outline-1 h-[20vh] overflow-hidden mx-2">
-              <div className="flex py-1 px-3 items-start shadow-md w-full gap-x-3">
-                <p className="text-text-secondary ml-2 mt-3">User group: </p>
-                <div className="flex p-1 flex-1 flex-col items-start">
+              <div className="flex items-start w-full px-3 py-1 shadow-md gap-x-3">
+                <p className="mt-3 ml-2 text-text-secondary">User group: </p>
+                <div className="flex flex-col items-start flex-1 p-1">
                   <AutoSelect
                     options={availablePostgradGroups.map((group) => ({
                       id: group._id,
@@ -570,7 +570,7 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
                     onSelect={handlePostgradGroupSelect}
                   />
                   {availablePostgradGroups.length === 0 && (
-                    <p className="text-text-secondary text-xs mt-1">
+                    <p className="mt-1 text-xs text-text-secondary">
                       All available postgraduate groups are already added to the
                       mailing list.
                     </p>
@@ -578,15 +578,15 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex flex-1 p-2 pt-4 flex-wrap items-start justify-start gap-x-3 gap-y-2 overflow-x-hidden overflow-y-auto">
+              <div className="flex flex-wrap items-start justify-start flex-1 p-2 pt-4 overflow-x-hidden overflow-y-auto gap-x-3 gap-y-2">
                 {formData.postgradMailingList.map((group, index) => (
                   <div
                     key={index}
-                    className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-md drop-shadow bg-bg-card flex items-center text-text-primary space-x-5"
+                    className="flex items-center py-2 pl-4 pr-3 space-x-5 rounded-md outline outline-1 outline-text-secondary drop-shadow bg-bg-card text-text-primary"
                   >
                     <div className="flex flex-col items-start">
                       <p className="text-text-primary">{group.name}</p>
-                      <p className="text-text-secondary font-semibold text-xs">
+                      <p className="text-xs font-semibold text-text-secondary">
                         {group.userCount} Users
                       </p>
                     </div>
@@ -619,23 +619,23 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
               </p>
             </div>
             {inputErrors.postgradMailingList && (
-              <span className="text-warning text-xs ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
+              <span className="px-3 py-1 ml-8 text-xs rounded-sm text-warning bg-warning/10 w-fit">
                 {inputErrors.postgradMailingList}
               </span>
             )}
           </div>
 
           {/* Step 3 */}
-          <div className="w-full flex-shrink-0 px-6 py-6">
-            <p className="text-text-primary w-full text-center mb-2">
+          <div className="flex-shrink-0 w-full px-6 py-6">
+            <p className="w-full mb-2 text-center text-text-primary">
               Choose modules to be included in the Recruitment Round.
             </p>
 
             {modules.length === 0 ? (
-              <p className="text-text-secondary mt-4">No modules to display.</p>
+              <p className="mt-4 text-text-secondary">No modules to display.</p>
             ) : (
               <>
-                <p className="text-text-primary mb-2">
+                <p className="mb-2 text-text-primary">
                   Selected modules ({selectedModules.length})
                 </p>
 
@@ -643,7 +643,7 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
                   {selectedModules.map((mod) => (
                     <div
                       key={mod._id}
-                      className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-md drop-shadow bg-bg-card flex items-center text-text-primary space-x-5"
+                      className="flex items-center py-2 pl-4 pr-3 space-x-5 rounded-md outline outline-1 outline-text-secondary drop-shadow bg-bg-card text-text-primary"
                     >
                       <div className="flex flex-col items-start">
                         <p className="text-text-primary">{mod.label}</p>
@@ -664,18 +664,18 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
             )}
             {modules.length > 0 && removedModules.length > 0 && (
               <div className="mt-6">
-                <p className="text-text-primary mb-2">Removed Modules ({removedModules.length})</p>
+                <p className="mb-2 text-text-primary">Removed Modules ({removedModules.length})</p>
                 <div className="flex flex-col gap-y-3 max-h-[20vh] ring-1 ring-text-secondary/50 py-2 px-3 rounded-md items-start justify-start overflow-y-auto">
                   {removedModules.map((mod) => (
                     <div
                       key={mod._id}
-                      className="outline outline-1 outline-text-secondary py-2 pl-4 pr-3 rounded-md drop-shadow bg-bg-card flex items-center text-text-primary space-x-5"
+                      className="flex items-center py-2 pl-4 pr-3 space-x-5 rounded-md outline outline-1 outline-text-secondary drop-shadow bg-bg-card text-text-primary"
                     >
                       <div className="flex flex-col items-start">
                         <p className="text-text-primary">{mod.label}</p>
                       </div>
                       <LuCirclePlus
-                        className="ml-5 text-text-secondary hover:text-success cursor-pointer rounded-full size-6 hover:bg-success/10 "
+                        className="ml-5 rounded-full cursor-pointer text-text-secondary hover:text-success size-6 hover:bg-success/10 "
                         onClick={() => {
                           setRemovedModules((prev) =>
                             prev.filter((m) => m._id !== mod._id)
@@ -691,16 +691,16 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
           </div>
 
           {/* Last step */}
-          <div className="w-full flex-shrink-0 px-6 py-6 flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center justify-center flex-shrink-0 w-full px-6 py-6">
             {isProcessing && (<div className="flex flex-col items-center">
               
               <Loader className="mb-5"/>
-              <p className="text-text-primary text-lg mb-2">Processing...</p>
+              <p className="mb-2 text-lg text-text-primary">Processing...</p>
               <p className="text-text-secondary">This will take a few moments.</p>
             </div>)}
             {!isProcessing && (<div className="flex flex-col items-center">
-              <RiCheckboxCircleFill className="text-success size-16 mb-5" />
-              <p className="text-text-primary text-lg mb-2">Recruitment Round Created Succesfully!</p>
+              <RiCheckboxCircleFill className="mb-5 text-success size-16" />
+              <p className="mb-2 text-lg text-text-primary">Recruitment Round Created Succesfully!</p>
               <p className="text-text-secondary">You can now close this dialog.</p>
             </div>)}
           </div>
@@ -708,10 +708,10 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="px-6 py-4 flex justify-between">
+      <div className="flex justify-between px-6 py-4">
         {currentStep<3 && (<button
           onClick={handleClose}
-          className="px-4 py-2 ring-1 ring-text-secondary/50 text-text-secondary hover:text-text-inverted hover:bg-text-secondary/50 rounded-md transition-colors"
+          className="px-4 py-2 transition-colors rounded-md ring-1 ring-text-secondary/50 text-text-secondary hover:text-text-inverted hover:bg-text-secondary/50"
           disabled={isProcessing}
         >
           Cancel
@@ -721,7 +721,7 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
           {(currentStep > 0 && currentStep < 3) && (
             <button
               onClick={prevStep}
-              className="px-4 py-2 border border-primary text-primary rounded-md hover:bg-primary/10 transition-colors"
+              className="px-4 py-2 transition-colors border rounded-md border-primary text-primary hover:bg-primary/10"
             >
               Previous
             </button>
@@ -730,7 +730,7 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
           {currentStep < 2 ? (
             <button
               onClick={nextStep}
-              className="px-4 py-2 bg-primary text-text-inverted rounded-md hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 transition-colors rounded-md bg-primary text-text-inverted hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={currentStep === 0 && !isFirstPageValid()}
             >
               Next
@@ -738,12 +738,12 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
           ) : currentStep === 2 ? (
             <button
               onClick={handleCreate}
-              className="px-4 py-2 bg-primary text-text-inverted rounded-md hover:bg-primary-dark transition-colors flex items-center" 
+              className="flex items-center px-4 py-2 transition-colors rounded-md bg-primary text-text-inverted hover:bg-primary-dark" 
             >
                 Create Recruitment Round
             </button>
           ):(
-            <button className="px-4 py-2 bg-primary text-text-inverted rounded-md hover:bg-primary-dark transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            <button className="flex items-center px-4 py-2 transition-colors rounded-md bg-primary text-text-inverted hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isProcessing}
             onClick={handleClose}
             >
