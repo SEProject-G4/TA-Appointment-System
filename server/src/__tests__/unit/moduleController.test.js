@@ -1,13 +1,13 @@
-const moduleController = require('../controllers/moduleController');
-const ModuleDetails = require('../models/ModuleDetails');
-const User = require('../models/User');
-const RecruitmentRound = require('../models/RecruitmentRound');
-const emailService = require('../services/emailService');
+const moduleController = require('../../controllers/moduleController');
+const ModuleDetails = require('../../models/ModuleDetails');
+const User = require('../../models/User');
+const RecruitmentRound = require('../../models/RecruitmentRound');
+const emailService = require('../../services/emailService');
 
-jest.mock('../models/ModuleDetails');
-jest.mock('../models/User');
-jest.mock('../models/RecruitmentRound');
-jest.mock('../services/emailService', () => ({ sendEmail: jest.fn() }));
+jest.mock('../../models/ModuleDetails');
+jest.mock('../../models/User');
+jest.mock('../../models/RecruitmentRound');
+jest.mock('../../services/emailService', () => ({ sendEmail: jest.fn() }));
 
 describe('moduleController (admin operations)', () => {
   let mockReq, mockRes;

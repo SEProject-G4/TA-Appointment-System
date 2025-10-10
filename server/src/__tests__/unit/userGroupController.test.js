@@ -1,9 +1,9 @@
-const userGroupController = require('../controllers/userGroupController');
-const User = require('../models/User');
-const UserGroup = require('../models/UserGroup');
+const userGroupController = require('../../controllers/userGroupController');
+const User = require('../../models/User');
+const UserGroup = require('../../models/UserGroup');
 
-jest.mock('../models/User');
-jest.mock('../models/UserGroup');
+jest.mock('../../models/User');
+jest.mock('../../models/UserGroup');
 
 describe('userGroupController (admin user management)', () => {
   let mockReq, mockRes;

@@ -1,12 +1,12 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const lecturerController = require('../controllers/lecturerController');
-const ModuleDetails = require('../models/ModuleDetails');
-const User = require('../models/User');
+const lecturerController = require('../../controllers/lecturerController');
+const ModuleDetails = require('../../models/ModuleDetails');
+const User = require('../../models/User');
 
 // Mock the models
-jest.mock('../models/ModuleDetails');
-jest.mock('../models/User');
+jest.mock('../../models/ModuleDetails');
+jest.mock('../../models/User');
 
 describe('lecturerController.editModuleRequirments', () => {
   let mockReq, mockRes, mockUser, mockModule;
