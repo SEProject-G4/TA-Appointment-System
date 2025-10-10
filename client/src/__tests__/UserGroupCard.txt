@@ -1,0 +1,324 @@
+// import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+// import '@testing-library/jest-dom';
+// import { BrowserRouter } from 'react-router-dom';
+// import UsersGroupCard from '../components/admin/UsersGroupCard';
+// import { ModalProvider } from '../contexts/ModalProvider';
+// import { ToastProvider } from '../contexts/ToastContext';
+// import axiosInstance from '../api/axiosConfig';
+
+// // Mock the dependencies
+// jest.mock('../api/axiosConfig', () => ({
+//   get: jest.fn(),
+//   put: jest.fn(),
+//   delete: jest.fn(),
+//   post: jest.fn(),
+// }));
+
+// jest.mock('../components/common/Loader', () => {
+//   return function MockLoader({ className }: { className?: string }) {
+//     return <div data-testid="loader" className={className}>Loading...</div>;
+//   };
+// });
+
+// const mockAxios = axiosInstance as jest.Mocked<typeof axiosInstance>;
+
+// const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+//   <BrowserRouter>
+//     <ToastProvider>
+//       <ModalProvider>
+//         {children}
+//       </ModalProvider>
+//     </ToastProvider>
+//   </BrowserRouter>
+// );
+
+// const mockUsers = [
+//   {
+//     _id: 'user1',
+//     indexNumber: '220001A',
+//     name: 'John Doe',
+//     email: 'john.doe@example.com',
+//     profilePicUrl: 'https://example.com/john.jpg',
+//     dateAdded: '2024-01-15T10:30:00Z'
+//   },
+//   {
+//     _id: 'user2',
+//     indexNumber: '220002A',
+//     name: 'Jane Smith',
+//     email: 'jane.smith@example.com',
+//     profilePicUrl: 'https://example.com/jane.jpg',
+//     dateAdded: '2024-02-20T14:45:00Z'
+//   }
+// ];
+
+// const defaultProps = {
+//   id: 'group1',
+//   groupName: 'CS Batch 2022',
+//   userCount: 25,
+//   refreshPage: jest.fn(),
+// };
+
+// describe('UsersGroupCard', () => {
+//   beforeEach(() => {
+//     jest.clearAllMocks();
+//     mockAxios.get.mockResolvedValue({ data: mockUsers });
+//   });
+
+//   test('renders group card with basic information', () => {
+//     render(
+//       <TestWrapper>
+//         <UsersGroupCard {...defaultProps} />
+//       </TestWrapper>
+//     );
+
+//     expect(screen.getByText('CS Batch 2022')).toBeInTheDocument();
+//     expect(screen.getByText('25 Users')).toBeInTheDocument();
+    
+//     // Should not be expanded initially
+//     expect(screen.queryByText('No users from this group.')).not.toBeInTheDocument();
+//   });
+
+//   test('expands and collapses card on chevron click', async () => {
+//     render(
+//       <TestWrapper>
+//         <UsersGroupCard {...defaultProps} />
+//       </TestWrapper>
+//     );
+
+//     // Find the chevron button (FaChevronRight SVG)
+//     const chevronButton = screen.getByText('CS Batch 2022').closest('div')?.querySelector('svg');
+//     expect(chevronButton).toBeInTheDocument();
+    
+//     // Expand the card
+//     if (chevronButton) {
+//       fireEvent.click(chevronButton);
+//     }
+    
+//     await waitFor(() => {
+//       expect(mockAxios.get).toHaveBeenCalledWith('/user-management/groups/group1/users');
+//     });
+
+//     // Should show loading initially
+//     expect(screen.getByTestId('loader')).toBeInTheDocument();
+//   });
+
+//   test('displays users table when expanded with data', async () => {
+//     render(
+//       <TestWrapper>
+//         <UsersGroupCard {...defaultProps} />
+//       </TestWrapper>
+//     );
+
+//     // Expand the card by clicking chevron
+//     const chevronButton = screen.getByText('CS Batch 2022').closest('div')?.querySelector('svg');
+//     if (chevronButton) {
+//       fireEvent.click(chevronButton);
+//     }
+    
+//     await waitFor(() => {
+//       expect(screen.getByText('John Doe')).toBeInTheDocument();
+//       expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+//       expect(screen.getByText('220001A')).toBeInTheDocument();
+//       expect(screen.getByText('220002A')).toBeInTheDocument();
+//     });
+
+//     // Check table headers
+//     expect(screen.getByText('Profile Picture')).toBeInTheDocument();
+//     expect(screen.getByText('Index Number')).toBeInTheDocument();
+//     expect(screen.getByText('Email')).toBeInTheDocument();
+//     expect(screen.getByText('Name')).toBeInTheDocument();
+//   });
+
+//   test('shows empty state when no users exist', async () => {
+//     mockAxios.get.mockResolvedValue({ data: [] });
+
+//     render(
+//       <TestWrapper>
+//         <UsersGroupCard {...defaultProps} />
+//       </TestWrapper>
+//     );
+
+//     // Expand the card by clicking chevron
+//     const chevronButton = screen.getByText('CS Batch 2022').closest('div')?.querySelector('svg');
+//     if (chevronButton) {
+//       fireEvent.click(chevronButton);
+//     }
+    
+//     await waitFor(() => {
+//       expect(screen.getByText('No users from this group.')).toBeInTheDocument();
+//       expect(screen.getByText('Start by adding a user to this group.')).toBeInTheDocument();
+//     });
+//   });
+
+//   test('handles user selection via checkboxes', async () => {
+//     render(
+//       <TestWrapper>
+//         <UsersGroupCard {...defaultProps} />
+//       </TestWrapper>
+//     );
+
+//     // Expand the card by clicking chevron
+//     const chevronButton = screen.getByText('CS Batch 2022').closest('div')?.querySelector('svg');
+//     if (chevronButton) {
+//       fireEvent.click(chevronButton);
+//     }
+    
+//     await waitFor(() => {
+//       expect(screen.getByText('John Doe')).toBeInTheDocument();
+//     });
+
+//     // Select all checkbox - should be the first checkbox in the table
+//     const selectAllCheckbox = screen.getAllByRole('checkbox')[0];
+//     fireEvent.click(selectAllCheckbox);
+    
+//     await waitFor(() => {
+//       expect(screen.getByText('2 users selected')).toBeInTheDocument();
+//     });
+//   });
+
+//   test('displays action buttons when users are selected', async () => {
+//     render(
+//       <TestWrapper>
+//         <UsersGroupCard {...defaultProps} />
+//       </TestWrapper>
+//     );
+
+//     // Expand and wait for users
+//     const chevronButton = screen.getByText('CS Batch 2022').closest('div')?.querySelector('svg');
+//     if (chevronButton) {
+//       fireEvent.click(chevronButton);
+//     }
+    
+//     await waitFor(() => {
+//       expect(screen.getByText('John Doe')).toBeInTheDocument();
+//     });
+
+//     // Select all users
+//     const selectAllCheckbox = screen.getAllByRole('checkbox')[0];
+//     fireEvent.click(selectAllCheckbox);
+    
+//     await waitFor(() => {
+//       expect(screen.getByText('Delete Selected Users')).toBeInTheDocument();
+//       expect(screen.getByText('Rename User Group')).toBeInTheDocument();
+//       expect(screen.getByText('Delete Whole User Group')).toBeInTheDocument();
+//       expect(screen.getByText('Add New User(s)')).toBeInTheDocument();
+//     });
+//   });
+
+//   test('opens dropdown menu and shows group options', async () => {
+//     render(
+//       <TestWrapper>
+//         <UsersGroupCard {...defaultProps} />
+//       </TestWrapper>
+//     );
+
+//     // Find and click the dropdown button (MdMoreVert icon)
+//     const dropdownSvg = screen.getByText('25').closest('div')?.querySelector('svg[viewBox="0 0 24 24"]');
+//     expect(dropdownSvg).toBeInTheDocument();
+    
+//     if (dropdownSvg) {
+//       fireEvent.click(dropdownSvg);
+    
+//       await waitFor(() => {
+//         expect(screen.getByText('Rename Group')).toBeInTheDocument();
+//         expect(screen.getByText('Delete Whole User Group')).toBeInTheDocument();
+//       });
+//     }
+//   });
+
+//   test('handles individual user edit action', async () => {
+//     render(
+//       <TestWrapper>
+//         <UsersGroupCard {...defaultProps} />
+//       </TestWrapper>
+//     );
+
+//     // Expand the card
+//     const chevronButton = screen.getByText('CS Batch 2022').closest('div')?.querySelector('svg');
+//     if (chevronButton) {
+//       fireEvent.click(chevronButton);
+//     }
+    
+//     await waitFor(() => {
+//       expect(screen.getByText('John Doe')).toBeInTheDocument();
+//     });
+
+//     // Look for edit icon specifically (BiEdit has a specific viewBox)
+//     const editIcon = document.querySelector('svg.bg-primary');
+//     if (editIcon) {
+//       fireEvent.click(editIcon);
+      
+//       await waitFor(() => {
+//         expect(screen.getByText('Edit User Details')).toBeInTheDocument();
+//       });
+//     }
+//   });
+
+//   test('handles individual user delete action', async () => {
+//     render(
+//       <TestWrapper>
+//         <UsersGroupCard {...defaultProps} />
+//       </TestWrapper>
+//     );
+
+//     // Expand the card
+//     const chevronButton = screen.getByText('CS Batch 2022').closest('div')?.querySelector('svg');
+//     if (chevronButton) {
+//       fireEvent.click(chevronButton);
+//     }
+    
+//     await waitFor(() => {
+//       expect(screen.getByText('John Doe')).toBeInTheDocument();
+//     });
+
+//     // Look for delete icon specifically (has bg-warning class)
+//     const deleteIcon = document.querySelector('svg.bg-warning');
+//     if (deleteIcon) {
+//       fireEvent.click(deleteIcon);
+      
+//       await waitFor(() => {
+//         expect(screen.getByText('Confirm Deletion')).toBeInTheDocument();
+//         expect(screen.getByText('Are you sure you want to delete this user?')).toBeInTheDocument();
+//       });
+//     }
+//   });
+
+//   test('handles API error gracefully', async () => {
+//     mockAxios.get.mockRejectedValue(new Error('API Error'));
+//     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+//     render(
+//       <TestWrapper>
+//         <UsersGroupCard {...defaultProps} />
+//       </TestWrapper>
+//     );
+
+//     // Expand the card
+//     const chevronButton = screen.getByText('CS Batch 2022').closest('div')?.querySelector('svg');
+//     if (chevronButton) {
+//       fireEvent.click(chevronButton);
+//     }
+    
+//     await waitFor(() => {
+//       expect(consoleSpy).toHaveBeenCalledWith('Error fetching module details:', expect.any(Error));
+//     });
+
+//     consoleSpy.mockRestore();
+//   });
+
+//   test('renders basic card structure correctly', async () => {
+//     render(
+//       <TestWrapper>
+//         <UsersGroupCard {...defaultProps} />
+//       </TestWrapper>
+//     );
+
+//     // Check that basic elements are rendered
+//     expect(screen.getByText('CS Batch 2022')).toBeInTheDocument();
+//     expect(screen.getByText('25 Users')).toBeInTheDocument();
+    
+//     // Check that chevron button exists
+//     const chevronButton = screen.getByText('CS Batch 2022').closest('div')?.querySelector('svg');
+//     expect(chevronButton).toBeInTheDocument();
+//   });
+// });
