@@ -120,12 +120,8 @@ const viewTADocuments = async (req, res) => {
             return res.status(401).json({ error: 'Not authenticated' });
         }
 
-        // 1) Active recruitment series
-        const activeSeries = await RecruitmentRound.find({ status: 'initialised' }).select('_id');
-        const activeSeriesIds = new Set(activeSeries.map(rs => rs._id.toString()));
-
-        // 2) Modules in active series
-        const modules = await ModuleDetails.find({ recruitmentSeriesId: { $in: [...activeSeriesIds] } })
+        // 1) Get all modules
+        const modules = await ModuleDetails.find({})
             .select('_id moduleCode moduleName semester year recruitmentSeriesId');
         console.log("modules", modules);
 
