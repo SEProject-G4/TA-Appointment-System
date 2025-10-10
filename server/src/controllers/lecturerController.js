@@ -45,7 +45,7 @@ const getMyModules = async (req, res) => {
     return res.status(200).json(groupedModules);
   } catch (error) {
     console.error('Error fetching lecturer modules:', error);
-    return res.status(500).json({ error: 'Failed to fetch modules for coordinator' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -62,6 +62,19 @@ const editModuleRequirments = async (req, res) => {
       requiredPostgraduateTACount, 
       requirements 
     } = req.body;
+
+    // Validate presence of at least one field to update
+    const hasAnyField = [requiredTAHours, requiredUndergraduateTACount, requiredPostgraduateTACount, requirements]
+      .some(v => v !== undefined);
+    if (!hasAnyField) {
+      return res.status(400).json({ error: 'At least one field must be provided for update' });
+    }
+
+    // Validate counts if provided
+    const isProvidedAndInvalid = (val) => val !== undefined && (!Number.isInteger(Number(val)) || Number(val) < 0);
+    if (isProvidedAndInvalid(requiredUndergraduateTACount) || isProvidedAndInvalid(requiredPostgraduateTACount)) {
+      return res.status(400).json({ error: 'TA counts must be non-negative integers' });
+    }
 
     // Verify the lecturer is a coordinator for this module
     const moduleDoc = await ModuleDetails.findById(id);
@@ -90,8 +103,8 @@ const editModuleRequirments = async (req, res) => {
 
     // Handle undergraduate and postgraduate TA count changes
     // Convert to numbers and handle undefined/null cases
-    const undergradCount = Number(requiredUndergraduateTACount) || 0;
-    const postgradCount = Number(requiredPostgraduateTACount) || 0;
+    const undergradCount = requiredUndergraduateTACount !== undefined ? Number(requiredUndergraduateTACount) : 0;
+    const postgradCount = requiredPostgraduateTACount !== undefined ? Number(requiredPostgraduateTACount) : 0;
     
     // Validation for advertised modules: check if applied count exceeds new required count
     if (moduleDoc.moduleStatus === 'advertised') {
@@ -294,10 +307,7 @@ const handleRequests = async (req, res) => {
     console.log('Query results:', taApplications);
 
     if (taApplications.length === 0) {
-      return res.status(200).json({ 
-        message: 'No TA applications found for your modules',
-        applications: [] 
-      });
+      return res.status(200).json({ modules: [] });
     }
 
     // Get unique user IDs from applications
@@ -417,13 +427,18 @@ const acceptApplication = async (req, res) => {
 
     const module = await ModuleDetails.findById(applicationModuleId);
     if (!module || !module.coordinators.includes(req.user._id)) {
-      return res.status(403).json({ error: 'Not authorized to manage this application' });
+      return res.status(403).json({ error: 'Not authorized to process this application' });
     }
 
     // Get user details to determine role (undergraduate/postgraduate)
     const user = await User.findById(application.userId).select('role');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prevent re-processing already processed applications
+    if (String(application.status || '').toLowerCase() !== 'pending') {
+      return res.status(400).json({ error: 'Application has already been processed' });
     }
 
     // Update application status
@@ -456,7 +471,7 @@ const acceptApplication = async (req, res) => {
 
   } catch (error) {
     console.error('Error accepting application:', error);
-    return res.status(500).json({ error: 'Failed to accept application' });
+    return res.status(500).json({ error: 'Failed to update application' });
   }
 };
 
@@ -479,7 +494,7 @@ const rejectApplication = async (req, res) => {
     const applicationModuleId = application.moduleId;
     const module = await ModuleDetails.findById(applicationModuleId);
     if (!module || !module.coordinators.includes(req.user._id)) {
-      return res.status(403).json({ error: 'Not authorized to manage this application' });
+      return res.status(403).json({ error: 'Not authorized to process this application' });
     }
 
     // Get user details to determine role (undergraduate/postgraduate)
@@ -490,6 +505,9 @@ const rejectApplication = async (req, res) => {
 
     // Update application status
     application.status = 'rejected';
+    if (req.body && typeof req.body.reason === 'string' && req.body.reason.trim().length > 0) {
+      application.rejectionReason = req.body.reason.trim();
+    }
     await application.save();
 
     // Update module counts based on user role
@@ -616,9 +634,8 @@ const viewModuleDetails = async (req, res) => {
     }, {});
     console.log("applicationsCountMap", applicationsCountMap);
 
-    // Build response (only modules with at least one accepted application)
+    // Build response (include modules even if no accepted applications)
     const modules = coordinatorModules
-      .filter(m => (acceptedByModule.get(m._id.toString()) || []).length > 0)
       .map(m => {
         const modId = m._id.toString();
         const acceptedApps = acceptedByModule.get(modId) || [];
@@ -690,4 +707,31 @@ const viewModuleDetails = async (req, res) => {
 }
 
 
-module.exports = { getMyModules, editModuleRequirments, handleRequests, acceptApplication, rejectApplication, viewModuleDetails };
+// GET /api/lecturer/modules/:id/applications
+// Returns all applications for a specific module if requester is a coordinator
+const getModuleApplications = async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { id } = req.params;
+    const moduleDoc = await ModuleDetails.findById(id);
+    if (!moduleDoc) {
+      return res.status(404).json({ error: 'Module not found' });
+    }
+
+    if (!moduleDoc.coordinators.includes(req.user._id)) {
+      return res.status(403).json({ error: 'Not authorized to view applications for this module' });
+    }
+
+    const applications = await TaApplication.find({ moduleId: moduleDoc._id }).lean();
+
+    return res.status(200).json({ applications });
+  } catch (error) {
+    console.error('Error fetching module applications:', error);
+    return res.status(500).json({ error: 'Failed to fetch module applications' });
+  }
+};
+
+module.exports = { getMyModules, editModuleRequirments, handleRequests, acceptApplication, rejectApplication, viewModuleDetails, getModuleApplications };

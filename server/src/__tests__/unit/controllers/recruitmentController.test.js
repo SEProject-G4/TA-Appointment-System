@@ -1,13 +1,13 @@
-const recruitmentController = require('../../controllers/recruitmentController');
-const RecruitmentRound = require('../../models/RecruitmentRound');
-const UserGroup = require('../../models/UserGroup');
-const ModuleDetails = require('../../models/ModuleDetails');
-const User = require('../../models/User');
+const recruitmentController = require('../../../controllers/recruitmentController');
+const RecruitmentRound = require('../../../models/RecruitmentRound');
+const UserGroup = require('../../../models/UserGroup');
+const ModuleDetails = require('../../../models/ModuleDetails');
+const User = require('../../../models/User');
 
-jest.mock('../../models/RecruitmentRound');
-jest.mock('../../models/UserGroup');
-jest.mock('../../models/ModuleDetails');
-jest.mock('../../models/User');
+jest.mock('../../../models/RecruitmentRound');
+jest.mock('../../../models/UserGroup');
+jest.mock('../../../models/ModuleDetails');
+jest.mock('../../../models/User');
 
 describe('recruitmentController (admin operations)', () => {
   let mockReq, mockRes;

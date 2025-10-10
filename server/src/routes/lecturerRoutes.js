@@ -15,6 +15,9 @@ router.patch('/modules/:id', authMiddleware.protected, authMiddleware.authorize(
 // Get TA applications for coordinator's modules
 router.get('/handle-requests', authMiddleware.protected, authMiddleware.authorize(["lecturer"]), lecturerController.handleRequests);
 
+// Get all applications for a specific module (coordinator-only)
+router.get('/modules/:id/applications', authMiddleware.protected, authMiddleware.authorize(["lecturer"]), lecturerController.getModuleApplications);
+
 // Accept a TA application
 router.patch('/applications/:applicationId/accept', authMiddleware.protected, authMiddleware.authorize(["lecturer"]), lecturerController.acceptApplication);
 
