@@ -42,3 +42,9 @@ export const logout = async (): Promise<void> => {
         throw error;
     }
 };
+//thumul ayyeee....copilot added this when adding test cases for GoogleLoginButton, remove if it's not correct
+export const loginWithGoogle = (): void => {
+    // Placeholder implementation for Google login
+    // This would typically redirect to Google OAuth or handle Google Sign-In
+    console.log('Google login initiated');
+};

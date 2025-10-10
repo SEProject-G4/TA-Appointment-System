@@ -10,7 +10,7 @@ interface NavbarProps {
   ref: React.Ref<HTMLDivElement>;
 }
 
-const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
+const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((_props, ref) => {
   const { user, loading, logout, isLoggingOut } = useAuth(); // Destructure the new state
   const location = useLocation();
 
