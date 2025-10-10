@@ -1,7 +1,3 @@
-const request = require('supertest');
-const express = require('express');
-const moduleRoutes = require('../../../routes/moduleRoutes');
-
 // Mock the authMiddleware
 jest.mock('../../../middleware/authMiddleware', () => ({
   protected: jest.fn((req, res, next) => {
@@ -29,6 +25,11 @@ jest.mock('../../../controllers/moduleController', () => ({
   advertiseModule: jest.fn((req, res) => res.json({ message: 'Module advertised' }))
 }));
 
+const request = require('supertest');
+const express = require('express');
+const moduleRoutes = require('../../../routes/moduleRoutes');
+const moduleController = require('../../../controllers/moduleController');
+
 const app = express();
 app.use(express.json());
 app.use('/modules', moduleRoutes);
@@ -36,6 +37,16 @@ app.use('/modules', moduleRoutes);
 describe('Module Routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Reset all controller mocks to their default implementations
+    moduleController.getAllModules.mockImplementation((req, res) => res.json({ modules: [] }));
+    moduleController.getModuleById.mockImplementation((req, res) => res.json({ module: { id: req.params.id } }));
+    moduleController.createModule.mockImplementation((req, res) => res.json({ message: 'Module created' }));
+    moduleController.updateModule.mockImplementation((req, res) => res.json({ message: 'Module updated' }));
+    moduleController.deleteModule.mockImplementation((req, res) => res.json({ message: 'Module deleted' }));
+    moduleController.changeModuleStatus.mockImplementation((req, res) => res.json({ message: 'Module status changed' }));
+    moduleController.getModuleDetailsById.mockImplementation((req, res) => res.json({ module: { id: req.params.moduleId } }));
+    moduleController.advertiseModule.mockImplementation((req, res) => res.json({ message: 'Module advertised' }));
   });
 
   describe('Route Registration', () => {
@@ -140,26 +151,26 @@ describe('Module Routes', () => {
 
   describe('Error Handling', () => {
     test('should handle controller errors gracefully', async () => {
-      const moduleController = require('../../../controllers/moduleController');
-      moduleController.getAllModules.mockImplementation((req, res) => {
+      moduleController.getModuleDetailsById.mockImplementation((req, res) => {
         res.status(500).json({ error: 'Internal server error' });
       });
 
+      const moduleId = '507f1f77bcf86cd799439011';
       const response = await request(app)
-        .get('/modules');
+        .get(`/modules/${moduleId}`);
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'Internal server error' });
     });
 
     test('should handle validation errors', async () => {
-      const moduleController = require('../../../controllers/moduleController');
-      moduleController.createModule.mockImplementation((req, res) => {
+      moduleController.changeModuleStatus.mockImplementation((req, res) => {
         res.status(400).json({ error: 'Validation failed' });
       });
 
+      const moduleId = '507f1f77bcf86cd799439011';
       const response = await request(app)
-        .post('/modules')
+        .put(`/modules/${moduleId}/change-status`)
         .send({});
 
       expect(response.status).toBe(400);
@@ -167,13 +178,13 @@ describe('Module Routes', () => {
     });
 
     test('should handle not found errors', async () => {
-      const moduleController = require('../../../controllers/moduleController');
-      moduleController.getModuleById.mockImplementation((req, res) => {
+      moduleController.getModuleDetailsById.mockImplementation((req, res) => {
         res.status(404).json({ error: 'Module not found' });
       });
 
+      const moduleId = '507f1f77bcf86cd799439011';
       const response = await request(app)
-        .get('/modules/507f1f77bcf86cd799439011');
+        .get(`/modules/${moduleId}`);
 
       expect(response.status).toBe(404);
       expect(response.body).toEqual({ error: 'Module not found' });
@@ -203,8 +214,6 @@ describe('Module Routes', () => {
 
   describe('Controller Integration', () => {
     test('should call correct controller for each route', async () => {
-      const moduleController = require('../../../controllers/moduleController');
-      
       await request(app).get('/modules/123');
       expect(moduleController.getModuleDetailsById).toHaveBeenCalled();
 
@@ -224,8 +233,8 @@ describe('Module Routes', () => {
         .send('invalid json')
         .set('Content-Type', 'application/json');
 
-      // The request should still be processed by the controller
-      expect(response.status).toBe(200);
+      // Express should return 400 for malformed JSON
+      expect(response.status).toBe(400);
     });
 
     test('should handle large request bodies', async () => {

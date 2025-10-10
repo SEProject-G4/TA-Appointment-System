@@ -1,7 +1,3 @@
-const request = require('supertest');
-const express = require('express');
-const taRoutes = require('../../../routes/taRoutes');
-
 // Mock the taControllers
 jest.mock('../../../controllers/taControllers', () => ({
   getAllRequests: jest.fn((req, res) => res.json({ requests: [] })),
@@ -10,6 +6,11 @@ jest.mock('../../../controllers/taControllers', () => ({
   getAcceptedModules: jest.fn((req, res) => res.json({ modules: [] }))
 }));
 
+const request = require('supertest');
+const express = require('express');
+const taRoutes = require('../../../routes/taRoutes');
+const taControllers = require('../../../controllers/taControllers');
+
 const app = express();
 app.use(express.json());
 app.use('/ta', taRoutes);
@@ -17,6 +18,12 @@ app.use('/ta', taRoutes);
 describe('TA Routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Reset all controller mocks to their default implementations
+    taControllers.getAllRequests.mockImplementation((req, res) => res.json({ requests: [] }));
+    taControllers.applyForTA.mockImplementation((req, res) => res.json({ message: 'Application submitted' }));
+    taControllers.getAppliedModules.mockImplementation((req, res) => res.json({ modules: [] }));
+    taControllers.getAcceptedModules.mockImplementation((req, res) => res.json({ modules: [] }));
   });
 
   describe('GET /ta/requests', () => {
@@ -186,7 +193,6 @@ describe('TA Routes', () => {
 
   describe('Error Handling', () => {
     test('should handle controller errors gracefully', async () => {
-      const taControllers = require('../../../controllers/taControllers');
       taControllers.getAllRequests.mockImplementation((req, res) => {
         res.status(500).json({ error: 'Internal server error' });
       });
@@ -199,7 +205,6 @@ describe('TA Routes', () => {
     });
 
     test('should handle validation errors', async () => {
-      const taControllers = require('../../../controllers/taControllers');
       taControllers.applyForTA.mockImplementation((req, res) => {
         res.status(400).json({ error: 'Validation failed' });
       });
@@ -232,8 +237,6 @@ describe('TA Routes', () => {
 
   describe('Controller Integration', () => {
     test('should call correct controller for each route', async () => {
-      const taControllers = require('../../../controllers/taControllers');
-      
       await request(app).get('/ta/requests');
       expect(taControllers.getAllRequests).toHaveBeenCalled();
 
@@ -274,8 +277,8 @@ describe('TA Routes', () => {
         .send('invalid json')
         .set('Content-Type', 'application/json');
 
-      // The request should still be processed by the controller
-      expect(response.status).toBe(200);
+      // Express should return 400 for malformed JSON
+      expect(response.status).toBe(400);
     });
 
     test('should handle large request bodies', async () => {

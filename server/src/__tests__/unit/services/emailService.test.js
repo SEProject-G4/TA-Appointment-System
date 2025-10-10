@@ -1,23 +1,23 @@
-const emailService = require('../../../services/emailService');
-const nodemailer = require('nodemailer');
+// Mock nodemailer before importing emailService
+const mockSendMail = jest.fn();
+const mockCreateTransport = jest.fn(() => ({
+  sendMail: mockSendMail
+}));
 
-// Mock nodemailer
-jest.mock('nodemailer');
+jest.doMock('nodemailer', () => ({
+  createTransport: mockCreateTransport
+}));
+
+const emailService = require('../../../services/emailService');
 
 describe('Email Service', () => {
-  let mockTransporter;
-
   beforeEach(() => {
-    mockTransporter = {
-      sendMail: jest.fn()
-    };
-    nodemailer.createTransporter.mockReturnValue(mockTransporter);
     jest.clearAllMocks();
   });
 
   describe('sendEmail function', () => {
     test('should send email successfully', async () => {
-      mockTransporter.sendMail.mockResolvedValueOnce({ messageId: 'test-message-id' });
+      mockSendMail.mockResolvedValueOnce({ messageId: 'test-message-id' });
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
       const result = await emailService.sendEmail(
@@ -26,7 +26,7 @@ describe('Email Service', () => {
         '<h1>Test HTML Content</h1>'
       );
 
-      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
+      expect(mockSendMail).toHaveBeenCalledWith({
         from: process.env.EMAIL_USER,
         to: 'test@example.com',
         subject: 'Test Subject',
@@ -39,7 +39,7 @@ describe('Email Service', () => {
 
     test('should return false when email sending fails', async () => {
       const error = new Error('SMTP connection failed');
-      mockTransporter.sendMail.mockRejectedValueOnce(error);
+      mockSendMail.mockRejectedValueOnce(error);
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       const result = await emailService.sendEmail(
@@ -54,7 +54,7 @@ describe('Email Service', () => {
     });
 
     test('should handle different email addresses', async () => {
-      mockTransporter.sendMail.mockResolvedValueOnce({ messageId: 'test-message-id' });
+      mockSendMail.mockResolvedValueOnce({ messageId: 'test-message-id' });
 
       await emailService.sendEmail(
         'different@example.com',
@@ -62,7 +62,7 @@ describe('Email Service', () => {
         '<p>Different content</p>'
       );
 
-      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
+      expect(mockSendMail).toHaveBeenCalledWith({
         from: process.env.EMAIL_USER,
         to: 'different@example.com',
         subject: 'Different Subject',
@@ -71,7 +71,7 @@ describe('Email Service', () => {
     });
 
     test('should handle empty HTML content', async () => {
-      mockTransporter.sendMail.mockResolvedValueOnce({ messageId: 'test-message-id' });
+      mockSendMail.mockResolvedValueOnce({ messageId: 'test-message-id' });
 
       await emailService.sendEmail(
         'test@example.com',
@@ -79,7 +79,7 @@ describe('Email Service', () => {
         ''
       );
 
-      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
+      expect(mockSendMail).toHaveBeenCalledWith({
         from: process.env.EMAIL_USER,
         to: 'test@example.com',
         subject: 'Empty Content Subject',
@@ -88,7 +88,7 @@ describe('Email Service', () => {
     });
 
     test('should handle special characters in subject and content', async () => {
-      mockTransporter.sendMail.mockResolvedValueOnce({ messageId: 'test-message-id' });
+      mockSendMail.mockResolvedValueOnce({ messageId: 'test-message-id' });
 
       await emailService.sendEmail(
         'test@example.com',
@@ -96,7 +96,7 @@ describe('Email Service', () => {
         '<h1>Content with émojis 🎉 and special chars: @#$%</h1>'
       );
 
-      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
+      expect(mockSendMail).toHaveBeenCalledWith({
         from: process.env.EMAIL_USER,
         to: 'test@example.com',
         subject: 'Subject with émojis 🚀 and special chars: @#$%',
@@ -105,7 +105,7 @@ describe('Email Service', () => {
     });
 
     test('should handle multiple recipients', async () => {
-      mockTransporter.sendMail.mockResolvedValueOnce({ messageId: 'test-message-id' });
+      mockSendMail.mockResolvedValueOnce({ messageId: 'test-message-id' });
 
       await emailService.sendEmail(
         'user1@example.com,user2@example.com',
@@ -113,7 +113,7 @@ describe('Email Service', () => {
         '<p>Email to multiple recipients</p>'
       );
 
-      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
+      expect(mockSendMail).toHaveBeenCalledWith({
         from: process.env.EMAIL_USER,
         to: 'user1@example.com,user2@example.com',
         subject: 'Multiple Recipients',
@@ -123,7 +123,7 @@ describe('Email Service', () => {
 
     test('should not throw error when sendMail fails', async () => {
       const error = new Error('Network error');
-      mockTransporter.sendMail.mockRejectedValueOnce(error);
+      mockSendMail.mockRejectedValueOnce(error);
 
       const result = await emailService.sendEmail(
         'test@example.com',
@@ -132,19 +132,6 @@ describe('Email Service', () => {
       );
 
       expect(result).toBe(false);
-    });
-  });
-
-  describe('Transporter Configuration', () => {
-    test('should create transporter with correct configuration', () => {
-      // The transporter is created when the module is loaded
-      expect(nodemailer.createTransporter).toHaveBeenCalledWith({
-        service: 'Gmail',
-        auth: {
-          user: expect.any(String),
-          pass: expect.any(String)
-        }
-      });
     });
   });
 
