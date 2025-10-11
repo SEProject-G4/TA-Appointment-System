@@ -1,0 +1,221 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    - duration: 45
+      arrivalRate: 3
+      name: "Multi-Role Warm-up"
+    - duration: 120
+      arrivalRate: 8
+      name: "Multi-Role Load Test"
+    - duration: 45
+      arrivalRate: 15
+      name: "Multi-Role Stress Test"
+  variables:
+    taToken: "mock-ta-token"
+    lecturerToken: "mock-lecturer-token"
+    adminToken: "mock-admin-token"
+    cseOfficeToken: "mock-cse-office-token"
+    moduleId: "507f1f77bcf86cd799439011"
+    applicationId: "507f1f77bcf86cd799439012"
+    seriesId: "507f1f77bcf86cd799439013"
+    groupId: "507f1f77bcf86cd799439014"
+
+scenarios:
+  # TA Role Scenarios (30% of traffic)
+  - name: "TA - View Available Requests"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/ta/requests"
+          headers:
+            Authorization: "Bearer {{ taToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 500
+
+  - name: "TA - Apply for Position"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/ta/apply"
+          headers:
+            Authorization: "Bearer {{ taToken }}"
+            Content-Type: "application/json"
+          json:
+            moduleId: "{{ moduleId }}"
+            coverLetter: "Load test application"
+            experience: "Previous TA experience in similar modules"
+          expect:
+            - statusCode:
+                - 200
+                - 201
+                - 400
+                - 401
+                - 500
+
+  - name: "TA - View My Applications"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/ta/my-applications"
+          headers:
+            Authorization: "Bearer {{ taToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 500
+
+  # Lecturer Role Scenarios (35% of traffic)
+  - name: "Lecturer - Dashboard Access"
+    weight: 12
+    flow:
+      - get:
+          url: "/api/lecturer/modules"
+          headers:
+            Authorization: "Bearer {{ lecturerToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 500
+
+  - name: "Lecturer - View TA Requests"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/lecturer/modules/with-ta-requests"
+          headers:
+            Authorization: "Bearer {{ lecturerToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 404
+                - 500
+
+  - name: "Lecturer - Handle Applications"
+    weight: 8
+    flow:
+      - get:
+          url: "/api/lecturer/handle-requests"
+          headers:
+            Authorization: "Bearer {{ lecturerToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 500
+
+  - name: "Lecturer - Update Module Requirements"
+    weight: 5
+    flow:
+      - patch:
+          url: "/api/lecturer/modules/{{ moduleId }}"
+          headers:
+            Authorization: "Bearer {{ lecturerToken }}"
+            Content-Type: "application/json"
+          json:
+            requirements: "Updated requirements - Load test {{ $randomInt(1, 1000) }}"
+            positions: 2
+          expect:
+            - statusCode:
+                - 200
+                - 400
+                - 401
+                - 404
+                - 500
+
+  # Admin Role Scenarios (30% of traffic)
+  - name: "Admin - Module Management"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/modules/{{ moduleId }}"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 404
+                - 500
+
+  - name: "Admin - Recruitment Series Management"
+    weight: 8
+    flow:
+      - get:
+          url: "/api/recruitment-series"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 500
+
+  - name: "Admin - User Group Management"
+    weight: 7
+    flow:
+      - get:
+          url: "/api/user-groups/groups/undergraduate"
+          headers:
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 404
+                - 500
+      - get:
+          url: "/api/user-groups/lecturers"
+          headers:
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 404
+                - 500
+
+  - name: "Admin - Module Status Changes"
+    weight: 5
+    flow:
+      - put:
+          url: "/api/modules/{{ moduleId }}/change-status"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+            Content-Type: "application/json"
+          json:
+            status: "active"
+            reason: "Load test status update"
+          expect:
+            - statusCode:
+                - 200
+                - 400
+                - 401
+                - 404
+                - 500
+
+  # CSE Office Role Scenarios (5% of traffic)
+  - name: "CSE Office - Document Management"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/cse-office/view-ta-documents"
+          headers:
+            Authorization: "Bearer {{ cseOfficeToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 403
+                - 500

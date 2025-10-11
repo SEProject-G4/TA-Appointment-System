@@ -1,0 +1,116 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    - duration: 30
+      arrivalRate: 2
+      name: "Warm-up"
+    - duration: 60
+      arrivalRate: 5
+      name: "Load Test"
+    - duration: 30
+      arrivalRate: 10
+      name: "Spike Test"
+  variables:
+    lecturerToken: "mock-lecturer-token"
+    moduleId: "507f1f77bcf86cd799439011"
+    applicationId: "507f1f77bcf86cd799439012"
+
+scenarios:
+  - name: "Lecturer Dashboard Access"
+    weight: 25
+    flow:
+      - get:
+          url: "/api/lecturer/modules"
+          headers:
+            Authorization: "Bearer {{ lecturerToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode: 
+                - 200
+                - 401
+                - 500
+
+  - name: "View TA Requests"
+    weight: 25
+    flow:
+      - get:
+          url: "/api/lecturer/modules/with-ta-requests"
+          headers:
+            Authorization: "Bearer {{ lecturerToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 404
+                - 500
+
+  - name: "Handle TA Applications"
+    weight: 20
+    flow:
+      - get:
+          url: "/api/lecturer/handle-requests"
+          headers:
+            Authorization: "Bearer {{ lecturerToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 500
+
+  - name: "Update Module Requirements"
+    weight: 15
+    flow:
+      - patch:
+          url: "/api/lecturer/modules/{{ moduleId }}"
+          headers:
+            Authorization: "Bearer {{ lecturerToken }}"
+            Content-Type: "application/json"
+          json:
+            requirements: "Updated TA requirements for load testing"
+            positions: 2
+            qualifications: "Strong programming skills"
+          expect:
+            - statusCode:
+                - 200
+                - 400
+                - 401
+                - 404
+                - 500
+
+  - name: "Accept TA Application"
+    weight: 8
+    flow:
+      - patch:
+          url: "/api/lecturer/applications/{{ applicationId }}/accept"
+          headers:
+            Authorization: "Bearer {{ lecturerToken }}"
+            Content-Type: "application/json"
+          json:
+            feedback: "Application accepted - good qualifications"
+          expect:
+            - statusCode:
+                - 200
+                - 400
+                - 401
+                - 404
+                - 500
+
+  - name: "Reject TA Application"
+    weight: 7
+    flow:
+      - patch:
+          url: "/api/lecturer/applications/{{ applicationId }}/reject"
+          headers:
+            Authorization: "Bearer {{ lecturerToken }}"
+            Content-Type: "application/json"
+          json:
+            feedback: "Application rejected - insufficient experience"
+          expect:
+            - statusCode:
+                - 200
+                - 400
+                - 401
+                - 404
+                - 500

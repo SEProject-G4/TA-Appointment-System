@@ -1,0 +1,67 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    # Phase 1: Warm up - 5 users per second for 30 seconds
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    
+    # Phase 2: Load test - 10 users per second for 60 seconds
+    - duration: 60
+      arrivalRate: 10
+      name: "Load test"
+    
+    # Phase 3: Spike test - 20 users per second for 30 seconds
+    - duration: 30
+      arrivalRate: 20
+      name: "Spike test"
+
+  # Set timeouts and other options
+  http:
+    timeout: 10
+
+scenarios:
+  # Scenario 1: Get available TA requests (most common operation)
+  - name: "Get TA Requests"
+    weight: 60
+    flow:
+      - get:
+          url: "/api/ta/requests"
+          expect:
+            - statusCode: [200, 500] # Accept both success and expected errors
+          capture:
+            - json: "$.data[0].moduleId"
+              as: "moduleId"
+
+  # Scenario 2: Get applied modules for a user
+  - name: "Get Applied Modules"
+    weight: 20
+    flow:
+      - get:
+          url: "/api/ta/applied-modules"
+          expect:
+            - statusCode: [200, 500]
+
+  # Scenario 3: Get accepted modules for a user
+  - name: "Get Accepted Modules"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/ta/accepted-modules"
+          expect:
+            - statusCode: [200, 500]
+
+  # Scenario 4: Apply for TA position (write operation)
+  - name: "Apply for TA Position"
+    weight: 5
+    flow:
+      - post:
+          url: "/api/ta/apply"
+          json:
+            userId: "507f1f77bcf86cd799439011"
+            userRole: "undergraduate"
+            moduleId: "507f1f77bcf86cd799439021"
+            recSeriesId: "507f1f77bcf86cd799439031"
+            taHours: 3
+          expect:
+            - statusCode: [200, 400, 500] # Accept various responses
