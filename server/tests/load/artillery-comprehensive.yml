@@ -60,7 +60,7 @@ scenarios:
     weight: 5
     flow:
       - get:
-          url: "/api/ta/my-applications"
+          url: "/api/ta/applied-modules"
           headers:
             Authorization: "Bearer {{ taToken }}"
             Content-Type: "application/json"

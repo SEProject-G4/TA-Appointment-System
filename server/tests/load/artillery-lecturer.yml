@@ -10,25 +10,81 @@ config:
     - duration: 30
       arrivalRate: 10
       name: "Spike Test"
+  # Enable cookie jar to maintain session cookies
+  http:
+    timeout: 30
+    jar: true
   variables:
-    lecturerToken: "mock-lecturer-token"
+    # REPLACE THESE WITH REAL IDS FROM YOUR DATABASE:
+    # Get real module ID: db.moduledetails.findOne({}, {_id: 1})
+    realModuleId: "68e4ef7ecfec811706b1a5ca"
+    
+    # Get real application ID: db.taapplications.findOne({}, {_id: 1})
+    realApplicationId: "68e7fb0f9064d3a0f6daed57"
+    
+    # Get real user ID (lecturer): db.users.findOne({role: "lecturer"}, {_id: 1})
+    realUserId: "68bfde888782ece6ab2b2e53"
+    
+    # Legacy fake IDs (kept for compatibility with scenarios that don't need real data)
     moduleId: "507f1f77bcf86cd799439011"
     applicationId: "507f1f77bcf86cd799439012"
+    
+    # Replace with actual session cookie value from your browser
+    # Format should be: "connect.sid=s%3A[session-id].[signature]"
+    sessionCookie: "connect.sid=s%3AUOG-rAFBA31Ajo_sbauaQyZlsDCyH1uS.0HTniIGY964GxT%2BqZVLI%2BTNyuNhayfUftGRE%2FENpUms; Path=/; Expires=Sun, 12 Oct 2025 06:36:00 GMT; HttpOnly; SameSite=Lax"
+    # Add your Google ID token here (get from browser network tab)
+    googleIdToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImM4YWI3MTUzMDk3MmJiYTIwYjQ5Zjc4YTA5Yzk4NTJjNDNmZjkxMTgiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI1MDcxNzM0OTc1NjEtZGpyZWV2cXBxbWMzNGdrNmJqazNwanMwc3ZudTU3N2IuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI1MDcxNzM0OTc1NjEtZGpyZWV2cXBxbWMzNGdrNmJqazNwanMwc3ZudTU3N2IuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDE1NzExNjY3Mjc4NTAyMDAxMDkiLCJoZCI6ImNzZS5tcnQuYWMubGsiLCJlbWFpbCI6ImRpbmFyYS4yMkBjc2UubXJ0LmFjLmxrIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5iZiI6MTc2MDE2NDI2MCwibmFtZSI6IkRpbmFyYSBEZSBTaWx2YSIsInBpY3R1cmUiOiJodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vYS9BQ2c4b2NMQmpzWlRreVMwZ3BiM1M5NGVMTW1XS2JBMUFVNzItam5qbThBNzliVEJEYWdELXNMYz1zOTYtYyIsImdpdmVuX25hbWUiOiJEaW5hcmEiLCJmYW1pbHlfbmFtZSI6IkRlIFNpbHZhIiwiaWF0IjoxNzYwMTY0NTYwLCJleHAiOjE3NjAxNjgxNjAsImp0aSI6IjZhMmVkMGE5NTYzM2UyODAwMTBkMTk5ODY1ZjFiNDA3ZWJhOTljNmIifQ.gsyH-cZo2ht09KBEk9T2kxPwc5XunPEMvfhGOCH6lmR9XnLYto6ImVX3xdRAlVeZo7E-zoFFleVTz-RL9XqjuTelrKogIYakcN2p9ffbA77ZjrCFFpAwb4gGYhsOE7OS-RCIrI9KoPmFpN6qrK1uQ5JSH3VfYQu_0jRdykq8JnrGRouzfI-KEVlVHZAtK3S6S6UK58saCp4gO6MZTJh5eojvErnLW5e7VDPJ_TIx4PfYG8N_WjYnteNznMMdp7HQjcrPLIKUBWET_6HOw_sbBrZK8Vw2iKpzKQ6dYjjD106ho5P35ikKPoChfGuIDCmc1ClYtsBjs3eg8QQK9K0E4Q"
+
 
 scenarios:
-  - name: "Lecturer Dashboard Access"
+  # Option A: Test with session cookie (if you have one)
+  - name: "Lecturer Dashboard Access (With Cookie)"
     weight: 25
     flow:
       - get:
           url: "/api/lecturer/modules"
           headers:
-            Authorization: "Bearer {{ lecturerToken }}"
             Content-Type: "application/json"
+            Cookie: "{{ sessionCookie }}"
           expect:
             - statusCode: 
                 - 200
                 - 401
                 - 500
+
+  # Option B: Test without authentication (measures middleware performance)
+  - name: "Lecturer Dashboard Access (No Auth)"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/lecturer/modules"
+          headers:
+            Content-Type: "application/json"
+          expect:
+            - statusCode: 
+                - 401  # Expected since no authentication
+
+  # Option C: Test with authenticated session (using existing session cookie)
+  - name: "Full Authentication Flow"
+    weight: 10
+    flow:
+      # Skip Google token verification since we already have valid session
+      # Test the authenticated endpoints directly
+      - get:
+          url: "/api/lecturer/modules"
+          headers:
+            Content-Type: "application/json"
+            Cookie: "{{ sessionCookie }}"
+          expect:
+            - statusCode: [200, 401]
+      # Follow up with another authenticated request
+      - get:
+          url: "/api/lecturer/handle-requests"
+          headers:
+            Content-Type: "application/json"
+            Cookie: "{{ sessionCookie }}"
+          expect:
+            - statusCode: [200, 401]
 
   - name: "View TA Requests"
     weight: 25
@@ -36,8 +92,8 @@ scenarios:
       - get:
           url: "/api/lecturer/modules/with-ta-requests"
           headers:
-            Authorization: "Bearer {{ lecturerToken }}"
             Content-Type: "application/json"
+            Cookie: "{{ sessionCookie }}"
           expect:
             - statusCode:
                 - 200
@@ -51,8 +107,8 @@ scenarios:
       - get:
           url: "/api/lecturer/handle-requests"
           headers:
-            Authorization: "Bearer {{ lecturerToken }}"
             Content-Type: "application/json"
+            Cookie: "{{ sessionCookie }}"
           expect:
             - statusCode:
                 - 200
@@ -63,10 +119,10 @@ scenarios:
     weight: 15
     flow:
       - patch:
-          url: "/api/lecturer/modules/{{ moduleId }}"
+          url: "/api/lecturer/modules/{{ realModuleId }}"
           headers:
-            Authorization: "Bearer {{ lecturerToken }}"
             Content-Type: "application/json"
+            Cookie: "{{ sessionCookie }}"
           json:
             requirements: "Updated TA requirements for load testing"
             positions: 2
@@ -83,10 +139,10 @@ scenarios:
     weight: 8
     flow:
       - patch:
-          url: "/api/lecturer/applications/{{ applicationId }}/accept"
+          url: "/api/lecturer/applications/{{ realApplicationId }}/accept"
           headers:
-            Authorization: "Bearer {{ lecturerToken }}"
             Content-Type: "application/json"
+            Cookie: "{{ sessionCookie }}"
           json:
             feedback: "Application accepted - good qualifications"
           expect:
@@ -101,16 +157,42 @@ scenarios:
     weight: 7
     flow:
       - patch:
-          url: "/api/lecturer/applications/{{ applicationId }}/reject"
+          url: "/api/lecturer/applications/{{ realApplicationId }}/reject"
           headers:
-            Authorization: "Bearer {{ lecturerToken }}"
             Content-Type: "application/json"
+            Cookie: "{{ sessionCookie }}"
           json:
             feedback: "Application rejected - insufficient experience"
           expect:
             - statusCode:
                 - 200
                 - 400
+
+# NOTES FOR GOOGLE TOKEN AUTHENTICATION:
+# =====================================
+# If you need to test with a fresh Google token (instead of session cookie):
+# 
+# 1. Get Google ID Token from frontend:
+#    - Login to your app in browser with dev tools open
+#    - Check Network tab during Google OAuth flow
+#    - Look for the ID token in the response
+#
+# 2. Use this scenario template:
+#   - name: "Fresh Google Authentication"
+#     weight: 5
+#     flow:
+#       - post:
+#           url: "/api/auth/google-verify"
+#           json:
+#             id_token: "{{ googleIdToken }}"  # Add to variables section
+#           expect:
+#             - statusCode: [200, 401]
+#       - get:
+#           url: "/api/lecturer/modules"
+#           headers:
+#             Content-Type: "application/json"
+#           expect:
+#             - statusCode: [200, 401]
                 - 401
                 - 404
                 - 500

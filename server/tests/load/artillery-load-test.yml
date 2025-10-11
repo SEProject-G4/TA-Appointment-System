@@ -16,6 +16,16 @@ config:
       arrivalRate: 20
       name: "Spike test"
 
+    # Phase 4: Sustained peak load - 50 users per second for 120 seconds
+    - duration: 120
+      arrivalRate: 50
+      name: "Sustained Peak Load"
+
+    # Phase 5: Warm down - 5 users per second for 30 seconds
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm down"
+
   # Set timeouts and other options
   http:
     timeout: 10
@@ -26,19 +36,19 @@ scenarios:
     weight: 60
     flow:
       - get:
-          url: "/api/ta/requests"
+          url: "/api/ta/requests?userId=68bfde888782ece6ab2b2e53"
           expect:
             - statusCode: [200, 500] # Accept both success and expected errors
           capture:
-            - json: "$.data[0].moduleId"
-              as: "moduleId"
+            - json: "$.availableHoursPerWeek"
+              as: "availableHours"
 
   # Scenario 2: Get applied modules for a user
   - name: "Get Applied Modules"
     weight: 20
     flow:
       - get:
-          url: "/api/ta/applied-modules"
+          url: "/api/ta/applied-modules?userId=68bfde888782ece6ab2b2e53"
           expect:
             - statusCode: [200, 500]
 
@@ -47,7 +57,7 @@ scenarios:
     weight: 15
     flow:
       - get:
-          url: "/api/ta/accepted-modules"
+          url: "/api/ta/accepted-modules?userId=68bfde888782ece6ab2b2e53"
           expect:
             - statusCode: [200, 500]
 
@@ -58,10 +68,19 @@ scenarios:
       - post:
           url: "/api/ta/apply"
           json:
-            userId: "507f1f77bcf86cd799439011"
+            userId: "68bfde888782ece6ab2b2e53"
             userRole: "undergraduate"
-            moduleId: "507f1f77bcf86cd799439021"
-            recSeriesId: "507f1f77bcf86cd799439031"
+            moduleId: "68e4ef7ecfec811706b1a5ca"
+            recSeriesId: "68aed8ae6ef4452b417c2b03"
             taHours: 3
           expect:
             - statusCode: [200, 400, 500] # Accept various responses
+
+  # Scenario 5: Peak load - Simulate high traffic for TA requests
+  - name: "Peak Load TA Requests"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/ta/requests?userId=68bfde888782ece6ab2b2e53"
+          expect:
+            - statusCode: [200, 500]
