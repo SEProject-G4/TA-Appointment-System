@@ -24,6 +24,4 @@ router.patch('/applications/:applicationId/accept', authMiddleware.protected, au
 // Reject a TA application
 router.patch('/applications/:applicationId/reject', authMiddleware.protected, authMiddleware.authorize(["lecturer"]), lecturerController.rejectApplication);
 
-// kept for backward compatibility: if previously used, remove or update callers
-
 module.exports = router;

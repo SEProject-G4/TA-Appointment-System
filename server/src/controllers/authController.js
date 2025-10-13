@@ -63,7 +63,7 @@ const getCurrentUser = async (req, res) => {
             return res.status(404).json({error: 'User not found'});
         }
 
-        console.log('Session user:', req.session.userId, 'role:', req.session.role);
+        console.log('Session user:', req.session.userId, 'role:', req.session.role, 'req_body:', req.body);
         
         const userProfile = {
             id: user._id,

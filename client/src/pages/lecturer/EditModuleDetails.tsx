@@ -117,7 +117,7 @@ const EditModuleDetails: React.FC = () => {
         }
         setModuleEdits(mapped);
         setEditing(initialEditing);
-        
+
       } catch (e) {
         console.error("Error loading modules:", e);
         setError("Failed to load your modules");
