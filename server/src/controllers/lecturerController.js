@@ -3,6 +3,7 @@ const TaApplication = require('../models/TaApplication');
 const User = require('../models/User');
 const TaDocumentSubmission = require('../models/TaDocumentSubmission');
 const RecruitmentSeries = require('../models/RecruitmentRound');
+const { sendEmail } = require('../services/emailService');
 
 // GET /api/lecturer/modules
 // Returns modules where the logged-in lecturer (by id) is listed in coordinators
@@ -431,7 +432,7 @@ const acceptApplication = async (req, res) => {
     }
 
     // Get user details to determine role (undergraduate/postgraduate)
-    const user = await User.findById(application.userId).select('role');
+    const user = await User.findById(application.userId).select('role name email');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -460,6 +461,47 @@ const acceptApplication = async (req, res) => {
           'postgraduateCounts.accepted': 1
         }
       });
+    }
+
+    // Send email notification to the accepted TA
+    try {
+      const subject = `Congratulations! Your TA Application for ${module.moduleCode} - ${module.moduleName} has been Accepted`;
+      const htmlContent = `
+        <p><strong>TA Application Accepted!</strong></p>
+        
+        <p>Dear ${user.name},</p>
+        
+        <p>We are pleased to inform you that your Teaching Assistant application for the following module has been accepted:</p>
+        
+        <p><strong>Module Details:</strong></p>
+        <ul>
+          <li><strong>Module Code:</strong> ${module.moduleCode}</li>
+          <li><strong>Module Name:</strong> ${module.moduleName}</li>
+          <li><strong>Semester:</strong> ${module.semester}</li>
+        </ul>
+        
+        <p>Please log into the TA Appointment System to provide the necessary personal details and complete your onboarding process. You will need to submit the following documents:</p>
+        
+        <ul>
+          <li>Bank Passbook Copy</li>
+          <li>NIC Copy</li>
+          <li>CV (Curriculum Vitae)</li>
+          ${user.role === 'postgraduate' ? '<li>Degree Certificate</li>' : ''}
+        </ul>
+        
+        <p><strong>Important:</strong> Please complete your profile and submit all required documents as soon as possible to proceed with your TA appointment.</p>
+        
+        <p>If you have any questions or need assistance, please don't hesitate to contact the module coordinator or the CSE office.</p>
+        
+        <p>Best regards,</p>
+        <p>The TA Recruitment Team</p>
+      `;
+
+      await sendEmail(user.email, subject, htmlContent);
+      console.log('Acceptance email sent successfully to:', user.email);
+    } catch (emailError) {
+      console.error('Failed to send acceptance email:', emailError);
+      // Don't fail the entire operation if email fails
     }
 
     console.log('lecturer acceptApplication -> accepted application', applicationId, 'for', coordinatorId);
