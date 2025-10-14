@@ -273,14 +273,14 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   requirements,
   documentDueDate,
   applicationDueDate,
-  refreshPage,
+  refreshPage: _refreshPage,
 }) => {
   const [marked, setMarked] = useState(false);
   const [fetchedModuleData, setFetchedModuleData] =
     useState<ModuleDetails | null>(null);
 
   const navigate = useNavigate();
-  const { openModal, closeModal } = useModal();
+  const { openModal, closeModal: _closeModal } = useModal();
   const { showToast } = useToast();
 
   const fetchModuleDetails = async (_id: string) => {
@@ -345,7 +345,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     updateModuleStatus(moduleData._id, "pending changes");
   };
 
-  const handleDeleteModule = (moduleData: ModuleDetails) => {
+  const handleDeleteModule = (_moduleData: ModuleDetails) => {
     // Implementation for deleting a module
   };
 
@@ -361,7 +361,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     }
   };
 
-  const handleViewApplications = (moduleData: ModuleDetails) => {
+  const handleViewApplications = (_moduleData: ModuleDetails) => {
     // Implementation for viewing applications
   };
 
@@ -380,7 +380,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     }
   };
 
-  const handleCopyModule = (moduleData: ModuleDetails) => {
+  const handleCopyModule = (_moduleData: ModuleDetails) => {
     // Implementation for copying a module
   };
 

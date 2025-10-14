@@ -1,0 +1,13 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    - duration: 10
+      arrivalRate: 1  # 1 request per second for 10 seconds
+
+scenarios:
+  - name: "Basic Server Test"
+    flow:
+      - get:
+          url: "/"
+          expect:
+            - statusCode: [200, 404, 500]

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BookOpen, Eye, Calendar } from "lucide-react";
+import { BookOpen, Calendar } from "lucide-react";
 import { Button } from "../ui/Button";
 import TADetailedCard from "./TADetailedCard";
 
@@ -52,10 +52,10 @@ const TAAppliedCard: React.FC<AppliedRequestProps> = ({
   if (viewMode === 'cards') {
     return (
       <>
-        <div className="w-full p-4 sm:p-6 transition-all duration-300 border rounded-lg shadow-sm bg-bg-card hover:shadow-md border-border/50">
+        <div className="w-full p-4 transition-all duration-300 border rounded-lg shadow-sm sm:p-6 bg-bg-card hover:shadow-md border-border/50">
           {/* Header */}
           <div className="mb-3 sm:mb-4">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            <div className="flex items-center gap-2 mb-2 sm:gap-3 sm:mb-3">
               <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 flex-shrink-0">
                 <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               </div>
@@ -63,7 +63,7 @@ const TAAppliedCard: React.FC<AppliedRequestProps> = ({
                 {moduleCode}
               </div>
             </div>
-            <h3 className="mb-2 sm:mb-3 text-base sm:text-lg font-semibold leading-tight text-foreground">
+            <h3 className="mb-2 text-base font-semibold leading-tight sm:mb-3 sm:text-lg text-foreground">
               {moduleName}
             </h3>
             
@@ -74,8 +74,8 @@ const TAAppliedCard: React.FC<AppliedRequestProps> = ({
           </div>
 
           {/* Applied Date */}
-          <div className="flex items-center gap-2 mb-4 sm:mb-6 text-xs sm:text-sm text-text-secondary">
-            <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+          <div className="flex items-center gap-2 mb-4 text-xs sm:mb-6 sm:text-sm text-text-secondary">
+            <Calendar className="flex-shrink-0 w-3 h-3 sm:w-4 sm:h-4" />
             <span>Applied: {appliedDate}</span>
           </div>
 

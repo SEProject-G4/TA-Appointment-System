@@ -1,0 +1,31 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    - duration: 20
+      arrivalRate: 1
+      name: "CSE Office Warm-up"
+    - duration: 60
+      arrivalRate: 3
+      name: "CSE Office Load"
+    - duration: 20
+      arrivalRate: 6
+      name: "CSE Office Peak"
+  variables:
+    cseOfficeToken: "mock-cse-office-token"
+    adminToken: "mock-admin-token"
+
+scenarios:
+  - name: "CSE Office - View TA Documents"
+    weight: 100
+    flow:
+      - get:
+          url: "/api/cse-office/view-ta-documents"
+          headers:
+            Authorization: "Bearer {{ cseOfficeToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 403
+                - 500

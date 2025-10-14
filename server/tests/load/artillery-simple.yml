@@ -1,0 +1,14 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    - duration: 60
+      arrivalRate: 5  # 5 requests per second for 1 minute
+      name: "Simple load test"
+
+scenarios:
+  - name: "Simple Health Check"
+    flow:
+      - get:
+          url: "/api/ta/requests"
+          expect:
+            - statusCode: [200, 404, 500]

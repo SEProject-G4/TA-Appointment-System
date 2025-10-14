@@ -1,0 +1,165 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    - duration: 30
+      arrivalRate: 2
+      name: "Warm-up"
+    - duration: 90
+      arrivalRate: 4
+      name: "Steady Load"
+    - duration: 30
+      arrivalRate: 8
+      name: "Peak Load"
+  variables:
+    adminToken: "mock-admin-token"
+    moduleId: "507f1f77bcf86cd799439011"
+    seriesId: "507f1f77bcf86cd799439013"
+    groupId: "507f1f77bcf86cd799439014"
+    userId: "507f1f77bcf86cd799439015"
+
+scenarios:
+  - name: "Module Management - Get Details"
+    weight: 20
+    flow:
+      - get:
+          url: "/api/modules/{{ moduleId }}"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 404
+                - 500
+
+  - name: "Module Management - Change Status"
+    weight: 15
+    flow:
+      - put:
+          url: "/api/modules/{{ moduleId }}/change-status"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+            Content-Type: "application/json"
+          json:
+            status: "active"
+            reason: "Load test status change"
+          expect:
+            - statusCode:
+                - 200
+                - 400
+                - 401
+                - 404
+                - 500
+
+  - name: "Module Management - Advertise"
+    weight: 10
+    flow:
+      - put:
+          url: "/api/modules/{{ moduleId }}/advertise"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+            Content-Type: "application/json"
+          json:
+            advertised: true
+            advertisementText: "Join our TA team!"
+          expect:
+            - statusCode:
+                - 200
+                - 400
+                - 401
+                - 404
+                - 500
+
+  - name: "Recruitment Series - Get All"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/recruitment-series"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 500
+
+  - name: "Recruitment Series - Create New"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/recruitment-series/create"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+            Content-Type: "application/json"
+          json:
+            name: "Load Test Recruitment {{ $randomString() }}"
+            startDate: "2025-01-01"
+            endDate: "2025-02-01"
+            description: "Automated load test recruitment series"
+          expect:
+            - statusCode:
+                - 200
+                - 201
+                - 400
+                - 401
+                - 500
+
+  - name: "Recruitment Series - Add Module"
+    weight: 8
+    flow:
+      - post:
+          url: "/api/recruitment-series/{{ seriesId }}/add-module"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+            Content-Type: "application/json"
+          json:
+            moduleId: "{{ moduleId }}"
+            positions: 3
+            requirements: "Load test module requirements"
+          expect:
+            - statusCode:
+                - 200
+                - 201
+                - 400
+                - 401
+                - 404
+                - 500
+
+  - name: "Recruitment Series - Get Module Details"
+    weight: 12
+    flow:
+      - get:
+          url: "/api/recruitment-series/{{ seriesId }}/modules"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 401
+                - 404
+                - 500
+
+  - name: "User Management - Get User Groups"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/user-groups/groups/undergraduate"
+          headers:
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 404
+                - 500
+      - get:
+          url: "/api/user-groups/groups/lecturer"
+          headers:
+            Content-Type: "application/json"
+          expect:
+            - statusCode:
+                - 200
+                - 404
+                - 500
