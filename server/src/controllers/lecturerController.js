@@ -3,6 +3,7 @@ const TaApplication = require('../models/TaApplication');
 const User = require('../models/User');
 const TaDocumentSubmission = require('../models/TaDocumentSubmission');
 const RecruitmentSeries = require('../models/RecruitmentRound');
+const AppliedModules = require('../models/AppliedModules');
 const { sendEmail } = require('../services/emailService');
 
 // GET /api/lecturer/modules
@@ -567,6 +568,25 @@ const rejectApplication = async (req, res) => {
           'postgraduateCounts.remaining': 1
         }
       });
+    }
+
+    // Get the module details to retrieve requiredTAHours
+    const moduleDetails = await ModuleDetails.findById(applicationModuleId).select('requiredTAHours');
+    if (moduleDetails && moduleDetails.requiredTAHours) {
+      // Find the AppliedModules record for this user and increment availableHoursPerWeek
+      const appliedModuleRecord = await AppliedModules.findOne({ userId: application.userId });
+      if (appliedModuleRecord) {
+        await AppliedModules.findByIdAndUpdate(appliedModuleRecord._id, {
+          $inc: {
+            availableHoursPerWeek: moduleDetails.requiredTAHours
+          }
+        });
+        console.log(`Incremented availableHoursPerWeek by ${moduleDetails.requiredTAHours} for user ${application.userId}`);
+      } else {
+        console.log(`No AppliedModules record found for user ${application.userId}`);
+      }
+    } else {
+      console.log(`No requiredTAHours found for module ${applicationModuleId}`);
     }
 
     console.log('lecturer rejectApplication -> rejected application', applicationId, 'for', coordinatorId);
