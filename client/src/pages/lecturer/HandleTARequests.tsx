@@ -101,11 +101,11 @@ const HandleTARequests = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">
+      <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-4 sm:px-8 md:px-12 lg:px-20 py-5">
         <div className="flex items-center justify-center w-full h-64">
           <div className="flex flex-col items-center space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            <span className="text-text-primary">Loading TA applications...</span>
+            <span className="text-text-primary text-sm sm:text-base">Loading TA applications...</span>
           </div>
         </div>
       </div>
@@ -114,13 +114,13 @@ const HandleTARequests = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">
-        <div className="bg-error/10 border border-error/20 rounded-lg p-6 w-full">
-          <h3 className="text-error font-semibold mb-2">Error Loading Applications</h3>
-          <p className="text-text-secondary mb-4">{error}</p>
+      <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-4 sm:px-8 md:px-12 lg:px-20 py-5">
+        <div className="bg-error/10 border border-error/20 rounded-lg p-4 sm:p-6 w-full">
+          <h3 className="text-error font-semibold mb-2 text-sm sm:text-base">Error Loading Applications</h3>
+          <p className="text-text-secondary mb-4 text-xs sm:text-sm">{error}</p>
           <button 
             onClick={fetchTAApplications}
-            className="btn btn-primary"
+            className="btn btn-primary text-xs sm:text-sm px-3 py-2"
           >
             Try Again
           </button>
@@ -131,28 +131,28 @@ const HandleTARequests = () => {
 
   if (modules.length === 0) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">
+      <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-4 sm:px-8 md:px-12 lg:px-20 py-5">
         <div className="text-center w-full py-16">
-          <FaUserGraduate className="h-16 w-16 mx-auto mb-4 text-text-secondary opacity-50" />
-          <h3 className="text-text-primary text-xl font-semibold mb-2">No TA Applications</h3>
-          <p className="text-text-secondary">There are no TA applications for your modules at the moment.</p>
+          <FaUserGraduate className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 text-text-secondary opacity-50" />
+          <h3 className="text-text-primary text-lg sm:text-xl font-semibold mb-2">No TA Applications</h3>
+          <p className="text-text-secondary text-sm sm:text-base">There are no TA applications for your modules at the moment.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">
-      <div className="mb-8 w-full flex items-center justify-between">
+    <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-4 sm:px-8 md:px-12 lg:px-20 py-5">
+      <div className="mb-6 sm:mb-8 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-montserrat mb-2">Handle TA Requests</h1>
-          <p className="text-text-secondary font-raleway">Review and manage TA applications for your modules</p>
+          <h1 className="text-2xl sm:text-3xl font-bold font-montserrat mb-2">Handle TA Requests</h1>
+          <p className="text-text-secondary font-raleway text-sm sm:text-base">Review and manage TA applications for your modules</p>
         </div>
         <div className="flex items-center space-x-2" />
       </div>
       
       {
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {modules.map((m, idx) => (
             <HandleTaRequestsCard
               key={`${m.moduleCode}-${idx}`}
@@ -173,22 +173,22 @@ const HandleTARequests = () => {
       }
 
       {showConfirmModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform transition-all">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-warning/20 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-warning" fill="currentColor" viewBox="0 0 20 20">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl transform transition-all">
+            <div className="flex items-center gap-2 sm:gap-3 mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-warning/20 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-warning" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Confirm {pendingAction?.type === 'accept' ? 'Acceptance' : 'Rejection'}</h3>
-                <p className="text-sm text-gray-600">Final confirmation required</p>
+                <h3 className="text-base sm:text-lg font-bold text-gray-900">Confirm {pendingAction?.type === 'accept' ? 'Acceptance' : 'Rejection'}</h3>
+                <p className="text-xs sm:text-sm text-gray-600">Final confirmation required</p>
               </div>
             </div>
 
             <div className="mb-6">
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
                 {pendingAction?.type === 'accept'
                   ? `Are you sure you want to accept ${pendingAction?.studentName} as a TA? `
                   : `Are you sure you want to reject ${pendingAction?.studentName}'s TA application? `}
@@ -196,12 +196,12 @@ const HandleTARequests = () => {
               </p>
             </div>
 
-            <div className="flex gap-3">
-              <button onClick={cancelSubmission} className="btn btn-outline flex-1">Cancel</button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={cancelSubmission} className="btn btn-outline flex-1 text-sm sm:text-base">Cancel</button>
               <button
                 onClick={confirmSubmission}
                 disabled={pendingAction ? processingActions.has(pendingAction.applicationId) : false}
-                className={`btn btn-primary flex-1 ${pendingAction && processingActions.has(pendingAction.applicationId) ? 'btn-disabled' : ''}`}
+                className={`btn btn-primary flex-1 text-sm sm:text-base ${pendingAction && processingActions.has(pendingAction.applicationId) ? 'btn-disabled' : ''}`}
               >
                 {pendingAction && processingActions.has(pendingAction.applicationId) ? 'Processing...' : 'Confirm'}
               </button>

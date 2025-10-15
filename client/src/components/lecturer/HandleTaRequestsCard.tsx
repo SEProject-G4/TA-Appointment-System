@@ -40,33 +40,33 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
   const progress = Math.min(appliedInTab > 0 ? (acceptedInTab / appliedInTab) * 100 : 0, 100);
 
   return (
-    <div className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-4 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex flex-row w-full items-center">
+    <div className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-3 sm:p-4 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex flex-col sm:flex-row w-full items-start sm:items-center space-y-2 sm:space-y-0">
         {collapsible ? (
           <FaChevronRight
-            className={`p-1 h-6 w-6 rounded-full hover:bg-primary/10 text-text-secondary cursor-pointer transition-transform ease-in-out duration-100 ${
+            className={`p-1 h-5 w-5 sm:h-6 sm:w-6 rounded-full hover:bg-primary/10 text-text-secondary cursor-pointer transition-transform ease-in-out duration-100 ${
               isExpanded ? "rotate-90" : ""
             }`}
             onClick={() => setIsExpanded(!isExpanded)}
           />
         ) : (
-          <span className="w-6" />
+          <span className="w-5 sm:w-6" />
         )}
-        <div className="flex flex-1 flex-col ml-3">
-          <div className="flex items-center space-x-3">
-            <h3 className="text-lg font-semibold text-text-primary">{moduleCode}</h3>
-            <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
+        <div className="flex flex-1 flex-col ml-2 sm:ml-3">
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+            <h3 className="text-base sm:text-lg font-semibold text-text-primary">{moduleCode}</h3>
+            <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium self-start">
               Semester {semester} {year}
             </span>
           </div>
-          <p className="text-text-primary text-sm">{moduleName}</p>
+          <p className="text-text-primary text-xs sm:text-sm mt-1">{moduleName}</p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4 ml-auto">
           <div className="text-right">
-            <div className="text-sm text-text-secondary">Progress</div>
-            <div className="text-lg font-semibold text-text-primary">{acceptedInTab}/{appliedInTab}</div>
+            <div className="text-xs sm:text-sm text-text-secondary">Progress</div>
+            <div className="text-sm sm:text-lg font-semibold text-text-primary">{acceptedInTab}/{appliedInTab}</div>
           </div>
-          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="w-12 sm:w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
               className="bg-gradient-to-r from-primary to-primary-dark h-full rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
@@ -80,17 +80,17 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
         <div className={`panel ${isExpanded ? 'panel-open' : 'panel-closed'}`}>
           <div className="w-full space-y-3">
             {/* Summary Stats */}
-            <div className="flex justify-between items-center bg-bg-page rounded-lg p-3">
-              <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-bg-page rounded-lg p-3 space-y-2 sm:space-y-0">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                 <div className="flex items-center space-x-2">
                   <FaUserGraduate className="text-primary-dark h-4 w-4" />
-                  <span className="text-sm text-text-secondary">Total Applications:</span>
-                  <span className="font-semibold text-text-primary">{appliedTAs.length}</span>
+                  <span className="text-xs sm:text-sm text-text-secondary">Total Applications:</span>
+                  <span className="font-semibold text-text-primary text-sm sm:text-base">{appliedTAs.length}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <FaClipboardList className="text-primary-dark h-4 w-4" />
-                  <span className="text-sm text-text-secondary">Pending:</span>
-                  <span className="font-semibold text-text-primary">{pendingCount}</span>
+                  <span className="text-xs sm:text-sm text-text-secondary">Pending:</span>
+                  <span className="font-semibold text-text-primary text-sm sm:text-base">{pendingCount}</span>
                 </div>
               </div>
             </div>
@@ -101,7 +101,7 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-2 text-sm font-medium ${activeTab === tab ? 'text-primary border-b-2 border-primary' : 'text-text-secondary'}`}
+                  className={`flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium ${activeTab === tab ? 'text-primary border-b-2 border-primary' : 'text-text-secondary'}`}
                 >
                   {tab === 'undergraduate' ? 'Undergraduates' : 'Postgraduates'}
                 </button>
@@ -122,13 +122,13 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
                   const isProcessing = processingActions.has(ta.applicationId);
                   const isPending = statusLower === 'pending';
               return (
-                    <div key={idx} className="flex items-center justify-between bg-bg-page rounded-lg p-3 border border-border-default">
+                    <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-bg-page rounded-lg p-3 border border-border-default space-y-2 sm:space-y-0">
                       <div className="flex items-center space-x-3">
                         <div className="flex flex-col">
-                          <span className="font-medium text-text-primary">{ta.name}</span>
+                          <span className="font-medium text-text-primary text-sm sm:text-base">{ta.name}</span>
                           <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                         </div>
-                        <span className={`badge ${
+                        <span className={`badge text-xs ${
                           statusLower === 'accepted' 
                             ? 'badge-accepted' 
                             : statusLower === 'rejected' 
@@ -139,9 +139,9 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
                         </span>
                   </div>
                       {isPending && (
-                        <div className="flex space-x-2">
+                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
                     <button
-                            className={`btn btn-primary ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
+                            className={`btn btn-primary btn-sm sm:btn-sm ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
                             onClick={() => onAccept(ta.applicationId, ta.name)}
                             title={isActionDisabled ? 'Already processed' : isProcessing ? 'Processing...' : 'Accept TA application'}
                             disabled={isActionDisabled || isProcessing}
@@ -149,7 +149,7 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
                             {isProcessing ? <span>⏳</span> : <span className="text-xs">Accept</span>}
                     </button>
                     <button
-                            className={`btn btn-outline ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
+                            className={`btn btn-outline btn-sm sm:btn-sm ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
                             onClick={() => onReject(ta.applicationId, ta.name)}
                             title={isActionDisabled ? 'Already processed' : isProcessing ? 'Processing...' : 'Reject TA application'}
                             disabled={isActionDisabled || isProcessing}
@@ -167,17 +167,17 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
           </div>
       ) : (
         <div className="w-full space-y-3 mt-4">
-          <div className="flex justify-between items-center bg-bg-page rounded-lg p-3">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-bg-page rounded-lg p-3 space-y-2 sm:space-y-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
               <div className="flex items-center space-x-2">
                 <FaUserGraduate className="text-primary-dark h-4 w-4" />
-                <span className="text-sm text-text-secondary">Total Applications:</span>
-                <span className="font-semibold text-text-primary">{appliedTAs.length}</span>
+                <span className="text-xs sm:text-sm text-text-secondary">Total Applications:</span>
+                <span className="font-semibold text-text-primary text-sm sm:text-base">{appliedTAs.length}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <FaClipboardList className="text-primary-dark h-4 w-4" />
-                <span className="text-sm text-text-secondary">Pending:</span>
-                <span className="font-semibold text-text-primary">{filteredTAs.filter(ta => (ta.status || '').toLowerCase() === 'pending').length}</span>
+                <span className="text-xs sm:text-sm text-text-secondary">Pending:</span>
+                <span className="font-semibold text-text-primary text-sm sm:text-base">{filteredTAs.filter(ta => (ta.status || '').toLowerCase() === 'pending').length}</span>
         </div>
             </div>
           </div>
@@ -188,7 +188,7 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-3 py-2 text-sm font-medium ${activeTab === tab ? 'text-primary border-b-2 border-primary' : 'text-text-secondary'}`}
+                className={`flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium ${activeTab === tab ? 'text-primary border-b-2 border-primary' : 'text-text-secondary'}`}
               >
                 {tab === 'undergraduate' ? 'Undergraduates' : 'Postgraduates'}
               </button>
@@ -208,13 +208,13 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
                 const isProcessing = processingActions.has(ta.applicationId);
                 const isPending = statusLower === 'pending';
                 return (
-                  <div key={idx} className="flex items-center justify-between bg-bg-page rounded-lg p-3 border border-border-default">
+                  <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-bg-page rounded-lg p-3 border border-border-default space-y-2 sm:space-y-0">
                     <div className="flex items-center space-x-3">
                       <div className="flex flex-col">
-                        <span className="font-medium text-text-primary">{ta.name}</span>
+                        <span className="font-medium text-text-primary text-sm sm:text-base">{ta.name}</span>
                         <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                       </div>
-                      <span className={`badge ${
+                      <span className={`badge text-xs ${
                         statusLower === 'accepted' 
                           ? 'badge-accepted' 
                           : statusLower === 'rejected' 
@@ -225,9 +225,9 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
                       </span>
                     </div>
                     {isPending && (
-                      <div className="flex space-x-2">
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
                         <button
-                          className={`btn btn-primary ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
+                          className={`btn btn-primary btn-sm sm:btn-sm ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
                           onClick={() => onAccept(ta.applicationId, ta.name)}
                           title={isActionDisabled ? 'Already processed' : isProcessing ? 'Processing...' : 'Accept TA application'}
                           disabled={isActionDisabled || isProcessing}
@@ -235,7 +235,7 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
                           {isProcessing ? <span>⏳</span> : <span className="text-xs">Accept</span>}
                         </button>
                         <button
-                          className={`btn btn-outline ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
+                          className={`btn btn-outline btn-sm sm:btn-sm ${isActionDisabled || isProcessing ? 'btn-disabled' : ''}`}
                           onClick={() => onReject(ta.applicationId, ta.name)}
                           title={isActionDisabled ? 'Already processed' : isProcessing ? 'Processing...' : 'Reject TA application'}
                           disabled={isActionDisabled || isProcessing}
