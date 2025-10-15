@@ -612,10 +612,40 @@ const viewModuleDetails = async (req, res) => {
 
     const coordinatorId = req.user._id;
 
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Search and sort parameters
+    const searchQuery = req.query.search || '';
+    const sortBy = req.query.sortBy || '';
+
+    // Build query for modules coordinated by the lecturer
+    let query = { coordinators: coordinatorId };
+    
+    // Add search filter if provided
+    if (searchQuery) {
+      query.$or = [
+        { moduleCode: { $regex: searchQuery, $options: 'i' } },
+        { moduleName: { $regex: searchQuery, $options: 'i' } }
+      ];
+    }
+
     // Get modules coordinated by the lecturer
-    const coordinatorModulesAll = await ModuleDetails.find({
-      coordinators: coordinatorId
-    }).select('_id moduleCode moduleName semester year requiredTACount requiredTAHours requirements recruitmentSeriesId');
+    let coordinatorModulesQuery = ModuleDetails.find(query)
+      .select('_id moduleCode moduleName semester year requiredTACount requiredTAHours requirements recruitmentSeriesId');
+    
+    // Apply sorting if provided
+    if (sortBy === 'name') {
+      coordinatorModulesQuery = coordinatorModulesQuery.sort({ moduleName: 1 });
+    } else if (sortBy === 'code') {
+      coordinatorModulesQuery = coordinatorModulesQuery.sort({ moduleCode: 1 });
+    } else if (sortBy === 'semester') {
+      coordinatorModulesQuery = coordinatorModulesQuery.sort({ semester: 1 });
+    }
+    
+    const coordinatorModulesAll = await coordinatorModulesQuery;
     console.log("coordinatorModules (all)", coordinatorModulesAll);
 
     // No recruitment series status filtering; consider all modules for the coordinator
@@ -623,7 +653,15 @@ const viewModuleDetails = async (req, res) => {
     console.log('viewModuleDetails -> modules (no RS filter)', coordinatorModules.length);
 
     if (coordinatorModules.length === 0) {
-      return res.status(200).json({ modules: [] });
+      return res.status(200).json({ 
+        modules: [],
+        pagination: {
+          currentPage: page,
+          totalPages: 0,
+          totalModules: 0,
+          limit
+        }
+      });
     }
 
     const moduleIdObjects = coordinatorModules.map(m => m._id);
@@ -697,7 +735,7 @@ const viewModuleDetails = async (req, res) => {
     console.log("applicationsCountMap", applicationsCountMap);
 
     // Build response (include modules even if no accepted applications)
-    const modules = coordinatorModules
+    const allModules = coordinatorModules
       .map(m => {
         const modId = m._id.toString();
         const acceptedApps = acceptedByModule.get(modId) || [];
@@ -759,9 +797,24 @@ const viewModuleDetails = async (req, res) => {
           applicationsCount: applicationsCountMap[modId] || 0
         }
       });
-    console.log("modules", modules);
+    
+    // Apply pagination
+    const totalModules = allModules.length;
+    const totalPages = Math.ceil(totalModules / limit);
+    const paginatedModules = allModules.slice(skip, skip + limit);
+    
+    console.log("modules", allModules);
+    console.log(`Pagination: page ${page}/${totalPages}, showing ${paginatedModules.length} of ${totalModules} modules`);
 
-    return res.status(200).json({ modules });
+    return res.status(200).json({ 
+      modules: paginatedModules,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalModules,
+        limit
+      }
+    });
   } catch (error) {
     console.error('Error fetching modules with TA requests:', error);
     return res.status(500).json({ error: 'Failed to fetch modules with TA requests' });
