@@ -1,8 +1,22 @@
 const { OAuth2Client } = require('google-auth-library');
+const jwt = require('jsonwebtoken');
 const config = require('../config');
 const authService = require('../services/authService');
 
 const client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
+
+// Helper function to generate JWT token
+const generateToken = (user) => {
+    return jwt.sign(
+        { 
+            userId: user._id,
+            email: user.email,
+            role: user.role
+        },
+        config.JWT_SECRET,
+        { expiresIn: '1h' } // Token expires in 1 hour
+    );
+};
 
 
 const googleVerify = async (req, res) => {
@@ -41,10 +55,21 @@ const googleVerify = async (req, res) => {
             authService.handleFirstLogin(user, payload);
         }
 
-        req.session.userId = user._id;
-        req.session.role = user.role;
+        // Generate JWT token
+        const token = generateToken(user);
 
-        return res.status(200).json(user);
+        // Return user data with token
+        return res.status(200).json({
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                groupId: user.userGroup,
+                profilePicture: user.profilePicture
+            },
+            token
+        });
     } catch (error) {
         console.error('Google token verification failed:', error.message);
         return res.status(401).json({ error: 'Token verification failed' });
@@ -52,18 +77,26 @@ const googleVerify = async (req, res) => {
 };
 
 const getCurrentUser = async (req, res) => {
-    if (!req.session.userId) {
-        return res.status(401).json({error: 'User not authenticated'});
+    // Get token from Authorization header
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(200).json({ user: null });
     }
 
+    const token = authHeader.split(' ')[1];
+
     try {
-        const user = await authService.findUserById(req.session.userId);
+        // Verify JWT token
+        const decoded = jwt.verify(token, config.JWT_SECRET);
+        
+        // Fetch user from database
+        const user = await authService.findUserById(decoded.userId);
         if (!user) {
-            req.session.destroy();
-            return res.status(404).json({error: 'User not found'});
+            return res.status(200).json({ user: null });
         }
 
-        console.log('Session user:', req.session.userId, 'role:', req.session.role, 'req_body:', req.body);
+        console.log('JWT user:', decoded.userId, 'role:', decoded.role);
         
         const userProfile = {
             id: user._id,
@@ -76,21 +109,19 @@ const getCurrentUser = async (req, res) => {
 
         return res.status(200).json(userProfile);
     } catch (error) {
+        if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+            return res.status(200).json({ user: null });
+        }
         console.error('Error fetching current user profile:', error.message);
         return res.status(500).json({error: 'Internal server error'});
     }
 };
 
 const logout = (req, res) => {
-    req.session.destroy(err => {
-        if (err) {
-            console.error('Error destroying session:', err);
-            return res.status(500).json({error: 'Could not log out'});
-        }
-        res.clearCookie('connect.sid');
-        return res.status(200).json({ message: 'Logout successful' });
-    });
+    // With JWT, logout is handled on the client by removing the token
+    // No server-side session to destroy
     console.log('User logged out successfully');
+    return res.status(200).json({ message: 'Logout successful' });
 };
 
 module.exports = {

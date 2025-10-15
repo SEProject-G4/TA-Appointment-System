@@ -1,26 +1,43 @@
+const jwt = require('jsonwebtoken');
+const config = require('../config');
 const User = require('../models/User');
 const authService = require('../services/authService');
 
 exports.protected = async (req, res, next) => {
-    console.log('Session debug:', {
-        sessionId: req.sessionID,
-        userId: req.session.userId,
-        sessionData: req.session
+    // Get token from Authorization header
+    const authHeader = req.headers.authorization;
+    
+    console.log('Auth debug:', {
+        authHeader: authHeader ? 'Present' : 'Missing',
+        path: req.path
     });
     
-    if (!req.session.userId) {
-        return res.status(401).json({ error: 'Not authorized, no session ID' });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not authorized, no token provided' });
     }
 
-    try{
-        const user = await authService.findUserById(req.session.userId);
+    const token = authHeader.split(' ')[1];
+
+    try {
+        // Verify JWT token
+        const decoded = jwt.verify(token, config.JWT_SECRET);
+        
+        // Fetch user from database
+        const user = await authService.findUserById(decoded.userId);
         if (!user) {
-            req.session.destroy();
             return res.status(404).json({ error: 'Not authorised, user not found' });
         }
+        
         req.user = user;
+        req.userId = decoded.userId;
         next();
     } catch (error) {
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ error: 'Token expired' });
+        }
         console.error('Error in authMiddleware:', error);
         return res.status(500).json({ error: 'Authentication failed' });
     }

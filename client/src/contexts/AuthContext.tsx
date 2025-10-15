@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getCurrentUser,
   logout as apiLogout,
@@ -22,13 +23,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const navigate = useNavigate();
 
   // Check for an existing session on initial load
   useEffect(() => {
     const fetchUser = async () => {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
-      setLoading(false);
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        // Silently handle errors - user is simply not logged in
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchUser();
   }, []);
@@ -52,9 +60,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     apiLogout()
       .then(() => {
         setUser(null);
+        navigate("/"); // Redirect to home page after logout
       })
       .catch((error) => {
         console.error("Logout failed:", error);
+        // Still clear user state since token is removed from localStorage
+        setUser(null);
+        navigate("/");
       })
       .finally(() => {
         setIsLoggingOut(false);

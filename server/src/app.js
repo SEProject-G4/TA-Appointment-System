@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const session = require('express-session');
 const config = require('./config');
 const authMiddleware = require('./middleware/authMiddleware');
 
@@ -11,18 +10,6 @@ app.use(cors({
   // origin: config.FRONTEND_URL,
   origin: ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true,
-}));
-
-app.use(session({
-  secret: config.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: true,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 1000 * 60 * 60 * 24
-  },
 }));
 
 // ... mount your other routes here
