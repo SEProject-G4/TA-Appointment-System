@@ -2,7 +2,7 @@ const ModuleDetails = require('../models/ModuleDetails');
 const TaApplication = require('../models/TaApplication');
 const User = require('../models/User');
 const TaDocumentSubmission = require('../models/TaDocumentSubmission');
-const RecruitmentRound = require('../models/RecruitmentRound');
+const RecruitmentSeries = require('../models/RecruitmentRound');
 
 // GET /api/lecturer/modules
 // Returns modules where the logged-in lecturer (by id) is listed in coordinators
@@ -14,14 +14,15 @@ const getMyModules = async (req, res) => {
 
     const coordinatorId = req.user._id;
 
-    // Get all modules where user is coordinator with either status
+    // Get all modules where user is coordinator with editable statuses
     const modules = await ModuleDetails
       .find({ 
         coordinators: coordinatorId,
         moduleStatus: { 
-          $in: ['pending changes', 'changes submitted'] 
+          $in: ['pending changes', 'changes submitted', 'advertised'] 
         }
       })
+      .select('_id moduleCode moduleName semester year coordinators applicationDueDate documentDueDate requiredTAHours requiredUndergraduateTACount requiredPostgraduateTACount requirements moduleStatus undergraduateCounts postgraduateCounts')
       .sort({ createdAt: -1 });
 
     // No recruitment series status filtering; consider all modules for the coordinator
@@ -30,12 +31,14 @@ const getMyModules = async (req, res) => {
     // Group modules by status
     const groupedModules = {
       pendingChanges: activeModules.filter(m => m.moduleStatus === 'pending changes'),
-      changesSubmitted: activeModules.filter(m => m.moduleStatus === 'changes submitted')
+      changesSubmitted: activeModules.filter(m => m.moduleStatus === 'changes submitted'),
+      advertised: activeModules.filter(m => m.moduleStatus === 'advertised')
     };
 
     console.log('lecturer getMyModules -> matched', 
-      groupedModules.pendingChanges.length, 'pending changes and',
-      groupedModules.changesSubmitted.length, 'changes submitted modules for', 
+      groupedModules.pendingChanges.length, 'pending changes,',
+      groupedModules.changesSubmitted.length, 'changes submitted, and',
+      groupedModules.advertised.length, 'advertised modules for', 
       coordinatorId
     );
 
@@ -70,28 +73,174 @@ const editModuleRequirments = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to edit this module' });
     }
 
-    // Verify the module is in "pending changes" status
-    if (moduleDoc.moduleStatus !== 'pending changes') {
-      return res.status(400).json({ error: 'Module is not in pending changes status' });
+    // Verify the module is in an editable status
+    const editableStatuses = ['pending changes', 'changes submitted', 'advertised'];
+    if (!editableStatuses.includes(moduleDoc.moduleStatus)) {
+      return res.status(400).json({ error: 'Module is not in an editable status' });
     }
 
-    // Update the module fields and set status to "changes submitted"
+    // Prepare update object
+    const updateFields = {
+      requiredTAHours,
+      requiredUndergraduateTACount,
+      requiredPostgraduateTACount,
+      requirements,
+      updatedBy: req.user._id,
+    };
+
+    // Handle undergraduate and postgraduate TA count changes
+    // Convert to numbers and handle undefined/null cases
+    const undergradCount = Number(requiredUndergraduateTACount) || 0;
+    const postgradCount = Number(requiredPostgraduateTACount) || 0;
+    
+    // Validation for advertised modules: check if applied count exceeds new required count
+    if (moduleDoc.moduleStatus === 'advertised') {
+      const currentAppliedUndergrad = moduleDoc.undergraduateCounts?.applied || 0;
+      const currentAppliedPostgrad = moduleDoc.postgraduateCounts?.applied || 0;
+      
+      // Prevent setting undergraduate count to 0 when there are applied TAs
+      if (undergradCount === 0 && currentAppliedUndergrad > 0) {
+        return res.status(400).json({ 
+          error: `Cannot set undergraduate TA count to 0 because ${currentAppliedUndergrad} students have already applied.` 
+        });
+      }
+      
+      // Prevent reducing undergraduate count below applied count
+      if (undergradCount > 0 && currentAppliedUndergrad > undergradCount) {
+        return res.status(400).json({ 
+          error: `Cannot reduce undergraduate TA count to ${undergradCount} because ${currentAppliedUndergrad} students have already applied.` 
+        });
+      }
+      
+      // Prevent setting postgraduate count to 0 when there are applied TAs
+      if (postgradCount === 0 && currentAppliedPostgrad > 0) {
+        return res.status(400).json({ 
+          error: `Cannot set postgraduate TA count to 0 because ${currentAppliedPostgrad} students have already applied.` 
+        });
+      }
+      
+      // Prevent reducing postgraduate count below applied count
+      if (postgradCount > 0 && currentAppliedPostgrad > postgradCount) {
+        return res.status(400).json({ 
+          error: `Cannot reduce postgraduate TA count to ${postgradCount} because ${currentAppliedPostgrad} students have already applied.` 
+        });
+      }
+    }
+    
+    if (undergradCount > 0) {
+      // Set openForUndergraduates to true
+      updateFields.openForUndergraduates = true;
+      
+      // Get current counts or initialize with zeros
+      const currentApplied = moduleDoc.undergraduateCounts?.applied || 0;
+      const currentAccepted = moduleDoc.undergraduateCounts?.accepted || 0;
+      const currentReviewed = moduleDoc.undergraduateCounts?.reviewed || 0;
+      const currentDocSubmitted = moduleDoc.undergraduateCounts?.docSubmitted || 0;
+      const currentAppointed = moduleDoc.undergraduateCounts?.appointed || 0;
+      
+      // Calculate remaining count (required - accepted)
+      const remainingCount = Math.max(0, undergradCount - currentAccepted);
+      
+      // Initialize or update undergraduateCounts
+      updateFields.undergraduateCounts = {
+        required: undergradCount,
+        remaining: remainingCount,
+        applied: currentApplied,
+        reviewed: currentReviewed,
+        accepted: currentAccepted,
+        docSubmitted: currentDocSubmitted,
+        appointed: currentAppointed
+      };
+    } else {
+      // If undergraduate count is 0 or undefined, set openForUndergraduates to false
+      updateFields.openForUndergraduates = false;
+      
+      // Reset all undergraduate counts to 0
+      updateFields.undergraduateCounts = {
+        required: 0,
+        remaining: 0,
+        applied: 0,
+        reviewed: 0,
+        accepted: 0,
+        docSubmitted: 0,
+        appointed: 0
+      };
+    }
+
+    // Handle postgraduate TA count changes
+    
+    if (postgradCount > 0) {
+      // Set openForPostgraduates to true
+      updateFields.openForPostgraduates = true;
+      
+      // Get current counts or initialize with zeros
+      const currentApplied = moduleDoc.postgraduateCounts?.applied || 0;
+      const currentAccepted = moduleDoc.postgraduateCounts?.accepted || 0;
+      const currentReviewed = moduleDoc.postgraduateCounts?.reviewed || 0;
+      const currentDocSubmitted = moduleDoc.postgraduateCounts?.docSubmitted || 0;
+      const currentAppointed = moduleDoc.postgraduateCounts?.appointed || 0;
+      
+      // Calculate remaining count (required - accepted)
+      const remainingCount = Math.max(0, postgradCount - currentAccepted);
+      
+      // Initialize or update postgraduateCounts
+      updateFields.postgraduateCounts = {
+        required: postgradCount,
+        remaining: remainingCount,
+        applied: currentApplied,
+        reviewed: currentReviewed,
+        accepted: currentAccepted,
+        docSubmitted: currentDocSubmitted,
+        appointed: currentAppointed
+      };
+    } else {
+      // If postgraduate count is 0 or undefined, set openForPostgraduates to false
+      updateFields.openForPostgraduates = false;
+      
+      // Reset all postgraduate counts to 0
+      updateFields.postgraduateCounts = {
+        required: 0,
+        remaining: 0,
+        applied: 0,
+        reviewed: 0,
+        accepted: 0,
+        docSubmitted: 0,
+        appointed: 0
+      };
+    }
+
+    // Determine the new status based on current status
+    let newStatus = moduleDoc.moduleStatus;
+    if (moduleDoc.moduleStatus === 'pending changes') {
+      newStatus = 'changes submitted';
+    } else if (moduleDoc.moduleStatus === 'changes submitted' || moduleDoc.moduleStatus === 'advertised') {
+      // Keep the same status for these stages
+      newStatus = moduleDoc.moduleStatus;
+    }
+
+    updateFields.moduleStatus = newStatus;
+
+    // Update the module fields with appropriate status
     const updatedModule = await ModuleDetails.findByIdAndUpdate(
       id,
-      {
-        $set: {
-          requiredTAHours,
-          requiredUndergraduateTACount,
-          requiredPostgraduateTACount,
-          requirements,
-          moduleStatus: 'changes submitted',
-          updatedBy: req.user._id,
-        },
-      },
+      { $set: updateFields },
       { new: true, runValidators: true }
     );
 
     console.log('lecturer editModuleRequirments -> updated module', id, 'for', req.user._id);
+    console.log('Request body:', req.body);
+    console.log('Update fields before save:', updateFields);
+    console.log('Undergraduate count set to:', undergradCount, 'Postgraduate count set to:', postgradCount);
+    console.log('Open for undergraduates:', updateFields.openForUndergraduates ? 'enabled' : 'disabled');
+    console.log('Open for postgraduates:', updateFields.openForPostgraduates ? 'enabled' : 'disabled');
+    console.log('Undergraduate remaining slots:', updateFields.undergraduateCounts?.remaining || 0);
+    console.log('Postgraduate remaining slots:', updateFields.postgraduateCounts?.remaining || 0);
+    console.log('Updated module after save:', {
+      openForUndergraduates: updatedModule.openForUndergraduates,
+      openForPostgraduates: updatedModule.openForPostgraduates,
+      undergraduateCounts: updatedModule.undergraduateCounts,
+      postgraduateCounts: updatedModule.postgraduateCounts
+    });
     return res.status(200).json(updatedModule);
   } catch (error) {
     console.error('Error updating module requirements:', error);

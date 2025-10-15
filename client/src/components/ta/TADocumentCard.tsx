@@ -1,14 +1,26 @@
-import { FileText, GraduationCap, Upload, User, X } from "lucide-react";
+import {
+  FileText,
+  GraduationCap,
+  Upload,
+  User,
+  X,
+  FilePen,
+  CheckCircle2,
+  Download,
+} from "lucide-react";
 import React, { useState } from "react";
+import { Button } from "../ui/Button";
 
 interface DocumentSubmissionModalProps {
   isDocOpen: boolean;
   onClose: () => void;
   position: {
-    moduleCode: string;
-    moduleName: string;
-    coordinators: string[];
-    requiredTAHours: number;
+    modules: {
+      moduleCode: string;
+      moduleName: string;
+    }[];
+
+    totalTAHours: number;
   };
 }
 
@@ -49,59 +61,60 @@ export default function DocumentSubmissionModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Submitted data:", formData);
-    alert(`Documents submitted for ${position.moduleCode}`);
+    alert("Documents submitted for all accepted ta positions");
     onClose();
   };
 
   if (!isDocOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 mb-6 border-b">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <FileText className="w-6 h-6 text-primary" />
+        <div className="flex items-center justify-between pb-3 sm:pb-4 mb-4 sm:mb-6 border-b">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             </div>
-            <h1 className="text-xl font-semibold text-gray-800">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-800">
               Document Submission
             </h1>
           </div>
           <button
             onClick={onClose}
-            className="p-2 transition rounded-full hover:bg-gray-100"
+            className="p-1.5 sm:p-2 transition rounded-full hover:bg-gray-100"
           >
-            <X className="w-5 h-5 text-gray-600" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Position Info */}
-          <div className="p-4 mb-6 border rounded-lg bg-gradient-to-r from-primary/5 to-accent/5">
-            <div className="flex items-center gap-2 mb-3">
-              <GraduationCap className="w-5 h-5 text-primary" />
-              <h2 className="font-semibold text-gray-800">
+          <div className="p-3 sm:p-4 mb-4 sm:mb-6 border rounded-lg bg-gradient-to-r from-primary/5 to-accent/5">
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
+              <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <h2 className="text-sm sm:text-base font-semibold text-gray-800">
                 Position Information
               </h2>
             </div>
-            <div className="grid grid-cols-1 gap-6 text-sm md:grid-cols-2">
-              <div>
-                <p className="text-gray-500">Module Code</p>
-                <p className="font-medium">{position.moduleCode}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Subject</p>
-                <p className="font-medium">{position.moduleName}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Lecturers</p>
-                <p>{position.coordinators.join(", ")}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Hours per Week</p>
-                <p className="font-medium">{position.requiredTAHours} hours</p>
-              </div>
+
+            {/* Module List */}
+            <div className="space-y-2">
+              {position.modules.map((mod, index) => (
+                <div
+                  key={index}
+                  className="flex justify-between pb-1 text-sm text-gray-700 border-b last:border-0"
+                >
+                  <span className="font-medium">{mod.moduleCode}</span>
+                  <span>{mod.moduleName}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Total Hours */}
+            <div className="mt-4 text-sm">
+              <p className="text-gray-500">Total TA Hours</p>
+              <p className="font-medium">{position.totalTAHours} hours</p>
             </div>
           </div>
 
@@ -114,7 +127,7 @@ export default function DocumentSubmissionModal({
               </h3>
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div >
+              <div>
                 <label className="block mb-1 text-sm font-medium">
                   Name as in Bank Account *
                 </label>
@@ -187,14 +200,61 @@ export default function DocumentSubmissionModal({
               />
             </div>
           </div>
+          {/* Declaration Form */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <FilePen className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-gray-800">Declaration Form</h3>
+            </div>
+
+            <div className="space-y-6">
+              {/* Step 1 */}
+              <div className="p-4 border rounded-lg bg-gradient-to-r from-primary/5 to-accent/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <h4 className="font-medium text-gray-800">
+                    Step 1: Download Declaration Form
+                  </h4>
+                </div>
+                <p className="mb-3 text-sm text-gray-600">
+                  Download the official declaration form, fill it out
+                  completely, and sign it.
+                </p>
+                <Button
+                  label="Download Declaration Form (PDF)"
+                  icon={<Download className="w-4 h-4" />}
+                />
+              </div>
+
+              {/* Step 2 */}
+              <div className="p-4 border rounded-lg bg-gradient-to-r from-primary/5 to-accent/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <h4 className="font-medium text-gray-800">
+                    Step 2: Upload Completed Form
+                  </h4>
+                </div>
+                <p className="mb-3 text-sm text-gray-600">
+                  Upload the signed and completed declaration form below.
+                </p>
+                <label className="block mb-1 text-sm font-medium">
+                  Completed Declaration Form
+                </label>
+                <input
+                  type="file"
+                  onChange={(e) => handleFileChange("declarationForm", e)}
+                  className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  accept=".pdf,.doc,.docx"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Document Uploads */}
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Upload className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold text-gray-800">
-                Document Uploads
-              </h3>
+              <h3 className="font-semibold text-gray-800">Document Uploads</h3>
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>

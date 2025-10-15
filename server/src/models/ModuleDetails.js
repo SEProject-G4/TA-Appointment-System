@@ -62,7 +62,7 @@ const moduleDetailsSchema = new mongoose.Schema({
             appointed: { type: Number, default: 0, min: 0 }
         },
         default: function() {
-            return this.openForUndergraduates ? {
+            return {
                 required: 0,
                 remaining: 0,
                 applied: 0,
@@ -70,7 +70,7 @@ const moduleDetailsSchema = new mongoose.Schema({
                 accepted: 0,
                 docSubmitted: 0,
                 appointed: 0
-            } : null;
+            };
         }
     },
     postgraduateCounts: {
@@ -84,7 +84,7 @@ const moduleDetailsSchema = new mongoose.Schema({
             appointed: { type: Number, default: 0, min: 0 }
         },
         default: function() {
-            return this.openForPostgraduates ? {
+            return {
                 required: 0,
                 remaining: 0,
                 applied: 0,
@@ -92,7 +92,7 @@ const moduleDetailsSchema = new mongoose.Schema({
                 accepted: 0,
                 docSubmitted: 0,
                 appointed: 0
-            } : null;
+            };
         }
     },
     requirements: {

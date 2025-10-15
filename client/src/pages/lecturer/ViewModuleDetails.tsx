@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axiosInstance from "../api/axiosConfig";
+import axiosInstance from "../../api/axiosConfig";
 import { FaTimes, FaUserGraduate } from "react-icons/fa";
 
 interface AcceptedTA { userId: string; name: string; indexNumber: string; documents?: any; docStatus?: 'pending' | 'submitted'; role?: 'undergraduate' | 'postgraduate' }
