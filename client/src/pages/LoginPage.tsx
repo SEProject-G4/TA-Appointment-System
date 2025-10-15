@@ -256,33 +256,6 @@ const LoginPage: React.FC = () => {
               Loading Google authentication...
             </div>
           )}
-          
-          {/* Auto-login status display */}
-          {autoLoginAttempted && autoLoginStatus && (
-            <div className="mt-4 p-3 rounded-lg bg-base-200">
-              <div className="text-sm text-base-content/70 text-center">
-                <span className="font-medium">Auto-login status:</span>
-                <br />
-                <span>{autoLoginStatus}</span>
-              </div>
-              
-              {/* Manual retry button if auto-login failed */}
-              {(autoLoginStatus.includes('not displayed') || 
-                autoLoginStatus.includes('unavailable') || 
-                autoLoginStatus.includes('failed') ||
-                autoLoginStatus.includes('skipped') ||
-                autoLoginStatus.includes('dismissed') ||
-                autoLoginStatus.includes('timeout')) && (
-                <button
-                  onClick={triggerGoogleSignIn}
-                  className="mt-2 btn btn-sm btn-outline btn-primary w-full"
-                  type="button"
-                >
-                  Try Google Sign-in Again
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
       {showModal && (
