@@ -26,31 +26,15 @@ const ViewModuleDetails: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortOption, setSortOption] = useState<string>("");
   const [refreshKey, setRefreshKey] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalModules, setTotalModules] = useState(0);
-  const [itemsPerPage] = useState(6); // 6 items per page (2x3 grid)
 
   // list view removed
 
-  const fetchAcceptedModules = async (page = 1, search = searchQuery, sort = sortOption) => {
+  const fetchAcceptedModules = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await axiosInstance.get('/lecturer/modules/with-ta-requests', {
-        params: {
-          page,
-          limit: itemsPerPage,
-          search: search || undefined,
-          sortBy: sort || undefined
-        }
-      });
+      const res = await axiosInstance.get('/lecturer/modules/with-ta-requests');
       setModules(res.data.modules || []);
-      if (res.data.pagination) {
-        setTotalPages(res.data.pagination.totalPages);
-        setTotalModules(res.data.pagination.totalModules);
-        setCurrentPage(res.data.pagination.currentPage);
-      }
     } catch (e: any) {
       setError(e.response?.data?.error || 'Failed to load accepted modules');
     } finally {
@@ -60,26 +44,34 @@ const ViewModuleDetails: React.FC = () => {
 
   const handleSortChange = (option: string) => {
     setSortOption(option);
-    // Server-side sorting will be triggered by useEffect
+    let sortedModules = [...modules];
+
+    if (option === "name") {
+      sortedModules.sort((a, b) => a.moduleName.localeCompare(b.moduleName));
+    } else if (option === "code") {
+      sortedModules.sort((a, b) => a.moduleCode.localeCompare(b.moduleCode));
+    } else if (option === "semester") {
+      sortedModules.sort((a, b) => parseInt(a.semester) - parseInt(b.semester));
+    } else if (option === "accepted") {
+      sortedModules.sort((a, b) => b.acceptedTAs.length - a.acceptedTAs.length);
+    }
+
+    setModules(sortedModules);
   };
 
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setCurrentPage(newPage);
-      fetchAcceptedModules(newPage, searchQuery, sortOption);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
+  const filteredModules = modules.filter((mod) => {
+    if (!searchQuery) return true;
+
+    const query = searchQuery.toLowerCase();
+    const code = mod.moduleCode?.toLowerCase() || "";
+    const name = mod.moduleName?.toLowerCase() || "";
+
+    return code.includes(query) || name.includes(query);
+  });
 
   useEffect(() => { 
-    fetchAcceptedModules(currentPage, searchQuery, sortOption); 
+    fetchAcceptedModules(); 
   }, [refreshKey]);
-
-  useEffect(() => {
-    // When search or sort changes, reset to page 1 and refetch
-    setCurrentPage(1);
-    fetchAcceptedModules(1, searchQuery, sortOption);
-  }, [searchQuery, sortOption]);
 
   if (loading) {
     return (
@@ -97,7 +89,7 @@ const ViewModuleDetails: React.FC = () => {
         <div className="bg-error/10 border border-error/20 rounded-lg p-4 sm:p-6 w-full">
           <h3 className="text-error font-semibold mb-2 text-sm sm:text-base">Error</h3>
           <p className="text-text-secondary mb-4 text-xs sm:text-sm">{error}</p>
-          <button className="btn btn-primary text-xs sm:text-sm px-3 py-2" onClick={() => fetchAcceptedModules(currentPage)}>Try again</button>
+          <button className="btn btn-primary text-xs sm:text-sm px-3 py-2" onClick={fetchAcceptedModules}>Try again</button>
         </div>
       </div>
     );
@@ -232,6 +224,7 @@ const ViewModuleDetails: React.FC = () => {
                   <option value="name">Module Name (A–Z)</option>
                   <option value="code">Module Code (A–Z)</option>
                   <option value="semester">Semester (Low → High)</option>
+                  <option value="accepted">Accepted TAs (High → Low)</option>
                 </select>
 
                 <div className="absolute -translate-y-1/2 pointer-events-none right-3 top-1/2 text-text-secondary group-hover:text-text-primary">
@@ -242,93 +235,19 @@ const ViewModuleDetails: React.FC = () => {
           </div>
         </div>
 
-        {modules.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
-              {modules.map((module, moduleIndex) => (
-                <ViewModuleDetailsCard
-                  key={moduleIndex}
-                  module={module}
-                  moduleIndex={moduleIndex}
-                  activeTabByModule={activeTabByModule}
-                  onTabChange={(moduleId, tab) => setActiveTabByModule(prev => ({ ...prev, [moduleId]: tab }))}
-                  onViewDocuments={openDocModal}
-                />
-              ))}
-            </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-border-default">
-                <div className="text-sm text-text-secondary">
-                  Showing page {currentPage} of {totalPages} ({totalModules} total modules)
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handlePageChange(1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm font-medium border rounded-lg bg-bg-card text-text-primary hover:bg-primary-light/20 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary-dark"
-                  >
-                    First
-                  </button>
-                  
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm font-medium border rounded-lg bg-bg-card text-text-primary hover:bg-primary-light/20 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary-dark"
-                  >
-                    Previous
-                  </button>
-                  
-                  <div className="flex items-center gap-1">
-                    {[...Array(totalPages)].map((_, idx) => {
-                      const page = idx + 1;
-                      // Show first page, last page, current page, and pages around current
-                      if (
-                        page === 1 ||
-                        page === totalPages ||
-                        (page >= currentPage - 1 && page <= currentPage + 1)
-                      ) {
-                        return (
-                          <button
-                            key={page}
-                            onClick={() => handlePageChange(page)}
-                            className={`px-3 py-2 text-sm font-medium border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-dark ${
-                              currentPage === page
-                                ? 'bg-primary text-white border-primary'
-                                : 'bg-bg-card text-text-primary hover:bg-primary-light/20'
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        );
-                      } else if (page === currentPage - 2 || page === currentPage + 2) {
-                        return <span key={page} className="px-2 text-text-secondary">...</span>;
-                      }
-                      return null;
-                    })}
-                  </div>
-                  
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 text-sm font-medium border rounded-lg bg-bg-card text-text-primary hover:bg-primary-light/20 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary-dark"
-                  >
-                    Next
-                  </button>
-                  
-                  <button
-                    onClick={() => handlePageChange(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 text-sm font-medium border rounded-lg bg-bg-card text-text-primary hover:bg-primary-light/20 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary-dark"
-                  >
-                    Last
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
+        {filteredModules.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
+            {filteredModules.map((module, moduleIndex) => (
+              <ViewModuleDetailsCard
+                key={moduleIndex}
+                module={module}
+                moduleIndex={moduleIndex}
+                activeTabByModule={activeTabByModule}
+                onTabChange={(moduleId, tab) => setActiveTabByModule(prev => ({ ...prev, [moduleId]: tab }))}
+                onViewDocuments={openDocModal}
+              />
+            ))}
+          </div>
         ) : (
           <div className="py-8 text-center sm:py-12">
             <p className="text-base sm:text-lg text-text-secondary">
