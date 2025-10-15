@@ -6,9 +6,12 @@ import {
   FaCalendarCheck,
   FaFileAlt,
   FaUsers,
+  FaSignOutAlt,
 } from "react-icons/fa";
+import { useAuth } from "../contexts/AuthContext";
 
 const HomePage = () => {
+  const { user, logout } = useAuth();
   return (
     <div className="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
       {/* Hero Section */}
@@ -24,12 +27,22 @@ const HomePage = () => {
                 Efficient scheduling, application tracking, and communication platform.
               </p>
               <div className="space-x-4">
-                <Link
-                  to="/login"
-                  className="inline-block py-3 px-6 rounded-md bg-blue-600 dark:bg-blue-400 text-white font-semibold hover:bg-blue-700 dark:hover:bg-blue-500 transition duration-300"
-                >
-                  Access System
-                </Link>
+                {user ? (
+                  <button
+                    onClick={logout}
+                    className="inline-flex items-center gap-2 py-3 px-6 rounded-md bg-blue-600 dark:bg-blue-400 text-white font-semibold hover:bg-blue-700 dark:hover:bg-blue-500 transition duration-300"
+                  >
+                    <FaSignOutAlt />
+                    Logout
+                  </button>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="inline-block py-3 px-6 rounded-md bg-blue-600 dark:bg-blue-400 text-white font-semibold hover:bg-blue-700 dark:hover:bg-blue-500 transition duration-300"
+                  >
+                    Access System
+                  </Link>
+                )}
                 <Link
                   to="/about"
                   className="inline-block py-3 px-6 rounded-md border border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 font-semibold hover:bg-blue-100 dark:hover:bg-blue-800 transition duration-300"
@@ -136,12 +149,22 @@ const HomePage = () => {
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
             Join lecturers, administrators, and TAs who are already using our system to streamline their workflow.
           </p>
-          <Link
-            to="/login"
-            className="inline-block py-4 px-8 rounded-md bg-blue-600 dark:bg-blue-400 text-white text-lg font-semibold hover:bg-blue-700 dark:hover:bg-blue-500 transition duration-300"
-          >
-            Access the System
-          </Link>
+          {user ? (
+            <button
+              onClick={logout}
+              className="inline-flex items-center gap-2 py-4 px-8 rounded-md bg-blue-600 dark:bg-blue-400 text-white text-lg font-semibold hover:bg-blue-700 dark:hover:bg-blue-500 transition duration-300"
+            >
+              <FaSignOutAlt />
+              Logout
+            </button>
+          ) : (
+            <Link
+              to="/login"
+              className="inline-block py-4 px-8 rounded-md bg-blue-600 dark:bg-blue-400 text-white text-lg font-semibold hover:bg-blue-700 dark:hover:bg-blue-500 transition duration-300"
+            >
+              Access the System
+            </Link>
+          )}
         </div>
       </section>
 

@@ -18,7 +18,6 @@ const generateToken = (user) => {
     );
 };
 
-
 const googleVerify = async (req, res) => {
     const { id_token } = req.body;
     if (!id_token) {
