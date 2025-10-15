@@ -10,6 +10,8 @@ import { useModal } from "../../contexts/ModalProvider";
 import { useToast } from "../../contexts/ToastContext";
 
 import CopyRSModal from "./CopyRSModal";
+import ChangeDeadlineModal from "./ChangeDeadlineModal";
+import ChangeHourLimitsModal from "./ChangeHourLimitsModal";
 import RSModuleCard from "./RSModuleCard";
 import Loader from "../common/Loader";
 
@@ -172,6 +174,32 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
     ,{ showCloseButton: false });
   };
 
+  const handleChangeDeadlines = () => {
+    openModal(
+      <ChangeDeadlineModal
+        recruitmentSeriesId={_id}
+        recruitmentSeriesName={name}
+        currentApplicationDueDate={applicationDueDate}
+        currentDocumentDueDate={documentDueDate}
+        onSuccess={refreshModuleDetails}
+      />,
+      { showCloseButton: false }
+    );
+  };
+
+  const handleChangeHourLimits = () => {
+    openModal(
+      <ChangeHourLimitsModal
+        recruitmentSeriesId={_id}
+        recruitmentSeriesName={name}
+        currentUndergradHourLimit={undergradHourLimit}
+        currentPostgradHourLimit={postgradHourLimit}
+        onSuccess={refreshModuleDetails}
+      />,
+      { showCloseButton: false }
+    );
+  };
+
   const handleCopyRS = () => {
     openModal(
       <CopyRSModal
@@ -244,10 +272,16 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
               tabIndex={0}
               className="menu outline outline-text-secondary/20 outline-1 gap-y-1 mt-1 z-[10] p-2 shadow dropdown-content bg-bg-card rounded-box w-52 flex"
             >
-              <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
+              <li 
+                className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
+                onClick={handleChangeDeadlines}
+              >
                 Change deadlines
               </li>
-              <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
+              <li 
+                className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
+                onClick={handleChangeHourLimits}
+              >
                 Change hour limits
               </li>
               <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">

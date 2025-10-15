@@ -268,6 +268,100 @@ const deleteRecruitmentRound = async (req, res) => {
     }
 };
 
+const updateRecruitmentRoundDeadlines = async (req, res) => {
+    try {
+        const { seriesId } = req.params;
+        const { applicationDueDate, documentDueDate } = req.body;
+
+        // Validate required fields
+        if (!applicationDueDate || !documentDueDate) {
+            return res.status(400).json({ error: "Both application due date and document due date are required" });
+        }
+
+        // Validate dates
+        const appDate = new Date(applicationDueDate);
+        const docDate = new Date(documentDueDate);
+        const now = new Date();
+
+        if (appDate <= now) {
+            return res.status(400).json({ error: "Application due date must be in the future" });
+        }
+
+        if (docDate <= now) {
+            return res.status(400).json({ error: "Document due date must be in the future" });
+        }
+
+        if (appDate > docDate) {
+            return res.status(400).json({ error: "Application due date must be on or before document due date" });
+        }
+
+        // Find and update the recruitment series
+        const recruitmentSeries = await RecruitmentRound.findById(seriesId);
+        if (!recruitmentSeries) {
+            return res.status(404).json({ error: "Recruitment series not found" });
+        }
+
+        recruitmentSeries.applicationDueDate = appDate;
+        recruitmentSeries.documentDueDate = docDate;
+        await recruitmentSeries.save();
+
+        res.status(200).json({ 
+            message: "Deadlines updated successfully",
+            recruitmentSeries: {
+                _id: recruitmentSeries._id,
+                applicationDueDate: recruitmentSeries.applicationDueDate,
+                documentDueDate: recruitmentSeries.documentDueDate
+            }
+        });
+    } catch (error) {
+        console.error("Error updating recruitment round deadlines:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+const updateRecruitmentRoundHourLimits = async (req, res) => {
+    try {
+        const { seriesId } = req.params;
+        const { undergradHourLimit, postgradHourLimit } = req.body;
+
+        // Validate required fields
+        if (undergradHourLimit === undefined || postgradHourLimit === undefined) {
+            return res.status(400).json({ error: "Both undergraduate and postgraduate hour limits are required" });
+        }
+
+        // Validate hour limits
+        if (!Number.isInteger(undergradHourLimit) || undergradHourLimit <= 0 || undergradHourLimit > 50) {
+            return res.status(400).json({ error: "Undergraduate hour limit must be a positive integer between 1 and 50" });
+        }
+
+        if (!Number.isInteger(postgradHourLimit) || postgradHourLimit <= 0 || postgradHourLimit > 50) {
+            return res.status(400).json({ error: "Postgraduate hour limit must be a positive integer between 1 and 50" });
+        }
+
+        // Find and update the recruitment series
+        const recruitmentSeries = await RecruitmentRound.findById(seriesId);
+        if (!recruitmentSeries) {
+            return res.status(404).json({ error: "Recruitment series not found" });
+        }
+
+        recruitmentSeries.undergradHourLimit = undergradHourLimit;
+        recruitmentSeries.postgradHourLimit = postgradHourLimit;
+        await recruitmentSeries.save();
+
+        res.status(200).json({ 
+            message: "Hour limits updated successfully",
+            recruitmentSeries: {
+                _id: recruitmentSeries._id,
+                undergradHourLimit: recruitmentSeries.undergradHourLimit,
+                postgradHourLimit: recruitmentSeries.postgradHourLimit
+            }
+        });
+    } catch (error) {
+        console.error("Error updating recruitment round hour limits:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 module.exports = {
     createRecruitmentRound,
     getAllRecruitmentRounds,
@@ -276,5 +370,7 @@ module.exports = {
     getEligibleUndergraduates,
     getEligiblePostgraduates,
     copyRecruitmentRound,
-    deleteRecruitmentRound
+    deleteRecruitmentRound,
+    updateRecruitmentRoundDeadlines,
+    updateRecruitmentRoundHourLimits
 };

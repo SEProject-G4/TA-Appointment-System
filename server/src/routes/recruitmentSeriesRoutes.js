@@ -10,6 +10,8 @@ router.get('/:seriesId/modules', protected, authorize(['admin']), recruitmentCon
 router.get('/:seriesId/eligible-undergraduates', protected, authorize(['admin']), recruitmentController.getEligibleUndergraduates);
 router.get('/:seriesId/eligible-postgraduates', protected, authorize(['admin']), recruitmentController.getEligiblePostgraduates);
 router.post('/copy/:seriesId', protected, authorize(['admin']), recruitmentController.copyRecruitmentRound);
+router.put('/:seriesId/deadlines', protected, authorize(['admin']), recruitmentController.updateRecruitmentRoundDeadlines);
+router.put('/:seriesId/hour-limits', protected, authorize(['admin']), recruitmentController.updateRecruitmentRoundHourLimits);
 router.delete('/:seriesId', protected, authorize(['admin']), recruitmentController.deleteRecruitmentRound);
 
 module.exports = router;
