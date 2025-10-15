@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const config = require('./config');
 const authMiddleware = require('./middleware/authMiddleware');
 
@@ -10,6 +12,26 @@ app.use(cors({
   // origin: config.FRONTEND_URL,
   origin: ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true,
+}));
+
+app.use(session({
+  secret: config.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: config.MONGO_URI,
+    collectionName: 'sessions',
+    ttl: 60 * 60 * 24, // 1 day
+    stringify: false,
+    autoRemove: 'interval',
+    autoRemoveInterval: 10 // minutes
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 1000 * 60 * 60 * 24
+  },
 }));
 
 // ... mount your other routes here

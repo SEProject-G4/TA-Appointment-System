@@ -1,8 +1,14 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { useAuth } from "../contexts/AuthContext";
 import LoginBgImage from "../assets/images/sumanadasa.jpg";
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -35,14 +41,13 @@ const LoginPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [isGisScriptLoaded, setIsGisScriptLoaded] = useState(false);
-  const hasNavigated = useRef(false);
 
   const showAlert = (message: string) => {
     setModalMessage(message);
     setShowModal(true);
   };
 
-  const handleCredentialResponse = useCallback(async (response: any) => {
+  const handleCredentialResponse = async (response: any) => {
     try {
       await loginWithGIS(response.credential);
     } catch (error) {
@@ -63,7 +68,7 @@ const LoginPage: React.FC = () => {
       showAlert(errorMessage);
       console.error("Login failed:", error);
     }
-  }, [loginWithGIS]);
+  };
 
   // Helper function to get default route based on user role
   const getDefaultRouteForRole = (role: string): string => {
@@ -84,15 +89,10 @@ const LoginPage: React.FC = () => {
   };
 
   useEffect(() => {
-    // Reset navigation flag when user logs out
-    if (!user) {
-      hasNavigated.current = false;
-    }
-    
+
     // Redirect based on user role if already authenticated
-    if (user && !loading && !hasNavigated.current) {
-      hasNavigated.current = true;
-      const redirectPath = (location.state as any)?.from || getDefaultRouteForRole(user.role);
+    if ( user && !loading ) {
+      const redirectPath = (location as any).state?.from || getDefaultRouteForRole(user.role);
       navigate(redirectPath, { replace: true });
     }
   }, [loading, user, navigate, location]);
@@ -110,16 +110,18 @@ const LoginPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (isGisScriptLoaded && GOOGLE_CLIENT_ID && !user && !loading && window.google) {
+    if (isGisScriptLoaded && GOOGLE_CLIENT_ID && !user && !loading) {
       try {
         window.google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
           callback: handleCredentialResponse,
-          auto_select: false, // Changed to false to prevent automatic prompts
+          auto_select: true,
         });
+
+        window.google.accounts.id.prompt();
         
         const buttonDiv = document.getElementById('google-signin-button-div');
-        if (buttonDiv && window.google) {
+        if (buttonDiv) {
           window.google.accounts.id.renderButton(
             buttonDiv,
             { theme: "filled_blue", size: "large", text: "signin_with", shape: "pill" }
@@ -129,18 +131,7 @@ const LoginPage: React.FC = () => {
         console.error("Error initializing Google Identity Services:", error);
       }
     }
-
-    // Cleanup function to cancel any pending Google Sign-In operations
-    return () => {
-      if (isGisScriptLoaded && window.google) {
-        try {
-          window.google.accounts.id.cancel();
-        } catch (error) {
-          // Silently handle cleanup errors
-        }
-      }
-    };
-  }, [isGisScriptLoaded, user, loading, GOOGLE_CLIENT_ID, handleCredentialResponse]);
+  }, [isGisScriptLoaded, user, loading, GOOGLE_CLIENT_ID]);
 
   if (loading) {
     return (
