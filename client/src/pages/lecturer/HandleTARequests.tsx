@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axiosInstance from '../../api/axiosConfig'
 import { FaUserGraduate } from 'react-icons/fa'
 import HandleTaRequestsCard from '../../components/lecturer/HandleTaRequestsCard'
+import { ClipboardList, ChevronDown, RefreshCw } from 'lucide-react'
 
 // removed unused TAApplication interface
 
@@ -28,6 +29,9 @@ const HandleTARequests = () => {
     applicationId: string;
     studentName: string;
   } | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [sortOption, setSortOption] = useState<string>("");
+  const [refreshKey, setRefreshKey] = useState(0);
   // card view only
 
   // Fetch TA applications from backend
@@ -97,7 +101,34 @@ const HandleTARequests = () => {
     }
   };
 
-  useEffect(() => { fetchTAApplications(); }, []);
+  const handleSortChange = (option: string) => {
+    setSortOption(option);
+    let sortedModules = [...modules];
+
+    if (option === "name") {
+      sortedModules.sort((a, b) => a.moduleName.localeCompare(b.moduleName));
+    } else if (option === "code") {
+      sortedModules.sort((a, b) => a.moduleCode.localeCompare(b.moduleCode));
+    } else if (option === "semester") {
+      sortedModules.sort((a, b) => parseInt(a.semester) - parseInt(b.semester));
+    } else if (option === "applications") {
+      sortedModules.sort((a, b) => b.appliedTAs.length - a.appliedTAs.length);
+    }
+
+    setModules(sortedModules);
+  };
+
+  const filteredModules = modules.filter((mod) => {
+    if (!searchQuery) return true;
+
+    const query = searchQuery.toLowerCase();
+    const code = mod.moduleCode?.toLowerCase() || "";
+    const name = mod.moduleName?.toLowerCase() || "";
+
+    return code.includes(query) || name.includes(query);
+  });
+
+  useEffect(() => { fetchTAApplications(); }, [refreshKey]);
 
   if (loading) {
     return (
@@ -142,35 +173,102 @@ const HandleTARequests = () => {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-4 sm:px-8 md:px-12 lg:px-20 py-5">
-      <div className="mb-6 sm:mb-8 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-montserrat mb-2">Handle TA Requests</h1>
-          <p className="text-text-secondary font-raleway text-sm sm:text-base">Review and manage TA applications for your modules</p>
+    <div className="min-h-screen px-2 sm:px-4 bg-bg-page text-text-primary">
+      <div className="container px-2 py-4 mx-auto sm:px-4 sm:py-8">
+        {/* header */}
+        <div className="mb-8 text-center sm:mb-12">
+          <div className="flex flex-col items-center justify-center gap-2 mb-4 sm:flex-row sm:gap-3">
+            <div className="p-2 sm:p-3 rounded-xl bg-primary/10">
+              <ClipboardList className="w-6 h-6 sm:w-8 sm:h-8 text-text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold text-center sm:text-3xl lg:text-4xl">
+              Handle TA Requests
+            </h1>
+          </div>
         </div>
-        <div className="flex items-center space-x-2" />
       </div>
-      
-      {
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {modules.map((m, idx) => (
-            <HandleTaRequestsCard
-              key={`${m.moduleCode}-${idx}`}
-              moduleCode={m.moduleCode}
-              moduleName={m.moduleName}
-              semester={m.semester}
-              year={m.year}             
-              requiredUndergraduateTAs={m.requiredUndergraduateTAs}
-              requiredPostgraduateTAs={m.requiredPostgraduateTAs}
-              appliedTAs={m.appliedTAs}
-              onAccept={(id: string, name: string) => openConfirm('accept', id, name)}
-              onReject={(id: string, name: string) => openConfirm('reject', id, name)}
-              processingActions={processingActions}
-              collapsible={false}
-            />
-          ))}
+
+      <div className="gap-2 p-4 m-2 rounded-lg sm:p-6 lg:p-8 sm:m-4 lg:m-8 bg-bg-card">
+        <div className="gap-2">
+          {/* Header - TA Applications */}
+          <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <h2 className="text-xl font-semibold sm:text-2xl text-foreground">
+                TA Applications
+              </h2>
+              {/* Refresh button */}
+              <div>
+                <button
+                  className="p-2 text-sm font-medium border rounded-lg bg-bg-card text-text-primary hover:bg-primary-light/20 focus:outline-none focus:ring-2 focus:ring-primary-dark"
+                  onClick={() => setRefreshKey((prev) => prev + 1)}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Controls section */}
+            <div className="flex flex-col items-stretch w-full gap-3 sm:flex-row sm:items-center lg:w-auto">
+              {/* Search input */}
+              <input
+                type="text"
+                placeholder="Search modules..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-2 text-sm border rounded-lg sm:w-64 focus:outline-none focus:ring-2 focus:ring-primary-dark bg-bg-card text-text-primary placeholder:text-text-secondary"
+              />
+
+              {/* Sorting modules */}
+              <div className="flex flex-col w-full gap-3 sm:flex-row sm:w-auto">
+                <div className="relative inline-flex w-full overflow-hidden border rounded-lg shadow-sm border-border-default bg-bg-card group sm:w-auto">
+                  <select
+                    value={sortOption}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                    className="w-full px-4 py-2 pr-10 text-sm font-medium bg-transparent appearance-none cursor-pointer sm:w-auto text-text-secondary hover:bg-primary-light/20 hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-dark"
+                  >
+                    <option value="">Sort By</option>
+                    <option value="name">Module Name (A–Z)</option>
+                    <option value="code">Module Code (A–Z)</option>
+                    <option value="semester">Semester (Low → High)</option>
+                    <option value="applications">Applications (High → Low)</option>
+                  </select>
+
+                  <div className="absolute -translate-y-1/2 pointer-events-none right-3 top-1/2 text-text-secondary group-hover:text-text-primary">
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      }
+
+        {filteredModules.length > 0 ? (
+          <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {filteredModules.map((m, idx) => (
+              <HandleTaRequestsCard
+                key={`${m.moduleCode}-${idx}`}
+                moduleCode={m.moduleCode}
+                moduleName={m.moduleName}
+                semester={m.semester}
+                year={m.year}             
+                requiredUndergraduateTAs={m.requiredUndergraduateTAs}
+                requiredPostgraduateTAs={m.requiredPostgraduateTAs}
+                appliedTAs={m.appliedTAs}
+                onAccept={(id: string, name: string) => openConfirm('accept', id, name)}
+                onReject={(id: string, name: string) => openConfirm('reject', id, name)}
+                processingActions={processingActions}
+                collapsible={false}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="py-8 text-center sm:py-12">
+            <p className="text-base sm:text-lg text-text-secondary">
+              No modules found matching your search.
+            </p>
+          </div>
+        )}
+      </div>
 
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

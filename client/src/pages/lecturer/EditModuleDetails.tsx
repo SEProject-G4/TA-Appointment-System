@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axiosInstance from "../../api/axiosConfig";
 import Modal from "../../components/common/Modal";
 import EditModuleDetailsCard from "../../components/lecturer/EditModuleDetailsCard";
+import { FileEdit, ChevronDown, RefreshCw } from "lucide-react";
 
 interface ModuleEditData {
   moduleCode: string;
@@ -70,6 +71,9 @@ const EditModuleDetails: React.FC = () => {
   const [editing, setEditing] = useState<Record<string, boolean>>({});
   const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [sortOption, setSortOption] = useState<string>("");
+  const [refreshKey, setRefreshKey] = useState(0);
   // card view only
 
   // Function to check if all three fields have been edited for a specific module
@@ -79,6 +83,31 @@ const EditModuleDetails: React.FC = () => {
     // Only require the 'requirements' field to be filled; other fields are optional
     return moduleData.requirements.trim().length > 0;
   };
+
+  const handleSortChange = (option: string) => {
+    setSortOption(option);
+    let sortedModules = [...modules];
+
+    if (option === "name") {
+      sortedModules.sort((a, b) => a.moduleName.localeCompare(b.moduleName));
+    } else if (option === "code") {
+      sortedModules.sort((a, b) => a.moduleCode.localeCompare(b.moduleCode));
+    } else if (option === "semester") {
+      sortedModules.sort((a, b) => parseInt(a.semester) - parseInt(b.semester));
+    }
+
+    setModules(sortedModules);
+  };
+
+  const filteredModules = modules.filter((mod) => {
+    if (!searchQuery) return true;
+
+    const query = searchQuery.toLowerCase();
+    const code = mod.moduleCode?.toLowerCase() || "";
+    const name = mod.moduleName?.toLowerCase() || "";
+
+    return code.includes(query) || name.includes(query);
+  });
 
   useEffect(() => {
     const loadMyModules = async () => {
@@ -126,7 +155,7 @@ const EditModuleDetails: React.FC = () => {
       }
     };
     loadMyModules();
-  }, []);
+  }, [refreshKey]);
 
   const handleInputChange = (
     moduleId: string,
@@ -278,36 +307,105 @@ const EditModuleDetails: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-4 sm:px-8 md:px-12 lg:px-20 py-5">
-      <div className="mb-6 sm:mb-8 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-montserrat mb-2">Edit Module Details</h1>
-          <p className="text-text-secondary font-raleway text-sm sm:text-base">Provide TA requirements for each module</p>
+    <div className="min-h-screen px-2 sm:px-4 bg-bg-page text-text-primary">
+      <div className="container px-2 py-4 mx-auto sm:px-4 sm:py-8">
+        {/* header */}
+        <div className="mb-8 text-center sm:mb-12">
+          <div className="flex flex-col items-center justify-center gap-2 mb-4 sm:flex-row sm:gap-3">
+            <div className="p-2 sm:p-3 rounded-xl bg-primary/10">
+              <FileEdit className="w-6 h-6 sm:w-8 sm:h-8 text-text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold text-center sm:text-3xl lg:text-4xl">
+              Edit Module Details
+            </h1>
+          </div>
         </div>
-        <div className="flex items-center space-x-2" />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
-        {modules.map((m) => {
-          const d = moduleEdits[m._id];
-          const isEditing = editing[m._id];
-          return (
-            <EditModuleDetailsCard
-              key={m._id}
-              module={m}
-              moduleData={d}
-              isEditing={isEditing}
-              updating={updating[m._id]}
-              onEditClick={() => setEditing((prev) => ({ ...prev, [m._id]: true }))}
-              onInputChange={(field, value) => handleInputChange(m._id, field, value)}
-              onSubmit={handleSubmit(m._id)}
-              onCancel={() => {
-                resetModuleData(m._id);
-                setEditing((prev) => ({ ...prev, [m._id]: false }));
-              }}
-              areAllFieldsEdited={areAllFieldsEdited(m._id)}
-            />
-          );
-        })}
+
+      <div className="gap-2 p-4 m-2 rounded-lg sm:p-6 lg:p-8 sm:m-4 lg:m-8 bg-bg-card">
+        <div className="gap-2">
+          {/* Header - Module Management */}
+          <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <h2 className="text-xl font-semibold sm:text-2xl text-foreground">
+                Module Management
+              </h2>
+              {/* Refresh button */}
+              <div>
+                <button
+                  className="p-2 text-sm font-medium border rounded-lg bg-bg-card text-text-primary hover:bg-primary-light/20 focus:outline-none focus:ring-2 focus:ring-primary-dark"
+                  onClick={() => setRefreshKey((prev) => prev + 1)}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Controls section */}
+            <div className="flex flex-col items-stretch w-full gap-3 sm:flex-row sm:items-center lg:w-auto">
+              {/* Search input */}
+              <input
+                type="text"
+                placeholder="Search modules..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-2 text-sm border rounded-lg sm:w-64 focus:outline-none focus:ring-2 focus:ring-primary-dark bg-bg-card text-text-primary placeholder:text-text-secondary"
+              />
+
+              {/* Sorting modules */}
+              <div className="flex flex-col w-full gap-3 sm:flex-row sm:w-auto">
+                <div className="relative inline-flex w-full overflow-hidden border rounded-lg shadow-sm border-border-default bg-bg-card group sm:w-auto">
+                  <select
+                    value={sortOption}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                    className="w-full px-4 py-2 pr-10 text-sm font-medium bg-transparent appearance-none cursor-pointer sm:w-auto text-text-secondary hover:bg-primary-light/20 hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-dark"
+                  >
+                    <option value="">Sort By</option>
+                    <option value="name">Module Name (A–Z)</option>
+                    <option value="code">Module Code (A–Z)</option>
+                    <option value="semester">Semester (Low → High)</option>
+                  </select>
+
+                  <div className="absolute -translate-y-1/2 pointer-events-none right-3 top-1/2 text-text-secondary group-hover:text-text-primary">
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {filteredModules.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {filteredModules.map((m) => {
+              const d = moduleEdits[m._id];
+              const isEditing = editing[m._id];
+              return (
+                <EditModuleDetailsCard
+                  key={m._id}
+                  module={m}
+                  moduleData={d}
+                  isEditing={isEditing}
+                  updating={updating[m._id]}
+                  onEditClick={() => setEditing((prev) => ({ ...prev, [m._id]: true }))}
+                  onInputChange={(field, value) => handleInputChange(m._id, field, value)}
+                  onSubmit={handleSubmit(m._id)}
+                  onCancel={() => {
+                    resetModuleData(m._id);
+                    setEditing((prev) => ({ ...prev, [m._id]: false }));
+                  }}
+                  areAllFieldsEdited={areAllFieldsEdited(m._id)}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="py-8 text-center sm:py-12">
+            <p className="text-base sm:text-lg text-text-secondary">
+              No modules found matching your search.
+            </p>
+          </div>
+        )}
       </div>
 
       <Modal 
