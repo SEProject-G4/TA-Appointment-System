@@ -80,13 +80,14 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
         <div className={`panel ${isExpanded ? 'panel-open' : 'panel-closed'}`}>
           <div className="w-full space-y-3">
             {/* Summary Stats */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-bg-page rounded-lg p-3 space-y-2 sm:space-y-0">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center bg-bg-page rounded-lg p-3 space-y-2 sm:space-y-0">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
                 <div className="flex items-center space-x-2">
                   <FaUserGraduate className="text-primary-dark h-4 w-4" />
                   <span className="text-xs sm:text-sm text-text-secondary">Total Applications:</span>
                   <span className="font-semibold text-text-primary text-sm sm:text-base">{appliedTAs.length}</span>
                 </div>
+                <span className="hidden sm:block w-px h-5 bg-border-default" />
                 <div className="flex items-center space-x-2">
                   <FaClipboardList className="text-primary-dark h-4 w-4" />
                   <span className="text-xs sm:text-sm text-text-secondary">Pending:</span>
@@ -167,13 +168,14 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
           </div>
       ) : (
         <div className="w-full space-y-3 mt-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-bg-page rounded-lg p-3 space-y-2 sm:space-y-0">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center bg-bg-page rounded-lg p-3 space-y-2 sm:space-y-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
               <div className="flex items-center space-x-2">
                 <FaUserGraduate className="text-primary-dark h-4 w-4" />
                 <span className="text-xs sm:text-sm text-text-secondary">Total Applications:</span>
                 <span className="font-semibold text-text-primary text-sm sm:text-base">{appliedTAs.length}</span>
               </div>
+              <span className="hidden sm:block w-px h-5 bg-border-default" />
               <div className="flex items-center space-x-2">
                 <FaClipboardList className="text-primary-dark h-4 w-4" />
                 <span className="text-xs sm:text-sm text-text-secondary">Pending:</span>

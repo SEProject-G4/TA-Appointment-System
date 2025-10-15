@@ -40,7 +40,7 @@ const ViewModuleDetailsCard: React.FC<ViewModuleDetailsCardProps> = ({
 
     return (
       <div key={taIndex} className="relative bg-bg-page rounded-lg border border-border-default p-3">
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="flex flex-col">
               <span className="font-medium text-text-primary">{ta.name}</span>
@@ -55,7 +55,7 @@ const ViewModuleDetailsCard: React.FC<ViewModuleDetailsCardProps> = ({
         {canShowDocs && (
           <button
             onClick={() => onViewDocuments(ta)}
-            className="absolute bottom-2 right-2 btn btn-outline btn-xs"
+            className="absolute bottom-2 right-2 btn btn-outline btn-xs inline-flex items-center justify-center leading-none"
           >
             View more
           </button>

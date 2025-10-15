@@ -95,7 +95,7 @@ const LoginPage: React.FC = () => {
       const redirectPath = (location.state as any)?.from || getDefaultRouteForRole(user.role);
       navigate(redirectPath, { replace: true });
     }
-  }, [loading, user]);
+  }, [loading, user, navigate, location]);
 
 
   useEffect(() => {
