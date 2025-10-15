@@ -20,6 +20,7 @@ app.use('/api/recruitment-series', require('./routes/recruitmentSeriesRoutes'));
 app.use('/api/modules', require('./routes/moduleRoutes'));
 app.use('/api/cse-office', require('./routes/cseOfficeRoutes'));
 app.use('/api/ta', require('./routes/taRoutes'));
+app.use('/api/documents', require('./routes/driveRoutes'));
 
 
 app.get('/', (req, res) => {
