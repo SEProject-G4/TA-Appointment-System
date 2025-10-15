@@ -1,0 +1,645 @@
+const ModuleDetails = require('../models/ModuleDetails');
+const TaApplication = require('../models/TaApplication');
+const User = require('../models/User');
+const TaDocumentSubmission = require('../models/TaDocumentSubmission');
+const RecruitmentSeries = require('../models/RecruitmentRound');
+
+// GET /api/lecturer/modules
+// Returns modules where the logged-in lecturer (by id) is listed in coordinators
+const getMyModules = async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const coordinatorId = req.user._id;
+
+    // Get all modules where user is coordinator with editable statuses
+    const modules = await ModuleDetails
+      .find({ 
+        coordinators: coordinatorId,
+        moduleStatus: { 
+          $in: ['pending changes', 'changes submitted', 'advertised'] 
+        }
+      })
+      .select('_id moduleCode moduleName semester year coordinators applicationDueDate documentDueDate requiredTAHours requiredUndergraduateTACount requiredPostgraduateTACount requirements moduleStatus undergraduateCounts postgraduateCounts')
+      .sort({ createdAt: -1 });
+
+    // No recruitment series status filtering; consider all modules for the coordinator
+    const activeModules = modules;
+
+    // Group modules by status
+    const groupedModules = {
+      pendingChanges: activeModules.filter(m => m.moduleStatus === 'pending changes'),
+      changesSubmitted: activeModules.filter(m => m.moduleStatus === 'changes submitted'),
+      advertised: activeModules.filter(m => m.moduleStatus === 'advertised')
+    };
+
+    console.log('lecturer getMyModules -> matched', 
+      groupedModules.pendingChanges.length, 'pending changes,',
+      groupedModules.changesSubmitted.length, 'changes submitted, and',
+      groupedModules.advertised.length, 'advertised modules for', 
+      coordinatorId
+    );
+
+    return res.status(200).json(groupedModules);
+  } catch (error) {
+    console.error('Error fetching lecturer modules:', error);
+    return res.status(500).json({ error: 'Failed to fetch modules for coordinator' });
+  }
+};
+
+const editModuleRequirments = async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { id } = req.params;
+    const { 
+      requiredTAHours, 
+      requiredUndergraduateTACount, 
+      requiredPostgraduateTACount, 
+      requirements 
+    } = req.body;
+
+    // Verify the lecturer is a coordinator for this module
+    const moduleDoc = await ModuleDetails.findById(id);
+    if (!moduleDoc) {
+      return res.status(404).json({ error: 'Module not found' });
+    }
+
+    if (!moduleDoc.coordinators.includes(req.user._id)) {
+      return res.status(403).json({ error: 'Not authorized to edit this module' });
+    }
+
+    // Verify the module is in an editable status
+    const editableStatuses = ['pending changes', 'changes submitted', 'advertised'];
+    if (!editableStatuses.includes(moduleDoc.moduleStatus)) {
+      return res.status(400).json({ error: 'Module is not in an editable status' });
+    }
+
+    // Prepare update object
+    const updateFields = {
+      requiredTAHours,
+      requiredUndergraduateTACount,
+      requiredPostgraduateTACount,
+      requirements,
+      updatedBy: req.user._id,
+    };
+
+    // Handle undergraduate and postgraduate TA count changes
+    // Convert to numbers and handle undefined/null cases
+    const undergradCount = Number(requiredUndergraduateTACount) || 0;
+    const postgradCount = Number(requiredPostgraduateTACount) || 0;
+    
+    // Validation for advertised modules: check if applied count exceeds new required count
+    if (moduleDoc.moduleStatus === 'advertised') {
+      const currentAppliedUndergrad = moduleDoc.undergraduateCounts?.applied || 0;
+      const currentAppliedPostgrad = moduleDoc.postgraduateCounts?.applied || 0;
+      
+      // Prevent setting undergraduate count to 0 when there are applied TAs
+      if (undergradCount === 0 && currentAppliedUndergrad > 0) {
+        return res.status(400).json({ 
+          error: `Cannot set undergraduate TA count to 0 because ${currentAppliedUndergrad} students have already applied.` 
+        });
+      }
+      
+      // Prevent reducing undergraduate count below applied count
+      if (undergradCount > 0 && currentAppliedUndergrad > undergradCount) {
+        return res.status(400).json({ 
+          error: `Cannot reduce undergraduate TA count to ${undergradCount} because ${currentAppliedUndergrad} students have already applied.` 
+        });
+      }
+      
+      // Prevent setting postgraduate count to 0 when there are applied TAs
+      if (postgradCount === 0 && currentAppliedPostgrad > 0) {
+        return res.status(400).json({ 
+          error: `Cannot set postgraduate TA count to 0 because ${currentAppliedPostgrad} students have already applied.` 
+        });
+      }
+      
+      // Prevent reducing postgraduate count below applied count
+      if (postgradCount > 0 && currentAppliedPostgrad > postgradCount) {
+        return res.status(400).json({ 
+          error: `Cannot reduce postgraduate TA count to ${postgradCount} because ${currentAppliedPostgrad} students have already applied.` 
+        });
+      }
+    }
+    
+    if (undergradCount > 0) {
+      // Set openForUndergraduates to true
+      updateFields.openForUndergraduates = true;
+      
+      // Get current counts or initialize with zeros
+      const currentApplied = moduleDoc.undergraduateCounts?.applied || 0;
+      const currentAccepted = moduleDoc.undergraduateCounts?.accepted || 0;
+      const currentReviewed = moduleDoc.undergraduateCounts?.reviewed || 0;
+      const currentDocSubmitted = moduleDoc.undergraduateCounts?.docSubmitted || 0;
+      const currentAppointed = moduleDoc.undergraduateCounts?.appointed || 0;
+      
+      // Calculate remaining count (required - accepted)
+      const remainingCount = Math.max(0, undergradCount - currentAccepted);
+      
+      // Initialize or update undergraduateCounts
+      updateFields.undergraduateCounts = {
+        required: undergradCount,
+        remaining: remainingCount,
+        applied: currentApplied,
+        reviewed: currentReviewed,
+        accepted: currentAccepted,
+        docSubmitted: currentDocSubmitted,
+        appointed: currentAppointed
+      };
+    } else {
+      // If undergraduate count is 0 or undefined, set openForUndergraduates to false
+      updateFields.openForUndergraduates = false;
+      
+      // Reset all undergraduate counts to 0
+      updateFields.undergraduateCounts = {
+        required: 0,
+        remaining: 0,
+        applied: 0,
+        reviewed: 0,
+        accepted: 0,
+        docSubmitted: 0,
+        appointed: 0
+      };
+    }
+
+    // Handle postgraduate TA count changes
+    
+    if (postgradCount > 0) {
+      // Set openForPostgraduates to true
+      updateFields.openForPostgraduates = true;
+      
+      // Get current counts or initialize with zeros
+      const currentApplied = moduleDoc.postgraduateCounts?.applied || 0;
+      const currentAccepted = moduleDoc.postgraduateCounts?.accepted || 0;
+      const currentReviewed = moduleDoc.postgraduateCounts?.reviewed || 0;
+      const currentDocSubmitted = moduleDoc.postgraduateCounts?.docSubmitted || 0;
+      const currentAppointed = moduleDoc.postgraduateCounts?.appointed || 0;
+      
+      // Calculate remaining count (required - accepted)
+      const remainingCount = Math.max(0, postgradCount - currentAccepted);
+      
+      // Initialize or update postgraduateCounts
+      updateFields.postgraduateCounts = {
+        required: postgradCount,
+        remaining: remainingCount,
+        applied: currentApplied,
+        reviewed: currentReviewed,
+        accepted: currentAccepted,
+        docSubmitted: currentDocSubmitted,
+        appointed: currentAppointed
+      };
+    } else {
+      // If postgraduate count is 0 or undefined, set openForPostgraduates to false
+      updateFields.openForPostgraduates = false;
+      
+      // Reset all postgraduate counts to 0
+      updateFields.postgraduateCounts = {
+        required: 0,
+        remaining: 0,
+        applied: 0,
+        reviewed: 0,
+        accepted: 0,
+        docSubmitted: 0,
+        appointed: 0
+      };
+    }
+
+    // Determine the new status based on current status
+    let newStatus = moduleDoc.moduleStatus;
+    if (moduleDoc.moduleStatus === 'pending changes') {
+      newStatus = 'changes submitted';
+    } else if (moduleDoc.moduleStatus === 'changes submitted' || moduleDoc.moduleStatus === 'advertised') {
+      // Keep the same status for these stages
+      newStatus = moduleDoc.moduleStatus;
+    }
+
+    updateFields.moduleStatus = newStatus;
+
+    // Update the module fields with appropriate status
+    const updatedModule = await ModuleDetails.findByIdAndUpdate(
+      id,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+
+    console.log('lecturer editModuleRequirments -> updated module', id, 'for', req.user._id);
+    console.log('Request body:', req.body);
+    console.log('Update fields before save:', updateFields);
+    console.log('Undergraduate count set to:', undergradCount, 'Postgraduate count set to:', postgradCount);
+    console.log('Open for undergraduates:', updateFields.openForUndergraduates ? 'enabled' : 'disabled');
+    console.log('Open for postgraduates:', updateFields.openForPostgraduates ? 'enabled' : 'disabled');
+    console.log('Undergraduate remaining slots:', updateFields.undergraduateCounts?.remaining || 0);
+    console.log('Postgraduate remaining slots:', updateFields.postgraduateCounts?.remaining || 0);
+    console.log('Updated module after save:', {
+      openForUndergraduates: updatedModule.openForUndergraduates,
+      openForPostgraduates: updatedModule.openForPostgraduates,
+      undergraduateCounts: updatedModule.undergraduateCounts,
+      postgraduateCounts: updatedModule.postgraduateCounts
+    });
+    return res.status(200).json(updatedModule);
+  } catch (error) {
+    console.error('Error updating module requirements:', error);
+    return res.status(500).json({ error: 'Failed to update module requirements' });
+  }
+};
+
+const handleRequests = async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const coordinatorId = req.user._id;
+
+    // First, get all modules where the coordinator is responsible
+    const coordinatorModulesAll = await ModuleDetails.find({
+      coordinators: coordinatorId
+    }).select('_id moduleCode moduleName semester year requiredTACount requiredUndergraduateTACount requiredPostgraduateTACount recruitmentSeriesId');
+    console.log('edit modules -> matched', coordinatorModulesAll.length, 'modules for', coordinatorId);
+
+    // No recruitment series status filtering; consider all modules for the coordinator
+    const coordinatorModules = coordinatorModulesAll;
+    console.log('handleRequests -> modules (no RS filter)', coordinatorModules.length);
+
+    if (coordinatorModules.length === 0) {
+      return res.status(200).json({ 
+        message: 'No modules found for this coordinator',
+        applications: [] 
+      });
+    }
+
+    // Get module IDs
+    const moduleIds = coordinatorModules.map(module => module._id);
+    console.log("handle req module id", moduleIds);
+
+    // Find all TA applications for these modules
+    const moduleIdStrings = moduleIds.map(id => id.toString());
+    
+    // Query TA applications for ONLY active modules (moduleId ObjectId)
+    const taApplications = await TaApplication.find({
+      moduleId: { $in: moduleIds }
+    }).lean();
+
+    // Add detailed debug logging
+    console.log('Module IDs being queried (ObjectIds):', moduleIds.map(id => id.toString()));
+    console.log('Module IDs being queried (Strings):', moduleIdStrings);
+    
+    console.log('Query results:', taApplications);
+
+    if (taApplications.length === 0) {
+      return res.status(200).json({ 
+        message: 'No TA applications found for your modules',
+        applications: [] 
+      });
+    }
+
+    // Get unique user IDs from applications
+    const userIds = [...new Set(taApplications.map(app => app.userId))];
+
+    // Fetch user details (name and index number)
+    const users = await User.find({
+      _id: { $in: userIds }
+    }).select('googleId name indexNumber role');
+    console.log("users", users);
+
+    // Create a map of user details for quick lookup
+    const userMap = {};
+    users.forEach(user => {
+      userMap[user._id] = {
+        name: user.name,
+        indexNumber: user.indexNumber,
+        role: user.role
+      };
+    });
+
+    // Group applications by moduleId so same module (same id) stays in one card
+    const moduleMap = new Map();
+    console.log('Starting grouping process...');
+    console.log('TA Applications to group:', taApplications.length);
+    console.log('Available modules:', coordinatorModules.map(m => ({ id: m._id.toString(), code: m.moduleCode })));
+    
+    for (const app of taApplications) {
+      const rawModuleId = app.moduleId;
+      const moduleIdStr = typeof rawModuleId === 'string' ? rawModuleId : (rawModuleId && typeof rawModuleId.toString === 'function' ? rawModuleId.toString() : null);
+      if (!moduleIdStr) {
+        console.log('Skipping app without module id:', app._id);
+        continue;
+      }
+      console.log('Processing app with moduleId:', moduleIdStr);
+      const module = coordinatorModules.find(m => m._id.toString() === moduleIdStr);
+      if (!module) {
+        console.log('No matching module found for app.moduleId:', moduleIdStr);
+        continue;
+      }
+      console.log('Found matching module:', module.moduleCode);
+
+      if (!moduleMap.has(moduleIdStr)) {
+        moduleMap.set(moduleIdStr, {
+          moduleId: rawModuleId,
+          moduleCode: module.moduleCode,
+          moduleName: module.moduleName,
+          semester: module.semester,
+          year: module.year,
+          requiredTACount: module.requiredTACount,
+          requiredUndergraduateTACount: module.requiredUndergraduateTACount || 0,
+          requiredPostgraduateTACount: module.requiredPostgraduateTACount || 0,
+          requiredTAHours: module.requiredTAHours || 0,
+          totalApplications: 0,
+          pendingCount: 0,
+          acceptedCount: 0,
+          rejectedCount: 0,
+          applications: []
+        })
+      }
+
+      const group = moduleMap.get(moduleIdStr);
+      const userDetails = userMap[app.userId] || { name: 'Unknown', indexNumber: 'N/A', role: 'undergraduate' };
+      group.totalApplications += 1;
+      const statusLower = String(app.status || '').toLowerCase();
+      if (statusLower === 'pending') group.pendingCount += 1;
+      else if (statusLower === 'accepted') group.acceptedCount += 1;
+      else if (statusLower === 'rejected') group.rejectedCount += 1;
+
+      group.applications.push({
+        applicationId: app._id,
+        userId: app.userId,
+        studentName: userDetails.name,
+        indexNumber: userDetails.indexNumber,
+        role: userDetails.role,
+        status: app.status,
+        appliedAt: app.createdAt
+      })
+    }
+
+    const groupedModules = Array.from(moduleMap.values());
+
+    console.log('lecturer handleRequests -> grouped modules', groupedModules.length, 'for', coordinatorId);
+
+    return res.status(200).json({
+      message: 'TA applications retrieved successfully',
+      modules: groupedModules
+    });
+
+  } catch (error) {
+    console.error('Error fetching TA applications:', error);
+    return res.status(500).json({ error: 'Failed to fetch TA applications' });
+  }
+};
+
+const acceptApplication = async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { applicationId } = req.params;
+    const coordinatorId = req.user._id;
+    console.log("applicationId", applicationId);
+    console.log("coordinatorId", coordinatorId);
+
+    // Find the application
+    const application = await TaApplication.findById(applicationId);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    console.log("application", application);
+
+    // Verify the coordinator is responsible for this module
+    const applicationModuleId = application.moduleId;
+    console.log("applicationModuleId", applicationModuleId);
+
+    const module = await ModuleDetails.findById(applicationModuleId);
+    if (!module || !module.coordinators.includes(req.user._id)) {
+      return res.status(403).json({ error: 'Not authorized to manage this application' });
+    }
+
+    // Update application status
+    application.status = 'accepted';
+    await application.save();
+
+    console.log('lecturer acceptApplication -> accepted application', applicationId, 'for', coordinatorId);
+
+    return res.status(200).json({ 
+      message: 'Application accepted successfully',
+      application: application
+    });
+
+  } catch (error) {
+    console.error('Error accepting application:', error);
+    return res.status(500).json({ error: 'Failed to accept application' });
+  }
+};
+
+const rejectApplication = async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { applicationId } = req.params;
+    const coordinatorId = req.user._id;
+
+    // Find the application
+    const application = await TaApplication.findById(applicationId);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    // Verify the coordinator is responsible for this module
+    const applicationModuleId = application.moduleId;
+    const module = await ModuleDetails.findById(applicationModuleId);
+    if (!module || !module.coordinators.includes(req.user._id)) {
+      return res.status(403).json({ error: 'Not authorized to manage this application' });
+    }
+
+    // Update application status
+    application.status = 'rejected';
+    await application.save();
+
+    console.log('lecturer rejectApplication -> rejected application', applicationId, 'for', coordinatorId);
+
+    return res.status(200).json({ 
+      message: 'Application rejected successfully',
+      application: application
+    });
+
+  } catch (error) {
+    console.error('Error rejecting application:', error);
+    return res.status(500).json({ error: 'Failed to reject application' });
+  }
+};
+
+// Returns modules coordinated by logged lecturer that have at least one TA request
+// and includes accepted TA details with document info
+const viewModuleDetails = async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const coordinatorId = req.user._id;
+
+    // Get modules coordinated by the lecturer
+    const coordinatorModulesAll = await ModuleDetails.find({
+      coordinators: coordinatorId
+    }).select('_id moduleCode moduleName semester year requiredTACount requiredTAHours requirements recruitmentSeriesId');
+    console.log("coordinatorModules (all)", coordinatorModulesAll);
+
+    // No recruitment series status filtering; consider all modules for the coordinator
+    const coordinatorModules = coordinatorModulesAll;
+    console.log('viewModuleDetails -> modules (no RS filter)', coordinatorModules.length);
+
+    if (coordinatorModules.length === 0) {
+      return res.status(200).json({ modules: [] });
+    }
+
+    const moduleIdObjects = coordinatorModules.map(m => m._id);
+    const moduleIdStrings = moduleIdObjects.map(id => id.toString());
+
+    // Get all applications for these modules
+    const applications = await TaApplication.find({ moduleId: { $in: moduleIdObjects } });
+    console.log("TA Applications to view status", applications);
+
+    // Build map of accepted applications per module
+    const acceptedByModule = new Map();
+    for (const app of applications) {
+      const statusLower = String(app.status || '').toLowerCase();
+      if (statusLower === 'accepted') {
+        const key = app.moduleId && typeof app.moduleId.toString === 'function' ? app.moduleId.toString() : String(app.moduleId || '');
+        if (!key) continue;
+        if (!acceptedByModule.has(key)) acceptedByModule.set(key, []);
+        acceptedByModule.get(key).push(app);
+      }
+    }
+    console.log("acceptedByModule", acceptedByModule);
+
+    // If no requests at all, return empty
+    const modulesWithAnyRequests = new Set(
+      applications
+        .map(a => {
+          try {
+            const id = a.moduleId;
+            if (!id) return null;
+            return typeof id.toString === 'function' ? id.toString() : String(id);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean)
+    );
+    if (modulesWithAnyRequests.size === 0) {
+      return res.status(200).json({ modules: [] });
+    }
+
+    // Collect userIds from accepted applications to fetch user + docs
+    const acceptedUserIds = [...new Set(applications.filter(a => String(a.status || '').toLowerCase() === 'accepted').map(a => a.userId))];
+
+    const users = await User.find({ _id: { $in: acceptedUserIds } }).select('_id name indexNumber role');
+    console.log("users", users);
+
+    const userMap = users.reduce((acc, u) => { acc[u._id.toString()] = { name: u.name, indexNumber: u.indexNumber, role: u.role }; return acc; }, {});
+
+    // TaDocumentSubmission.userId is stored as String, so convert accepted user ObjectIds to strings
+    const acceptedUserIdStrings = acceptedUserIds
+      .filter(Boolean)
+      .map(id => (id && typeof id.toString === 'function') ? id.toString() : String(id));
+    console.log("acceptedUserIdStrings", acceptedUserIdStrings);
+
+    const docSubs = await TaDocumentSubmission.find({ userId: { $in: acceptedUserIdStrings } }).select('userId documents status').lean();
+    console.log("docSubs", docSubs);
+    
+    const docMap = docSubs.reduce((acc, d) => { acc[d.userId] = { documents: d.documents || null, status: d.status || 'pending' }; return acc; }, {});
+
+    // Count ALL applications per module using aggregation (more robust)
+    const countsAll = await TaApplication.aggregate([
+      { $match: { moduleId: { $in: moduleIdObjects } } },
+      { $group: { _id: '$moduleId', total: { $sum: 1 } } }
+    ]);
+    console.log("countsAll", countsAll);
+    
+    const applicationsCountMap = countsAll.reduce((acc, c) => {
+      acc[String(c._id)] = c.total;
+      return acc;
+    }, {});
+    console.log("applicationsCountMap", applicationsCountMap);
+
+    // Build response (only modules with at least one accepted application)
+    const modules = coordinatorModules
+      .filter(m => (acceptedByModule.get(m._id.toString()) || []).length > 0)
+      .map(m => {
+        const modId = m._id.toString();
+        const acceptedApps = acceptedByModule.get(modId) || [];
+        const acceptedTAs = acceptedApps.map(a => {
+          const userIdStr = a.userId?.toString?.() || String(a.userId);
+          const docEntry = docMap[userIdStr] || { documents: {}, status: 'pending' };
+          const docs = docEntry.documents || {};
+          const normalize = (d) => {
+            if (!d) return { submitted: false };
+            if (typeof d === 'string') {
+              return {
+                submitted: true,
+                fileUrl: d,
+                fileName: undefined,
+                uploadedAt: undefined
+              }
+            }
+            return {
+              submitted: Boolean(d.submitted),
+              fileUrl: d.fileUrl,
+              fileName: d.fileName,
+              uploadedAt: d.uploadedAt
+            }
+          };
+          const documents = {
+            bankPassbookCopy: normalize(docs.bankPassbookCopy),
+            nicCopy: normalize(docs.nicCopy),
+            cv: normalize(docs.cv),
+            degreeCertificate: normalize(docs.degreeCertificate)
+          };
+          const submittedCount = [documents.bankPassbookCopy, documents.nicCopy, documents.cv, documents.degreeCertificate]
+            .filter(d => d.submitted).length;
+          const documentSummary = {
+            submittedCount,
+            total: 4,
+            allSubmitted: submittedCount === 4
+          };
+          return {
+            userId: a.userId,
+            name: userMap[userIdStr]?.name || 'Unknown',
+            indexNumber: userMap[userIdStr]?.indexNumber || 'N/A',
+            role: userMap[userIdStr]?.role,
+            documents,
+            docStatus: docEntry.status,
+            documentSummary
+          };
+        });
+
+        return {
+          moduleId: m._id,
+          moduleCode: m.moduleCode,
+          moduleName: m.moduleName,
+          semester: m.semester,
+          year: m.year,
+          requiredTAHours: m.requiredTAHours || 0,
+          assignedTAsCount: acceptedTAs.length,
+          requiredTACount: m.requiredTACount || 0,
+          acceptedTAs,
+          applicationsCount: applicationsCountMap[modId] || 0
+        }
+      });
+    console.log("modules", modules);
+
+    return res.status(200).json({ modules });
+  } catch (error) {
+    console.error('Error fetching modules with TA requests:', error);
+    return res.status(500).json({ error: 'Failed to fetch modules with TA requests' });
+  }
+}
+
+
+module.exports = { getMyModules, editModuleRequirments, handleRequests, acceptApplication, rejectApplication, viewModuleDetails };

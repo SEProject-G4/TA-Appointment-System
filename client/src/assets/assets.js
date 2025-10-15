@@ -1,0 +1,72 @@
+export const taRequests = [
+  {
+    _id: "REQ001",
+    module_code: "CS101",
+    module_name: "Introduction to Computer Science",
+    year: "2025",
+    semester: "2025 Semester 1",
+    course_co_ordinators: [ "Mr. Nuwan Silva","miss abdfhsdfjsd Perera"],
+    requested_TA_hours: 60,
+    requirements: "Proficiency in Python; good communication skills.",
+    application_deadline: "2025-08-15",
+    document_deadline: "2025-08-20",
+    no_of_tas_required: 3,
+    no_of_tas_applieded: 5
+  },
+  {
+    _id: "REQ002",
+    module_code: "CS204",
+    module_name: "Database Management Systems",
+    year: "2025",
+    semester: "2025 Semester 1",
+    course_co_ordinators: ["Dr. Sachini Fernando"],
+    requested_TA_hours: 45,
+    requirements: "Strong SQL knowledge; experience with MySQL and ER diagrams.",
+    application_deadline: "2025-08-18",
+    document_deadline: "2025-08-25",
+    no_of_tas_required: 2,
+    no_of_tas_applieded: 1
+  },
+  {
+    _id: "REQ003",
+    module_code: "CS310",
+    module_name: "Object-Oriented Programming",
+    year: "2025",
+    semester: "2025 Semester 2",
+    course_co_ordinators: ["Prof. Dinesh Jayawardena"],
+    requested_TA_hours: 80,
+    requirements: "Java, OOP principles, Data Structures & Algorithms.",
+    application_deadline: "2025-12-01",
+    document_deadline: "2025-12-05",
+    no_of_tas_required: 4,
+    no_of_tas_applieded: 2
+  },
+  {
+    _id: "REQ004",
+    module_code: "CS120",
+    module_name: "Web Development Basics",
+    year: "2025",
+    semester: "2025 Semester 2",
+    course_co_ordinators: ["Ms. Tharushi Gunasekara"],
+    requested_TA_hours: 30,
+    requirements: "Basic programming skills; reliable and punctual.",
+    application_deadline: "2025-11-15",
+    document_deadline: "2025-11-20",
+    no_of_tas_required: 1,
+    no_of_tas_applieded: 0
+  },
+  {
+    _id: "REQ005",
+    module_code: "CS450",
+    module_name: "Machine Learning",
+    year: "2025",
+    semester: "2025 Semester 1",
+    course_co_ordinators: ["Dr. Kasun Ranathunga"],
+    requested_TA_hours: 70,
+    requirements: "Machine learning basics; Python (NumPy, Pandas); good report writing.",
+    application_deadline: "2025-08-22",
+    document_deadline: "2025-08-28",
+    no_of_tas_required: 2,
+    no_of_tas_applieded: 3
+  }
+];
