@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axiosInstance from "../../api/axiosConfig";
 import Modal from "../../components/common/Modal";
 import EditModuleDetailsCard from "../../components/lecturer/EditModuleDetailsCard";
-import { FileEdit, ChevronDown, RefreshCw } from "lucide-react";
+import { ChevronDown, RefreshCw } from "lucide-react";
 
 interface ModuleEditData {
   moduleCode: string;
@@ -307,68 +307,50 @@ const EditModuleDetails: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen px-2 sm:px-4 bg-bg-page text-text-primary">
-      <div className="container px-2 py-4 mx-auto sm:px-4 sm:py-8">
-        {/* header */}
-        <div className="mb-8 text-center sm:mb-12">
-          <div className="flex flex-col items-center justify-center gap-2 mb-4 sm:flex-row sm:gap-3">
-            <div className="p-2 sm:p-3 rounded-xl bg-primary/10">
-              <FileEdit className="w-6 h-6 sm:w-8 sm:h-8 text-text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold text-center sm:text-3xl lg:text-4xl">
-              Edit Module Details
-            </h1>
-          </div>
+    <div className="min-h-screen bg-bg-page text-text-primary">
+      {/* Page Header */}
+      <div className="px-10 py-6 pb-5">
+        <div className="flex items-center gap-3 mb-0">
+          <h1 className="text-2xl font-bold text-text-primary">Module Management</h1>
+          <button
+            className="p-2 text-sm font-medium border rounded-lg bg-bg-card text-text-primary hover:bg-primary-light/20 focus:outline-none focus:ring-2 focus:ring-primary-dark"
+            onClick={() => setRefreshKey((prev) => prev + 1)}
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      <div className="gap-2 p-4 m-2 rounded-lg sm:p-6 lg:p-8 sm:m-4 lg:m-8 bg-bg-card">
-        <div className="gap-2">
-          {/* Header - Module Management */}
-          <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <h2 className="text-xl font-semibold sm:text-2xl text-foreground">
-                Module Management
-              </h2>
-              {/* Refresh button */}
-              <div>
-                <button
-                  className="p-2 text-sm font-medium border rounded-lg bg-bg-card text-text-primary hover:bg-primary-light/20 focus:outline-none focus:ring-2 focus:ring-primary-dark"
-                  onClick={() => setRefreshKey((prev) => prev + 1)}
+      {/* Content Card */}
+      <div className="gap-2 p-6 m-4 mt-0 rounded-xl shadow-sm bg-bg-card border border-border-default">
+        {/* Controls section */}
+        <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-start">
+          <div className="flex flex-col items-stretch w-full gap-3 sm:flex-row sm:items-center lg:w-auto">
+            {/* Search input */}
+            <input
+              type="text"
+              placeholder="Search modules..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-3 py-2 text-sm border rounded-lg sm:w-64 focus:outline-none focus:ring-2 focus:ring-primary-dark bg-bg-card text-text-primary placeholder:text-text-secondary"
+            />
+
+            {/* Sorting modules */}
+            <div className="flex flex-col w-full gap-3 sm:flex-row sm:w-auto">
+              <div className="relative inline-flex w-full overflow-hidden border rounded-lg shadow-sm border-border-default bg-bg-card group sm:w-auto">
+                <select
+                  value={sortOption}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                  className="w-full px-4 py-2 pr-10 text-sm font-medium bg-transparent appearance-none cursor-pointer sm:w-auto text-text-secondary hover:bg-primary-light/20 hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-dark"
                 >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+                  <option value="">Sort By</option>
+                  <option value="name">Module Name (A–Z)</option>
+                  <option value="code">Module Code (A–Z)</option>
+                  <option value="semester">Semester (Low → High)</option>
+                </select>
 
-            {/* Controls section */}
-            <div className="flex flex-col items-stretch w-full gap-3 sm:flex-row sm:items-center lg:w-auto">
-              {/* Search input */}
-              <input
-                type="text"
-                placeholder="Search modules..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 text-sm border rounded-lg sm:w-64 focus:outline-none focus:ring-2 focus:ring-primary-dark bg-bg-card text-text-primary placeholder:text-text-secondary"
-              />
-
-              {/* Sorting modules */}
-              <div className="flex flex-col w-full gap-3 sm:flex-row sm:w-auto">
-                <div className="relative inline-flex w-full overflow-hidden border rounded-lg shadow-sm border-border-default bg-bg-card group sm:w-auto">
-                  <select
-                    value={sortOption}
-                    onChange={(e) => handleSortChange(e.target.value)}
-                    className="w-full px-4 py-2 pr-10 text-sm font-medium bg-transparent appearance-none cursor-pointer sm:w-auto text-text-secondary hover:bg-primary-light/20 hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-dark"
-                  >
-                    <option value="">Sort By</option>
-                    <option value="name">Module Name (A–Z)</option>
-                    <option value="code">Module Code (A–Z)</option>
-                    <option value="semester">Semester (Low → High)</option>
-                  </select>
-
-                  <div className="absolute -translate-y-1/2 pointer-events-none right-3 top-1/2 text-text-secondary group-hover:text-text-primary">
-                    <ChevronDown className="w-4 h-4" />
-                  </div>
+                <div className="absolute -translate-y-1/2 pointer-events-none right-3 top-1/2 text-text-secondary group-hover:text-text-primary">
+                  <ChevronDown className="w-4 h-4" />
                 </div>
               </div>
             </div>
