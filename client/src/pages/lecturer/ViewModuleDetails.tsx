@@ -106,10 +106,6 @@ const ViewModuleDetails: React.FC = () => {
     const toDriveDownloadUrl = (url?: string) => {
       if (!url) return '';
       try {
-        // Patterns: 
-        // - https://drive.google.com/file/d/FILE_ID/view?usp=sharing
-        // - https://drive.google.com/open?id=FILE_ID
-        // - https://drive.google.com/uc?id=FILE_ID&export=download
         const fileIdMatch = url.match(/\/d\/([^/]+)\//) || url.match(/[?&]id=([^&]+)/);
         const fileId = fileIdMatch ? fileIdMatch[1] : '';
         return fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : url;
@@ -173,10 +169,11 @@ const ViewModuleDetails: React.FC = () => {
             </button>
           </div>
           <div className="p-4 sm:p-5 max-h-[70vh] overflow-y-auto space-y-2 bg-white">
-            {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbookCopy)}
+            {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbook)}
             {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
             {renderDocRow('CV', ta.documents?.cv)}
-            {renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
+            {ta.role === 'postgraduate' && renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
+            {renderDocRow('Declaration Form', ta.documents?.declarationForm)}
           </div>
         </div>
       </div>

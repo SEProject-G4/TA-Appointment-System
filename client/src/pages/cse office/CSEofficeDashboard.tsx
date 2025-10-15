@@ -68,14 +68,14 @@ const CSEofficeDashboard = () => {
     const downloadUrl = toDriveDownloadUrl(f.fileUrl)
 
     return (
-      <div className="flex items-center justify-between p-2 bg-white rounded border border-border-default">
-        <span className="text-sm font-medium text-text-primary">{label}</span>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 sm:p-3 bg-white rounded border border-border-default">
+        <span className="text-xs sm:text-sm font-medium text-text-primary">{label}</span>
+        <div className="flex items-center gap-2 flex-shrink-0">
           {hasAnyUrl ? (
             <>
               <button 
                 onClick={() => window.open(f.fileUrl, "_blank")} 
-                className="btn btn-primary btn-xs"
+                className="btn btn-primary btn-xs text-[10px] sm:text-xs px-2 sm:px-3"
               >
                 View
               </button>
@@ -83,13 +83,13 @@ const CSEofficeDashboard = () => {
                 href={downloadUrl} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="btn btn-outline btn-xs"
+                className="btn btn-outline btn-xs text-[10px] sm:text-xs px-2 sm:px-3"
               >
                 Download
               </a>
             </>
           ) : (
-            <span className="text-xs text-text-secondary">No file uploaded</span>
+            <span className="text-[10px] sm:text-xs text-text-secondary">No file uploaded</span>
           )}
         </div>
       </div>
@@ -97,11 +97,11 @@ const CSEofficeDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">
-      <div className="mb-8 w-full flex items-center justify-between">
+    <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-4 sm:px-6 md:px-10 lg:px-20 py-4 sm:py-5">
+      <div className="mb-6 sm:mb-8 w-full flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-montserrat mb-2">View TA Documents</h1>
-          <p className="text-text-secondary font-raleway">TAs with submitted documents and their accepted modules</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-montserrat mb-1 sm:mb-2">View TA Documents</h1>
+          <p className="text-xs sm:text-sm text-text-secondary font-raleway">TAs with submitted documents and their accepted modules</p>
         </div>
         <div className="flex items-center space-x-2" />
       </div>
@@ -112,61 +112,63 @@ const CSEofficeDashboard = () => {
         </div>
       )}
       {error && (
-        <div className="bg-error/10 border border-error/20 rounded-lg p-6 w-full">
-          <h3 className="text-error font-semibold mb-2">Error</h3>
-          <p className="text-text-secondary mb-4">{error}</p>
-          <button className="btn btn-primary" onClick={() => window.location.reload()}>Try again</button>
+        <div className="bg-error/10 border border-error/20 rounded-lg p-4 sm:p-6 w-full">
+          <h3 className="text-error font-semibold mb-2 text-sm sm:text-base">Error</h3>
+          <p className="text-text-secondary mb-4 text-xs sm:text-sm">{error}</p>
+          <button className="btn btn-primary text-xs sm:text-sm" onClick={() => window.location.reload()}>Try again</button>
         </div>
       )}
 
       {!loading && !error && tas.length === 0 && (
-        <div className="bg-bg-card border border-border-default rounded-lg p-6 w-full">
-          <p className="text-text-secondary">No accepted TAs with submitted documents.</p>
+        <div className="bg-bg-card border border-border-default rounded-lg p-4 sm:p-6 w-full">
+          <p className="text-text-secondary text-xs sm:text-sm">No accepted TAs with submitted documents.</p>
         </div>
       )}
 
       {
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 w-full">
           {tas.map(ta => (
-            <div key={ta.userId} className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-0 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex w-full items-center justify-between p-4 border-b border-border-default">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full bg-primary/10 text-primary-dark flex items-center justify-center">
+            <div key={ta.userId} className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-0 bg-bg-card shadow-sm hover:shadow-md transition-shadow min-h-36 sm:min-h-40">
+              <div className="flex w-full items-center justify-between p-3 sm:p-4 border-b border-border-default gap-2">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <div className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 rounded-full bg-primary/10 text-primary-dark flex items-center justify-center text-sm sm:text-base">
                     <FaUserGraduate />
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-text-primary font-semibold">{ta.name}</span>
-                    <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm sm:text-base text-text-primary font-semibold truncate">{ta.name}</span>
+                    <span className="text-[10px] sm:text-xs text-text-secondary">{ta.indexNumber}</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-text-secondary">Accepted Modules</div>
-                  <div className="text-sm font-semibold text-text-primary">{ta.acceptedModules.length}</div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-[10px] sm:text-xs text-text-secondary">Modules</div>
+                  <div className="text-sm sm:text-base font-semibold text-text-primary">{ta.acceptedModules.length}</div>
                 </div>
               </div>
-              <div className="p-4 space-y-3 w-full">
+              <div className="p-3 sm:p-4 space-y-3 w-full">
                 <div>
-                  <div className="text-sm font-semibold text-text-primary mb-2">Accepted Modules</div>
+                  <div className="text-xs sm:text-sm font-semibold text-text-primary mb-2">Accepted Modules</div>
                   <div role="list" className="space-y-2">
                     {ta.acceptedModules.map(m => (
                       <div
                         role="listitem"
                         key={m.moduleId}
-                        className="flex items-center justify-between rounded-md border border-border-default bg-bg-page/60 px-3 py-2"
+                        className="flex items-center justify-between gap-1 sm:gap-2 rounded-md border border-border-default bg-bg-page/60 px-2 sm:px-3 py-3"
                       >
-                        <div className="flex flex-col text-sm leading-tight">
-                          <span className="font-bold text-black">{m.moduleCode}</span>
-                          <span className="text-text-secondary">{m.moduleName}</span>
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          <div className="flex flex-col text-xs sm:text-sm leading-tight min-w-0">
+                            <span className="font-bold text-black truncate">{m.moduleCode}</span>
+                            <span className="text-text-secondary text-[11px] sm:text-xs truncate">{m.moduleName}</span>
+                          </div>
+                          <span className="text-[10px] sm:text-xs rounded-full bg-primary/10 text-primary-dark px-2 py-1 whitespace-nowrap flex-shrink-0">
+                            Sem {m.semester} {m.year}
+                          </span>
                         </div>
-                        <span className="text-[11px] md:text-xs rounded-full bg-primary/10 text-primary-dark px-2 py-1 whitespace-nowrap">
-                          Semester {m.semester} {m.year}
-                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <button className="btn btn-outline btn-sm" onClick={() => openDocModal(ta)}>View documents</button>
+                  <button className="btn btn-outline btn-sm text-xs sm:text-sm" onClick={() => openDocModal(ta)}>View documents</button>
                 </div>
               </div>
             </div>
@@ -175,24 +177,24 @@ const CSEofficeDashboard = () => {
       }
 
       {docModal?.open && docModal.ta && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={closeDocModal}></div>
-          <div role="dialog" aria-modal="true" className="relative w-full max-w-2xl mx-4 bg-white rounded-xl shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border-default bg-bg-card">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full bg-primary/10 text-primary-dark flex items-center justify-center">
+          <div role="dialog" aria-modal="true" className="relative w-full max-w-2xl bg-white rounded-lg sm:rounded-xl shadow-2xl overflow-hidden max-h-[90vh] sm:max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-3 sm:px-5 py-3 sm:py-4 border-b border-border-default bg-bg-card flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 rounded-full bg-primary/10 text-primary-dark flex items-center justify-center text-sm sm:text-base">
                   <FaUserGraduate />
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-base font-semibold text-text-primary">{docModal.ta.name}</span>
-                  <span className="text-xs text-text-secondary">{docModal.ta.indexNumber}</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm sm:text-base font-semibold text-text-primary truncate">{docModal.ta.name}</span>
+                  <span className="text-[10px] sm:text-xs text-text-secondary">{docModal.ta.indexNumber}</span>
                 </div>
               </div>
-              <button aria-label="Close" className="h-8 w-8 rounded-md border border-border-default hover:bg-bg-page text-text-secondary flex items-center justify-center" onClick={closeDocModal}>
-                <FaTimes />
+              <button aria-label="Close" className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 rounded-md border border-border-default hover:bg-bg-page text-text-secondary flex items-center justify-center ml-2" onClick={closeDocModal}>
+                <FaTimes className="text-sm sm:text-base" />
               </button>
             </div>
-            <div className="p-5 max-h-[70vh] overflow-y-auto space-y-2 bg-white">
+            <div className="p-3 sm:p-5 overflow-y-auto space-y-2 bg-white flex-1">
               {renderDoc('Bank Passbook Copy', docModal.ta.documents?.bankPassbook)}
               {renderDoc('NIC Copy', docModal.ta.documents?.nicCopy)}
               {renderDoc('CV', docModal.ta.documents?.cv)}
