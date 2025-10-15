@@ -10,16 +10,17 @@ type FileMeta = {
 }
 
 type Documents = {
-  bankPassbookCopy: FileMeta
+  bankPassbook: FileMeta
   nicCopy: FileMeta
   cv: FileMeta
   degreeCertificate: FileMeta
+  declarationForm: FileMeta
 }
 
 // (legacy) TAItem retained in history; no longer used in new view
 
 type AcceptedModule = { moduleId: string; moduleCode: string; moduleName: string; semester: number; year: number }
-type TAView = { userId: string; name: string; indexNumber: string; acceptedModules: AcceptedModule[]; documents: Documents }
+type TAView = { userId: string; name: string; indexNumber: string; role: string; acceptedModules: AcceptedModule[]; documents: Documents }
 
 const CSEofficeDashboard = () => {
   const [tas, setTas] = useState<TAView[]>([])
@@ -192,10 +193,11 @@ const CSEofficeDashboard = () => {
               </button>
             </div>
             <div className="p-5 max-h-[70vh] overflow-y-auto space-y-2 bg-white">
-              {renderDoc('Bank Passbook Copy', docModal.ta.documents?.bankPassbookCopy)}
+              {renderDoc('Bank Passbook Copy', docModal.ta.documents?.bankPassbook)}
               {renderDoc('NIC Copy', docModal.ta.documents?.nicCopy)}
               {renderDoc('CV', docModal.ta.documents?.cv)}
-              {renderDoc('Degree Certificate', docModal.ta.documents?.degreeCertificate)}
+              {docModal.ta.role !== 'undergraduate' && renderDoc('Degree Certificate', docModal.ta.documents?.degreeCertificate)}
+              {renderDoc('Declaration Form', docModal.ta.documents?.declarationForm)}
             </div>
           </div>
         </div>
