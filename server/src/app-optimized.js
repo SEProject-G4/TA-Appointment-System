@@ -5,7 +5,7 @@ const MongoStore = require('connect-mongo');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const config = require('./config');
-const { protected, authorize } = require('./middleware/authMiddleware-optimized');
+const { protected, authorize } = require('./middleware/authMiddleware');
 
 const app = express();
 

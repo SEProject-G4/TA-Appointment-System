@@ -1,4 +1,4 @@
-const { getCacheStats } = require('../middleware/authMiddleware-optimized');
+const { getCacheStats } = require('../middleware/authMiddleware');
 
 // Performance monitoring middleware
 const performanceMonitoring = (req, res, next) => {
