@@ -7,12 +7,12 @@ const { protected, authorize } = require('./middleware/authMiddleware');
 const app = express();
 
 app.use(express.json());
-// app.use(cors({
-//   origin: ['http://localhost:5173', config.FRONTEND_URL],
-//   credentials: true,
-// }));
+app.use(cors({
+  origin: ['http://localhost:5173', config.FRONTEND_URL],
+  credentials: true,
+}));
 
-app.use(cors());
+// app.use(cors());
 
 app.use(session({
   secret: config.SESSION_SECRET,
