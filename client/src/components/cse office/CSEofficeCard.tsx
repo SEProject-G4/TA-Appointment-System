@@ -16,8 +16,15 @@ type Documents = {
   declarationForm: FileMeta
 }
 
+type PersonalDetails = {
+  bankAccountName: string
+  address: string
+  nicNumber: string
+  accountNumber: string
+}
+
 type AcceptedModule = { moduleId: string; moduleCode: string; moduleName: string; semester: number; year: number }
-type TAView = { userId: string; name: string; indexNumber: string; role: string; acceptedModules: AcceptedModule[]; documents: Documents }
+type TAView = { userId: string; name: string; indexNumber: string; role: string; acceptedModules: AcceptedModule[]; documents: Documents; personalDetails?: PersonalDetails }
 
 interface CSEofficeCardProps {
   ta: TAView;
@@ -54,8 +61,8 @@ const CSEofficeCard: React.FC<CSEofficeCardProps> = ({ ta, onViewDocuments }) =>
               >
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                   <div className="flex flex-col text-xs sm:text-sm leading-tight min-w-0">
-                    <span className="font-bold text-black truncate">{m.moduleCode}</span>
-                    <span className="text-text-secondary text-[11px] sm:text-xs truncate">{m.moduleName}</span>
+                    <span className="font-bold text-black truncate">{m.moduleName}</span>
+                    <span className="text-text-secondary text-[11px] sm:text-xs truncate">{m.moduleCode}</span>
                   </div>
                   <span className="text-[10px] sm:text-xs rounded-full bg-primary/10 text-primary-dark px-2 py-1 whitespace-nowrap flex-shrink-0">
                     Sem {m.semester} {m.year}
@@ -66,7 +73,7 @@ const CSEofficeCard: React.FC<CSEofficeCardProps> = ({ ta, onViewDocuments }) =>
           </div>
         </div>
         <div className="flex justify-end">
-          <button className="btn btn-outline btn-sm text-xs sm:text-sm" onClick={() => onViewDocuments(ta)}>View documents</button>
+          <button className="btn btn-outline btn-sm text-xs sm:text-sm" onClick={() => onViewDocuments(ta)}>View details</button>
         </div>
       </div>
     </div>

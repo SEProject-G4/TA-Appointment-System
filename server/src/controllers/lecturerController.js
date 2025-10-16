@@ -770,6 +770,14 @@ const viewModuleDetails = async (req, res) => {
               fileUrl: docData.driveFiles.declarationForm.viewLink || docData.driveFiles.declarationForm.downloadLink
             } : undefined
           };
+          
+          // Add personal details
+          taInfo.personalDetails = {
+            bankAccountName: docData.bankAccountName || '',
+            address: docData.address || '',
+            nicNumber: docData.nicNumber || '',
+            accountNumber: docData.accountNumber || ''
+          };
         }
       }
 

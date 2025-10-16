@@ -19,10 +19,17 @@ type Documents = {
   declarationForm: FileMeta
 }
 
+type PersonalDetails = {
+  bankAccountName: string
+  address: string
+  nicNumber: string
+  accountNumber: string
+}
+
 // (legacy) TAItem retained in history; no longer used in new view
 
 type AcceptedModule = { moduleId: string; moduleCode: string; moduleName: string; semester: number; year: number }
-type TAView = { userId: string; name: string; indexNumber: string; role: string; acceptedModules: AcceptedModule[]; documents: Documents }
+type TAView = { userId: string; name: string; indexNumber: string; role: string; acceptedModules: AcceptedModule[]; documents: Documents; personalDetails?: PersonalDetails }
 
 const CSEofficeDashboard = () => {
   const [tas, setTas] = useState<TAView[]>([])
@@ -33,6 +40,7 @@ const CSEofficeDashboard = () => {
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [sortOption, setSortOption] = useState<string>("")
   const [refreshKey, setRefreshKey] = useState(0)
+  const [activeTab, setActiveTab] = useState<'undergraduate' | 'postgraduate'>('undergraduate')
 
   const fetchData = async () => {
     setLoading(true)
@@ -68,7 +76,12 @@ const CSEofficeDashboard = () => {
     setTas(sortedTas)
   }
 
+  // Filter by role (tab) and search query
   const filteredTas = tas.filter((ta) => {
+    // Filter by active tab
+    if (ta.role !== activeTab) return false
+
+    // Filter by search query
     if (!searchQuery) return true
 
     const query = searchQuery.toLowerCase()
@@ -77,6 +90,10 @@ const CSEofficeDashboard = () => {
 
     return name.includes(query) || indexNumber.includes(query)
   })
+
+  // Count TAs by role
+  const undergraduateCount = tas.filter(ta => ta.role === 'undergraduate').length
+  const postgraduateCount = tas.filter(ta => ta.role === 'postgraduate').length
 
   const openDocModal = (ta: TAView) => setDocModal({ open: true, ta })
   const closeDocModal = () => setDocModal({ open: false })
@@ -166,6 +183,30 @@ const CSEofficeDashboard = () => {
 
       {/* Content Card */}
       <div className="gap-2 p-6 m-4 mt-0 rounded-xl shadow-sm bg-bg-card border border-border-default">
+        {/* Tabs */}
+        <div className="flex w-full border-b border-border-default mb-6">
+          <button
+            onClick={() => setActiveTab('undergraduate')}
+            className={`px-4 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'undergraduate'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            Undergraduates ({undergraduateCount})
+          </button>
+          <button
+            onClick={() => setActiveTab('postgraduate')}
+            className={`px-4 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'postgraduate'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            Postgraduates ({postgraduateCount})
+          </button>
+        </div>
+
         {/* Controls section */}
         <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-start">
           <div className="flex flex-col items-stretch w-full gap-3 sm:flex-row sm:items-center lg:w-auto">
@@ -215,7 +256,13 @@ const CSEofficeDashboard = () => {
             <p className="text-base sm:text-lg text-text-secondary">
               {tas.length === 0 
                 ? "No accepted TAs with submitted documents." 
-                : "No TAs found matching your search."}
+                : activeTab === 'undergraduate'
+                ? undergraduateCount === 0
+                  ? "No undergraduate TAs with submitted documents."
+                  : "No undergraduate TAs found matching your search."
+                : postgraduateCount === 0
+                  ? "No postgraduate TAs with submitted documents."
+                  : "No postgraduate TAs found matching your search."}
             </p>
           </div>
         )}
@@ -239,12 +286,52 @@ const CSEofficeDashboard = () => {
                 <FaTimes className="text-sm" />
               </button>
             </div>
-            <div className="p-4 sm:p-5 max-h-[70vh] overflow-y-auto space-y-2 bg-white">
-              {renderDoc('Bank Passbook Copy', docModal.ta.documents?.bankPassbook)}
-              {renderDoc('NIC Copy', docModal.ta.documents?.nicCopy)}
-              {renderDoc('CV', docModal.ta.documents?.cv)}
-              {docModal.ta.role === 'postgraduate' && renderDoc('Degree Certificate', docModal.ta.documents?.degreeCertificate)}
-              {renderDoc('Declaration Form', docModal.ta.documents?.declarationForm)}
+            <div className="p-4 sm:p-5 max-h-[70vh] overflow-y-auto space-y-4 bg-white">
+              {/* Personal Details Section */}
+              {docModal.ta.personalDetails && (
+                <div className="space-y-2">
+                  <h3 className="text-sm sm:text-base font-semibold text-text-primary border-b border-border-default pb-2">Personal Details</h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    {docModal.ta.personalDetails.bankAccountName && (
+                      <div className="flex flex-col p-2 sm:p-3 bg-bg-page/60 rounded border border-border-default">
+                        <span className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wide">Bank Account Name</span>
+                        <span className="text-xs sm:text-sm font-medium text-text-primary mt-1">{docModal.ta.personalDetails.bankAccountName}</span>
+                      </div>
+                    )}
+                    {docModal.ta.personalDetails.accountNumber && (
+                      <div className="flex flex-col p-2 sm:p-3 bg-bg-page/60 rounded border border-border-default">
+                        <span className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wide">Account Number</span>
+                        <span className="text-xs sm:text-sm font-medium text-text-primary mt-1">{docModal.ta.personalDetails.accountNumber}</span>
+                      </div>
+                    )}
+                    {docModal.ta.personalDetails.nicNumber && (
+                      <div className="flex flex-col p-2 sm:p-3 bg-bg-page/60 rounded border border-border-default">
+                        <span className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wide">NIC Number</span>
+                        <span className="text-xs sm:text-sm font-medium text-text-primary mt-1">{docModal.ta.personalDetails.nicNumber}</span>
+                      </div>
+                    )}
+                    {docModal.ta.personalDetails.address && (
+                      <div className="flex flex-col p-2 sm:p-3 bg-bg-page/60 rounded border border-border-default">
+                        <span className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wide">Address</span>
+                        <span className="text-xs sm:text-sm font-medium text-text-primary mt-1">{docModal.ta.personalDetails.address}</span>
+                      </div>
+                    )}
+                    
+                  </div>
+                </div>
+              )}
+
+              {/* Documents Section */}
+              <div className="space-y-2">
+                <h3 className="text-sm sm:text-base font-semibold text-text-primary border-b border-border-default pb-2">Documents</h3>
+                <div className="space-y-2">
+                  {renderDoc('Bank Passbook Copy', docModal.ta.documents?.bankPassbook)}
+                  {renderDoc('NIC Copy', docModal.ta.documents?.nicCopy)}
+                  {renderDoc('CV', docModal.ta.documents?.cv)}
+                  {docModal.ta.role === 'postgraduate' && renderDoc('Degree Certificate', docModal.ta.documents?.degreeCertificate)}
+                  {renderDoc('Declaration Form', docModal.ta.documents?.declarationForm)}
+                </div>
+              </div>
             </div>
           </div>
         </div>

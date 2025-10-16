@@ -1,12 +1,20 @@
 import React from "react";
 
+interface PersonalDetails {
+  bankAccountName: string;
+  address: string;
+  nicNumber: string;
+  accountNumber: string;
+}
+
 interface AcceptedTA { 
   userId: string; 
   name: string; 
   indexNumber: string; 
   documents?: any; 
   docStatus?: 'pending' | 'submitted'; 
-  role?: 'undergraduate' | 'postgraduate' 
+  role?: 'undergraduate' | 'postgraduate';
+  personalDetails?: PersonalDetails;
 }
 
 interface ModuleWithAccepted {

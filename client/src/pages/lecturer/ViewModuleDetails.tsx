@@ -4,7 +4,22 @@ import { FaTimes, FaUserGraduate } from "react-icons/fa";
 import ViewModuleDetailsCard from "../../components/lecturer/ViewModuleDetailsCard";
 import { ChevronDown, RefreshCw } from "lucide-react";
 
-interface AcceptedTA { userId: string; name: string; indexNumber: string; documents?: any; docStatus?: 'pending' | 'submitted'; role?: 'undergraduate' | 'postgraduate' }
+interface PersonalDetails {
+  bankAccountName: string;
+  address: string;
+  nicNumber: string;
+  accountNumber: string;
+}
+
+interface AcceptedTA { 
+  userId: string; 
+  name: string; 
+  indexNumber: string; 
+  documents?: any; 
+  docStatus?: 'pending' | 'submitted'; 
+  role?: 'undergraduate' | 'postgraduate';
+  personalDetails?: PersonalDetails;
+}
 interface ModuleWithAccepted {
   moduleId: string;
   moduleCode: string;
@@ -168,12 +183,51 @@ const ViewModuleDetails: React.FC = () => {
               <FaTimes className="text-sm" />
             </button>
           </div>
-          <div className="p-4 sm:p-5 max-h-[70vh] overflow-y-auto space-y-2 bg-white">
-            {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbook)}
-            {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
-            {renderDocRow('CV', ta.documents?.cv)}
-            {ta.role === 'postgraduate' && renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
-            {renderDocRow('Declaration Form', ta.documents?.declarationForm)}
+          <div className="p-4 sm:p-5 max-h-[70vh] overflow-y-auto space-y-4 bg-white">
+            {/* Personal Details Section */}
+            {ta.personalDetails && (
+              <div className="space-y-2">
+                <h3 className="text-sm sm:text-base font-semibold text-text-primary border-b border-border-default pb-2">Personal Details</h3>
+                <div className="grid grid-cols-1 gap-2">
+                  {ta.personalDetails.bankAccountName && (
+                    <div className="flex flex-col p-2 sm:p-3 bg-bg-page/60 rounded border border-border-default">
+                      <span className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wide">Bank Account Name</span>
+                      <span className="text-xs sm:text-sm font-medium text-text-primary mt-1">{ta.personalDetails.bankAccountName}</span>
+                    </div>
+                  )}
+                  {ta.personalDetails.accountNumber && (
+                    <div className="flex flex-col p-2 sm:p-3 bg-bg-page/60 rounded border border-border-default">
+                      <span className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wide">Account Number</span>
+                      <span className="text-xs sm:text-sm font-medium text-text-primary mt-1">{ta.personalDetails.accountNumber}</span>
+                    </div>
+                  )}
+                  {ta.personalDetails.nicNumber && (
+                    <div className="flex flex-col p-2 sm:p-3 bg-bg-page/60 rounded border border-border-default">
+                      <span className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wide">NIC Number</span>
+                      <span className="text-xs sm:text-sm font-medium text-text-primary mt-1">{ta.personalDetails.nicNumber}</span>
+                    </div>
+                  )}
+                  {ta.personalDetails.address && (
+                    <div className="flex flex-col p-2 sm:p-3 bg-bg-page/60 rounded border border-border-default">
+                      <span className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wide">Address</span>
+                      <span className="text-xs sm:text-sm font-medium text-text-primary mt-1">{ta.personalDetails.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Documents Section */}
+            <div className="space-y-2">
+              <h3 className="text-sm sm:text-base font-semibold text-text-primary border-b border-border-default pb-2">Documents</h3>
+              <div className="space-y-2">
+                {renderDocRow('Bank Passbook Copy', ta.documents?.bankPassbook)}
+                {renderDocRow('NIC Copy', ta.documents?.nicCopy)}
+                {renderDocRow('CV', ta.documents?.cv)}
+                {ta.role === 'postgraduate' && renderDocRow('Degree Certificate', ta.documents?.degreeCertificate)}
+                {renderDocRow('Declaration Form', ta.documents?.declarationForm)}
+              </div>
+            </div>
           </div>
         </div>
       </div>
