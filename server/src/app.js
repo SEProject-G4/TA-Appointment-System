@@ -23,8 +23,8 @@ app.use(express.json());
 app.use(session({
   name: 'connect.sid',
   secret: config.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
   // Temporarily disable MongoDB store for testing
   // store: MongoStore.create({
   //   mongoUrl: config.MONGO_URI,

@@ -99,6 +99,11 @@ const googleVerify = async (req, res) => {
             }
         });
         
+        // CRITICAL FIX: Manually set the session cookie since express-session is failing
+        const sessionCookieValue = `connect.sid=${req.sessionID}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=86400`;
+        res.setHeader('Set-Cookie', sessionCookieValue);
+        console.log('🔧 Manually set cookie:', sessionCookieValue);
+        
         // Update last activity
         authService.updateLastActivity(user._id);
 
@@ -115,7 +120,8 @@ const googleVerify = async (req, res) => {
             setCookie: res.getHeaders()['set-cookie'],
             allHeaders: res.getHeaders(),
             sessionId: req.sessionID,
-            environment: process.env.NODE_ENV
+            environment: process.env.NODE_ENV,
+            manualCookieSet: res.getHeaders()['set-cookie'] ? 'YES' : 'NO'
         });
         
         return res.status(200).json(userProfile);
