@@ -76,7 +76,7 @@ const LoginPage: React.FC = () => {
       case 'admin':
         return '/admin-dashboard';
       case 'lecturer':
-        return '/lecturer-dashboard';
+        return '/lec-view-module-details';
       case 'undergraduate':
         return '/ta-dashboard';
       case 'postgraduate':
@@ -95,7 +95,7 @@ const LoginPage: React.FC = () => {
       const redirectPath = (location as any).state?.from || getDefaultRouteForRole(user.role);
       navigate(redirectPath, { replace: true });
     }
-  }, [loading, user, navigate, location]);
+  }, [loading, user]);
 
 
   useEffect(() => {
