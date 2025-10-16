@@ -7,4 +7,18 @@ const axiosInstance = axios.create({
     withCredentials: true
 });
 
+// Add response interceptor for error handling
+axiosInstance.interceptors.response.use(
+    (response) => {
+        return response;
+    },
+    (error) => {
+        // Log authentication errors for debugging
+        if (error.response?.status === 401) {
+            console.warn('Authentication required - redirecting to login');
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default axiosInstance;

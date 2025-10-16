@@ -21,7 +21,7 @@ import ViewModuleDetails from "./pages/lecturer/ViewModuleDetails";
 import EditModuleDetails from "./pages/lecturer/EditModuleDetails";
 import HandleTARequests from "./pages/lecturer/HandleTARequests";
 
-import CSEofficeDashboard from "./pages/CSEofficeDashboard";
+import CSEofficeDashboard from "./pages/cse office/CSEofficeDashboard";
 
 import TADashboardApplied from "./pages/ta/TADashboardApplied";
 import TADashboardAccepted from "./pages/ta/TADashboardAccepted";

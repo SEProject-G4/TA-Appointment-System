@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../../api/axiosConfig";
-import { FaRegEdit } from "react-icons/fa";
 import Modal from "../../components/common/Modal";
+import { ConfirmDialog } from "../../components/common/ConfirmDialog";
+import EditModuleDetailsCard from "../../components/lecturer/EditModuleDetailsCard";
+import { ChevronDown, RefreshCw } from "lucide-react";
 
 interface ModuleEditData {
   moduleCode: string;
@@ -56,6 +58,9 @@ const EditModuleDetails: React.FC = () => {
     pendingChanges: ModuleFromApi[];
     changesSubmitted: ModuleFromApi[];
     advertised: ModuleFromApi[];
+    full: ModuleFromApi[];
+    gettingDocuments: ModuleFromApi[];
+    closed: ModuleFromApi[];
   };
 
   const [modules, setModules] = useState<ModuleFromApi[]>([]);
@@ -70,6 +75,9 @@ const EditModuleDetails: React.FC = () => {
   const [editing, setEditing] = useState<Record<string, boolean>>({});
   const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [sortOption, setSortOption] = useState<string>("");
+  const [refreshKey, setRefreshKey] = useState(0);
   // card view only
 
   // Function to check if all three fields have been edited for a specific module
@@ -79,6 +87,31 @@ const EditModuleDetails: React.FC = () => {
     // Only require the 'requirements' field to be filled; other fields are optional
     return moduleData.requirements.trim().length > 0;
   };
+
+  const handleSortChange = (option: string) => {
+    setSortOption(option);
+    let sortedModules = [...modules];
+
+    if (option === "name") {
+      sortedModules.sort((a, b) => a.moduleName.localeCompare(b.moduleName));
+    } else if (option === "code") {
+      sortedModules.sort((a, b) => a.moduleCode.localeCompare(b.moduleCode));
+    } else if (option === "semester") {
+      sortedModules.sort((a, b) => parseInt(a.semester) - parseInt(b.semester));
+    }
+
+    setModules(sortedModules);
+  };
+
+  const filteredModules = modules.filter((mod) => {
+    if (!searchQuery) return true;
+
+    const query = searchQuery.toLowerCase();
+    const code = mod.moduleCode?.toLowerCase() || "";
+    const name = mod.moduleName?.toLowerCase() || "";
+
+    return code.includes(query) || name.includes(query);
+  });
 
   useEffect(() => {
     const loadMyModules = async () => {
@@ -91,7 +124,10 @@ const EditModuleDetails: React.FC = () => {
         const allModules = [
           ...res.data.pendingChanges,
           ...res.data.changesSubmitted,
-          ...res.data.advertised
+          ...res.data.advertised,
+          ...res.data.full,
+          ...res.data.gettingDocuments,
+          ...res.data.closed
         ];
         
         setModules(allModules);
@@ -117,7 +153,7 @@ const EditModuleDetails: React.FC = () => {
         }
         setModuleEdits(mapped);
         setEditing(initialEditing);
-        
+
       } catch (e) {
         console.error("Error loading modules:", e);
         setError("Failed to load your modules");
@@ -126,7 +162,7 @@ const EditModuleDetails: React.FC = () => {
       }
     };
     loadMyModules();
-  }, []);
+  }, [refreshKey]);
 
   const handleInputChange = (
     moduleId: string,
@@ -168,7 +204,6 @@ const EditModuleDetails: React.FC = () => {
         `/lecturer/modules/${pendingModuleId}`,
         payload
       );
-
       // Update the local state with the response data
       if (response.data) {
         setModuleEdits((prev) => ({
@@ -189,8 +224,7 @@ const EditModuleDetails: React.FC = () => {
           )
         );
       }
-
-      // Exit editing mode after successful submit
+            // Exit editing mode after successful submit
       setEditing((prev) => ({ ...prev, [pendingModuleId]: false }));
 
       setShowConfirmModal(false);
@@ -244,271 +278,136 @@ const EditModuleDetails: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="min-h-screen px-20 py-5 text-text-primary">Loading modules...</div>;
+    return (
+      <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-4 sm:px-8 md:px-12 lg:px-20 py-5">
+        <div className="flex items-center justify-center w-full h-64">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <span className="text-text-primary text-sm sm:text-base">Loading modules...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="min-h-screen px-20 py-5 text-error">{error}</div>;
+    return (
+      <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-4 sm:px-8 md:px-12 lg:px-20 py-5">
+        <div className="bg-error/10 border border-error/20 rounded-lg p-4 sm:p-6 w-full">
+          <h3 className="text-error font-semibold mb-2 text-sm sm:text-base">Error</h3>
+          <p className="text-text-secondary mb-4 text-xs sm:text-sm">{error}</p>
+          <button className="btn btn-primary text-xs sm:text-sm px-3 py-2" onClick={() => window.location.reload()}>Try again</button>
+        </div>
+      </div>
+    );
   }
 
   if (modules.length === 0) {
     return (
-      <div className="min-h-screen px-20 py-5 text-text-primary">No modules assigned to you.</div>
+      <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-4 sm:px-8 md:px-12 lg:px-20 py-5">
+        <div className="text-center w-full py-16">
+          <h3 className="text-text-primary text-lg sm:text-xl font-semibold mb-2">No Modules Assigned</h3>
+          <p className="text-text-secondary text-sm sm:text-base">No modules have been assigned to you yet.</p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">
-      <div className="mb-8 w-full flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold font-montserrat mb-2">Edit Module Details</h1>
-          <p className="text-text-secondary font-raleway">Provide TA requirements for each module</p>
+    <div className="min-h-screen bg-bg-page text-text-primary">
+      {/* Page Header */}
+      <div className="px-10 py-6 pb-5">
+        <div className="flex items-center gap-3 mb-0">
+          <h1 className="text-2xl font-bold text-text-primary">Module Management</h1>
+          <button
+            className="p-2 text-sm font-medium border rounded-lg bg-bg-card text-text-primary hover:bg-primary-light/20 focus:outline-none focus:ring-2 focus:ring-primary-dark"
+            onClick={() => setRefreshKey((prev) => prev + 1)}
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
-        <div className="flex items-center space-x-2" />
       </div>
-      {
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full">
-          {modules.map((m) => {
-            const d = moduleEdits[m._id];
-            const isEditing = editing[m._id];
-            return (
-              <div
-                key={m._id}
-                className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-0 bg-bg-card shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="flex w-full items-center justify-between px-4 py-3 border-b border-border-default">
-                  <div className="flex flex-col">
-                    <div className="flex items-center space-x-3">
-                      <h2 className="text-text-primary font-semibold text-base">{m.moduleCode}</h2>
-                      <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium">
-                        Semester {m.semester} {m.year}
-                            </span>
-                          </div>
-                    <p className="text-text-primary text-sm mt-1">{m.moduleName}</p>
-                            </div>
-                  <>
-                    {m.moduleStatus === "pending changes" && (
-                      <span className="badge badge-warning mr-2">Pending Changes</span>
-                    )}
-                    {m.moduleStatus === "changes submitted" && (
-                      <span className="badge badge-accepted mr-2">Changes Submitted</span>
-                    )}
-                    {m.moduleStatus === "advertised" && (
-                      <span className="badge badge-info mr-2">Advertised</span>
-                    )}
-                    {(m.moduleStatus === "pending changes" || m.moduleStatus === "changes submitted" || m.moduleStatus === "advertised") && (
-                      <button
-                        type="button"
-                        onClick={() => setEditing((prev) => ({ ...prev, [m._id]: true }))}
-                        className="p-2 rounded-full bg-red-500/10 text-red-700 hover:bg-red-500/20"
-                        title="Edit module requirements"
-                        aria-label="Edit module"
-                      >
-                        <FaRegEdit className="w-4 h-4" />
-                      </button>
-                    )}
-                  </>
-                        </div>
 
-                <form onSubmit={handleSubmit(m._id)} className="p-4 space-y-4 w-full">
-                  <div className="bg-bg-page rounded-lg p-3 mb-2 border border-border-default">
-                    <div className="grid grid-cols-1 gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-text-secondary">Application Due</span>
-                        <span className="text-sm font-semibold text-text-primary">
-                          {new Date(m.applicationDueDate).toLocaleDateString()}
-                            </span>
-                          </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-text-secondary">Document Due</span>
-                        <span className="text-sm font-semibold text-text-primary">
-                          {m.documentDueDate
-                            ? new Date(m.documentDueDate).toLocaleDateString()
-                            : "N/A"}
-                        </span>
-                          </div>
-                        </div>
-                      </div>
+      {/* Content Card */}
+      <div className="gap-2 p-6 m-4 mt-0 rounded-xl shadow-sm bg-bg-card border border-border-default">
+        {/* Controls section */}
+        <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-start">
+          <div className="flex flex-col items-stretch w-full gap-3 sm:flex-row sm:items-center lg:w-auto">
+            {/* Search input */}
+            <input
+              type="text"
+              placeholder="Search modules"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-3 py-2 text-sm border rounded-lg sm:w-64 focus:outline-none focus:ring-2 focus:ring-primary-dark bg-bg-card text-text-primary placeholder:text-text-secondary"
+            />
 
-                  {!isEditing ? (
-                    <div className="space-y-4">
-                      <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
-                        <h3 className="text-sm font-semibold text-text-primary mb-2">Submitted TA Requirements</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div className="bg-white rounded-lg p-3 border border-border-default">
-                            <div className="text-xs text-text-secondary">Required TA Hours</div>
-                            <div className="text-text-primary text-sm">
-                              {Number(d?.requiredTAHoursPerWeek ?? 0)} {Number(d?.requiredTAHoursPerWeek ?? 0) === 1 ? 'hour' : 'hours'} per week
-                            </div>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 border border-border-default">
-                            <div className="text-xs text-text-secondary">Undergraduate TAs</div>
-                            <div className="text-text-primary text-sm">
-                              {Number(d?.requiredUndergraduateTACount ?? 0)} {Number(d?.requiredUndergraduateTACount ?? 0) === 1 ? 'TA' : 'TAs'}
-                            </div>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 border border-border-default">
-                            <div className="text-xs text-text-secondary">Postgraduate TAs</div>
-                            <div className="text-text-primary text-sm">
-                              {Number(d?.requiredPostgraduateTACount ?? 0)} {Number(d?.requiredPostgraduateTACount ?? 0) === 1 ? 'TA' : 'TAs'}
-                            </div>
-                          </div>
-                          <div className="bg-white rounded-lg p-3 border border-border-default sm:col-span-2">
-                            <div className="text-xs text-text-secondary mb-1">Requirements</div>
-                            <div className="text-sm text-text-primary leading-relaxed">
-                              {d?.requirements || "No specific requirements specified for this TA position."}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-text-primary mb-2">
-                          TA Hours per Week
-                        </label>
-                        <input
-                          type="number"
-                          value={d?.requiredTAHoursPerWeek ?? 0}
-                          onChange={(e) =>
-                            handleInputChange(
-                              m._id,
-                              "requiredTAHoursPerWeek",
-                              parseInt(e.target.value)
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-page text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          placeholder="e.g., 6"
-                          min={0}
-                        />
-                      </div>
-                    </div>
+            {/* Sorting modules */}
+            <div className="flex flex-col w-full gap-3 sm:flex-row sm:w-auto">
+              <div className="relative inline-flex w-full overflow-hidden border rounded-lg shadow-sm border-border-default bg-bg-card group sm:w-auto">
+                <select
+                  value={sortOption}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                  className="w-full px-4 py-2 pr-10 text-sm font-medium bg-transparent appearance-none cursor-pointer sm:w-auto text-text-secondary hover:bg-primary-light/20 hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-dark"
+                >
+                  <option value="">Sort By</option>
+                  <option value="name">Module Name (A–Z)</option>
+                  <option value="code">Module Code (A–Z)</option>
+                  <option value="semester">Semester (Low → High)</option>
+                </select>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-text-primary mb-2">
-                          Undergraduate TAs Required
-                        </label>
-                        <input
-                          type="number"
-                          value={d?.requiredUndergraduateTACount ?? 0}
-                          onChange={(e) =>
-                            handleInputChange(
-                              m._id,
-                              "requiredUndergraduateTACount",
-                              parseInt(e.target.value)
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-page text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          placeholder="e.g., 3"
-                          min={0}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-text-primary mb-2">
-                          Postgraduate TAs Required
-                        </label>
-                        <input
-                          type="number"
-                          value={d?.requiredPostgraduateTACount ?? 0}
-                          onChange={(e) =>
-                            handleInputChange(
-                              m._id,
-                              "requiredPostgraduateTACount",
-                              parseInt(e.target.value)
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-page text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          placeholder="e.g., 2"
-                          min={0}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-text-primary mb-2">
-                        Requirements for TA Position
-                      </label>
-                      <textarea
-                        value={d?.requirements ?? ""}
-                        onChange={(e) =>
-                          handleInputChange(
-                            m._id,
-                            "requirements",
-                            e.target.value
-                          )
-                        }
-                        rows={4}
-                        className="w-full px-3 py-2 border border-border-default rounded-lg bg-bg-page text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                        placeholder="Enter detailed requirements for TA applicants..."
-                      />
-                    </div>
-                  </>
-                )}
-
-                  <div className="flex justify-end space-x-2">
-                    {isEditing && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          resetModuleData(m._id);
-                          setEditing((prev) => ({ ...prev, [m._id]: false }));
-                        }}
-                        className="btn btn-outline"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                    {(m.moduleStatus === "pending changes" || m.moduleStatus === "changes submitted" || m.moduleStatus === "advertised") && isEditing && (
-                    <button
-                      type="submit"
-                      disabled={updating[m._id] || !areAllFieldsEdited(m._id)}
-                        className={`btn btn-primary ${updating[m._id] || !areAllFieldsEdited(m._id) ? 'btn-disabled' : ''}`}
-                      >
-                        {updating[m._id] ? "Saving..." : "Save Changes"}
-                    </button>
-                  )}
+                <div className="absolute -translate-y-1/2 pointer-events-none right-3 top-1/2 text-text-secondary group-hover:text-text-primary">
+                  <ChevronDown className="w-4 h-4" />
                 </div>
-              </form>
-            </div>
-          );
-        })}
-      </div>
-      }
-
-      <Modal 
-        isOpen={showConfirmModal} 
-        onClose={cancelSubmission} 
-        showCloseButton={false}
-      >
-        <div className="max-w-md w-full">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-warning/20 rounded-full flex items-center justify-center">
-              <svg className="w-6 h-6 text-warning" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">Confirm Submission</h3>
-              <p className="text-sm text-gray-600">Final confirmation required</p>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="mb-6">
-            <p className="text-gray-700 leading-relaxed">
-              Are you sure you want to submit these TA requirements?
-              <span className="font-semibold text-warning"> This action cannot be undone</span> and will finalize the module requirements.
+        {filteredModules.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {filteredModules.map((m) => {
+              const d = moduleEdits[m._id];
+              const isEditing = editing[m._id];
+              return (
+                <EditModuleDetailsCard
+                  key={m._id}
+                  module={m}
+                  moduleData={d}
+                  isEditing={isEditing}
+                  updating={updating[m._id]}
+                  onEditClick={() => setEditing((prev) => ({ ...prev, [m._id]: true }))}
+                  onInputChange={(field, value) => handleInputChange(m._id, field, value)}
+                  onSubmit={handleSubmit(m._id)}
+                  onCancel={() => {
+                    resetModuleData(m._id);
+                    setEditing((prev) => ({ ...prev, [m._id]: false }));
+                  }}
+                  areAllFieldsEdited={areAllFieldsEdited(m._id)}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="py-8 text-center sm:py-12">
+            <p className="text-base sm:text-lg text-text-secondary">
+              No modules found matching your search.
             </p>
           </div>
+        )}
+      </div>
 
-          <div className="flex gap-3">
-            <button onClick={cancelSubmission} className="btn btn-outline flex-1">Cancel</button>
-            <button onClick={confirmSubmission} disabled={updating[pendingModuleId || ""]} className={`btn btn-primary flex-1 ${updating[pendingModuleId || ""] ? 'btn-disabled' : ''}`}>{updating[pendingModuleId || ""] ? "Submitting..." : "Confirm & Submit"}</button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        isOpen={showConfirmModal}
+        title="Confirm Submission"
+        message="Are you sure you want to submit these TA requirements?"
+        onConfirm={confirmSubmission}
+        onCancel={cancelSubmission}
+        confirmButtonText="Submit"
+        cancelButtonText="Cancel"
+        confirmButtonClassName="px-4 py-2 font-medium text-white bg-gray-700 rounded-lg shadow-sm hover:bg-gray-800 transition"
+        cancelButtonClassName="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
+      />
 
       {/* Error Modal */}
       <Modal 
@@ -516,22 +415,22 @@ const EditModuleDetails: React.FC = () => {
         onClose={closeErrorModal} 
         showCloseButton={true}
       >
-        <div className="max-w-md w-full">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-error/20 rounded-full flex items-center justify-center">
-              <svg className="w-6 h-6 text-error" fill="currentColor" viewBox="0 0 20 20">
+        <div className="max-w-md w-full mx-4">
+          <div className="flex items-center gap-2 sm:gap-3 mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-error/20 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-error" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Update Failed</h3>
-              <p className="text-sm text-gray-600">Unable to save changes</p>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900">Update Failed</h3>
+              <p className="text-xs sm:text-sm text-gray-600">Unable to save changes</p>
             </div>
           </div>
 
           <div className="mb-6">
-            <div className="bg-error/5 border border-error/20 rounded-lg p-4">
-              <p className="text-error text-sm leading-relaxed font-medium">
+            <div className="bg-error/5 border border-error/20 rounded-lg p-3 sm:p-4">
+              <p className="text-error text-xs sm:text-sm leading-relaxed font-medium">
                 {errorMessage}
               </p>
             </div>
@@ -540,7 +439,7 @@ const EditModuleDetails: React.FC = () => {
           <div className="flex justify-end">
             <button 
               onClick={closeErrorModal} 
-              className="btn btn-primary px-6"
+              className="btn btn-primary px-4 sm:px-6 text-sm sm:text-base"
             >
               Got it
             </button>

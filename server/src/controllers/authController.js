@@ -77,6 +77,41 @@ const googleVerify = async (req, res) => {
         req.session.loginAt = new Date();
         req.session.loginMethod = 'google';
         
+        console.log('🔐 Session created:', {
+            sessionId: req.sessionID,
+            userId: user._id,
+            role: user.role,
+            cookies: req.headers.cookie ? 'present' : 'missing',
+            origin: req.headers.origin
+        });
+        
+        // Force session save and add debugging
+        req.session.save((err) => {
+            if (err) {
+                console.error('❌ Session save error:', err);
+            } else {
+                console.log('✅ Session saved successfully');
+                console.log('🍪 Session details:', {
+                    id: req.sessionID,
+                    userId: req.session.userId,
+                    cookie: req.session.cookie
+                });
+            }
+        });
+        
+        // FORCE session cookie to be sent to browser
+        // Use express's cookie signing mechanism
+        const signature = require('crypto')
+            .createHmac('sha256', config.SESSION_SECRET)
+            .update(req.sessionID)
+            .digest('base64')
+            .replace(/=+$/, '');
+        
+        const signedSessionId = `s%3A${req.sessionID}.${signature}`;
+        const sessionCookie = `connect.sid=${signedSessionId}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=86400`;
+        res.setHeader('Set-Cookie', sessionCookie);
+        console.log('🔧 Force setting signed session cookie:', sessionCookie);
+        
         // Update last activity
         authService.updateLastActivity(user._id);
 
@@ -88,6 +123,15 @@ const googleVerify = async (req, res) => {
 
         // Return user profile
         const userProfile = await authService.getUserSessionInfo(user._id);
+        
+        console.log('📤 Sending response with headers:', {
+            setCookie: res.getHeaders()['set-cookie'],
+            allHeaders: res.getHeaders(),
+            sessionId: req.sessionID,
+            environment: process.env.NODE_ENV,
+            manualCookieSet: res.getHeaders()['set-cookie'] ? 'YES' : 'NO'
+        });
+        
         return res.status(200).json(userProfile);
 
     } catch (error) {
@@ -102,12 +146,22 @@ const googleVerify = async (req, res) => {
 };
 
 const getCurrentUser = async (req, res) => {
+    console.log('🔍 getCurrentUser called:', {
+        hasSession: !!req.session,
+        sessionId: req.session?.id,
+        userId: req.session?.userId,
+        cookies: req.headers.cookie ? 'present' : 'missing',
+        origin: req.headers.origin
+    });
+
     if (!req.session?.userId) {
+        console.log('❌ No session or userId in getCurrentUser');
         return res.status(401).json({ error: 'User not authenticated' });
     }
 
     try {
         const userProfile = await authService.getUserSessionInfo(req.session.userId);
+        console.log('✅ User profile retrieved:', userProfile.email);
         
         // Add session info
         userProfile.sessionInfo = {

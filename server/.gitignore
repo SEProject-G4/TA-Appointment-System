@@ -8,3 +8,9 @@ yarn-debug.log*
 *.tgz
 .DS_Store 
 build/
+
+# Upload directories
+uploads/
+
+# Sensitive files
+service-account-key.json

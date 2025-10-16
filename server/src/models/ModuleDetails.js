@@ -4,7 +4,7 @@ const moduleDetailsSchema = new mongoose.Schema({
     recruitmentSeriesId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: "RecruitmentSeries"
+        ref: "RecruitmentRound"
     },
     moduleCode: { 
         type: String, 

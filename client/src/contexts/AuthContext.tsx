@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getCurrentUser,
   logout as apiLogout,
@@ -22,13 +23,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const navigate = useNavigate();
 
   // Check for an existing session on initial load
   useEffect(() => {
     const fetchUser = async () => {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
-      setLoading(false);
+      try {
+        console.log('Fetching current user...');
+        const currentUser = await getCurrentUser();
+        console.log('Current user:', currentUser);
+        setUser(currentUser);
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchUser();
   }, []);
@@ -38,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const authenticatedUser = await verifyGoogleToken(idToken);
       setUser(authenticatedUser);
+      console.log('✅ Login successful:', authenticatedUser.email);
     } catch (error) {
       console.error("Login failed:", error);
       setUser(null);
@@ -52,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     apiLogout()
       .then(() => {
         setUser(null);
+        navigate("/"); // Navigate to Home page after logout
       })
       .catch((error) => {
         console.error("Logout failed:", error);

@@ -34,7 +34,7 @@ function TADashboard() {
     taHours: number
   ) => {
     try {
-      const response = await axios.post("http://localhost:5000/api/ta/apply", {
+      const response = await axios.post("http://localhost:5001/api/ta/apply", {
         userId,
         userRole,
         moduleId,
@@ -99,7 +99,7 @@ function TADashboard() {
     const fetchModules = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/ta/requests",
+          "http://localhost:5001/api/ta/requests",
           {
             params: {
               userId,
@@ -249,7 +249,7 @@ function TADashboard() {
                 requiredTANumber={
                   userRole === "undergraduate"
                     ? module.undergraduateCounts.required
-                    : module.ostgraduateCounts.required
+                    : module.postgraduateCounts.required
                 }
                 appliedTANumber={
                   userRole === "undergraduate"
