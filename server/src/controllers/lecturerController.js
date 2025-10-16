@@ -715,7 +715,8 @@ const viewModuleDetails = async (req, res) => {
     const appliedModulesDocs = await AppliedModules.find({ userId: { $in: acceptedUserIds } }).select('userId isDocSubmitted').lean();
     const isDocSubmittedByUser = appliedModulesDocs.reduce((acc, d) => { acc[String(d.userId)] = Boolean(d.isDocSubmitted); return acc; }, {});
 
-    // Build response (include modules even if no accepted applications)
+    // Build response and filter out modules with no accepted TAs
+    console.log(`Total coordinator modules before filtering: ${coordinatorModules.length}`);
     const modules = coordinatorModules.map(m => {
       const modId = m._id.toString();
       const acceptedApps = acceptedByModule.get(modId) || [];
@@ -765,8 +766,25 @@ const viewModuleDetails = async (req, res) => {
         acceptedTAs,
         applicationsCount: applications.filter(a => String(a.moduleId) === modId).length
       };
+    }).filter(module => {
+      // Filter out modules where both undergraduate and postgraduate accepted TA counts are 0
+      const undergraduateAcceptedCount = module.acceptedTAs.filter(ta => ta.role === 'undergraduate').length;
+      const postgraduateAcceptedCount = module.acceptedTAs.filter(ta => ta.role === 'postgraduate').length;
+      
+      console.log(`Module ${module.moduleCode}: undergrad accepted: ${undergraduateAcceptedCount}, postgrad accepted: ${postgraduateAcceptedCount}, total accepted: ${module.acceptedTAs.length}`);
+      
+      // Only show modules that have at least one accepted TA (either undergraduate or postgraduate)
+      const shouldShow = undergraduateAcceptedCount > 0 || postgraduateAcceptedCount > 0;
+      console.log(`Module ${module.moduleCode} should show: ${shouldShow}`);
+      
+      // TEMPORARY: Test with a more aggressive filter - only show modules with CS2034 in the code
+      const testFilter = module.moduleCode.includes('CS2034');
+      console.log(`Module ${module.moduleCode} test filter (CS2034 only): ${testFilter}`);
+      
+      return testFilter; // Temporarily return test filter instead of shouldShow
     });
 
+    console.log(`Total modules after filtering: ${modules.length}`);
     return res.status(200).json({ modules });
   } catch (error) {
     console.error('Error fetching modules with TA requests:', error);
@@ -774,32 +792,5 @@ const viewModuleDetails = async (req, res) => {
   }
 }
 
-
-// GET /api/lecturer/modules/:id/applications
-// Returns all applications for a specific module if requester is a coordinator
-// const getModuleApplications = async (req, res) => {
-//   try {
-//     if (!req.user || !req.user._id) {
-//       return res.status(401).json({ error: 'Not authenticated' });
-//     }
-
-//     const { id } = req.params;
-//     const moduleDoc = await ModuleDetails.findById(id);
-//     if (!moduleDoc) {
-//       return res.status(404).json({ error: 'Module not found' });
-//     }
-
-//     if (!moduleDoc.coordinators.includes(req.user._id)) {
-//       return res.status(403).json({ error: 'Not authorized to view applications for this module' });
-//     }
-
-//     const applications = await TaApplication.find({ moduleId: moduleDoc._id }).lean();
-
-//     return res.status(200).json({ applications });
-//   } catch (error) {
-//     console.error('Error fetching module applications:', error);
-//     return res.status(500).json({ error: 'Failed to fetch module applications' });
-//   }
-// };
 
 module.exports = { getMyModules, editModuleRequirments, handleRequests, acceptApplication, rejectApplication, viewModuleDetails};
