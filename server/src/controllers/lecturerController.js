@@ -459,67 +459,77 @@ const acceptApplication = async (req, res) => {
       return res.status(400).json({ error: 'Application has already been processed' });
     }
 
-    // Update application status
-    application.status = 'accepted';
-    await application.save();
+    // Update application status and module counts in parallel
+    const updatePromises = [
+      application.save()
+    ];
 
     // Update module counts based on user role
     if (user.role === 'undergraduate') {
-      await ModuleDetails.findByIdAndUpdate(applicationModuleId, {
-        $inc: {
-          'undergraduateCounts.reviewed': 1,
-          'undergraduateCounts.accepted': 1
-        }
-      });
+      updatePromises.push(
+        ModuleDetails.findByIdAndUpdate(applicationModuleId, {
+          $inc: {
+            'undergraduateCounts.reviewed': 1,
+            'undergraduateCounts.accepted': 1
+          }
+        })
+      );
     } else if (user.role === 'postgraduate') {
-      await ModuleDetails.findByIdAndUpdate(applicationModuleId, {
-        $inc: {
-          'postgraduateCounts.reviewed': 1,
-          'postgraduateCounts.accepted': 1
-        }
-      });
+      updatePromises.push(
+        ModuleDetails.findByIdAndUpdate(applicationModuleId, {
+          $inc: {
+            'postgraduateCounts.reviewed': 1,
+            'postgraduateCounts.accepted': 1
+          }
+        })
+      );
     }
 
-    // Send email notification to the accepted TA
-    try {
-      const subject = `Congratulations! Your TA Application for ${module.moduleCode} - ${module.moduleName} has been Accepted`;
-      const htmlContent = `
-        <p><strong>TA Application Accepted!</strong></p>
-        
-        <p>Dear ${user.name},</p>
-        
-        <p>We are pleased to inform you that your Teaching Assistant application for the following module has been accepted:</p>
-        
-        <p><strong>Module Details:</strong></p>
-        <ul>
-          <li><strong>Module Code:</strong> ${module.moduleCode}</li>
-          <li><strong>Module Name:</strong> ${module.moduleName}</li>
-          <li><strong>Semester:</strong> ${module.semester}</li>
-        </ul>
-        
-        <p>Please log into the TA Appointment System to provide the necessary personal details and complete your onboarding process. You will need to submit the following documents:</p>
-        
-        <ul>
-          <li>Bank Passbook Copy</li>
-          <li>NIC Copy</li>
-          <li>CV (Curriculum Vitae)</li>
-          ${user.role === 'postgraduate' ? '<li>Degree Certificate</li>' : ''}
-        </ul>
-        
-        <p><strong>Important:</strong> Please complete your profile and submit all required documents as soon as possible to proceed with your TA appointment.</p>
-        
-        <p>If you have any questions or need assistance, please don't hesitate to contact the module coordinator or the CSE office.</p>
-        
-        <p>Best regards,</p>
-        <p>The TA Recruitment Team</p>
-      `;
+    // Execute all updates in parallel
+    application.status = 'accepted';
+    await Promise.all(updatePromises);
 
-      await sendEmail(user.email, subject, htmlContent);
-      console.log('Acceptance email sent successfully to:', user.email);
-    } catch (emailError) {
-      console.error('Failed to send acceptance email:', emailError);
-      // Don't fail the entire operation if email fails
-    }
+    // Send email notification asynchronously (don't block the response)
+    setImmediate(async () => {
+      try {
+        const subject = `Congratulations! Your TA Application for ${module.moduleCode} - ${module.moduleName} has been Accepted`;
+        const htmlContent = `
+          <p><strong>TA Application Accepted!</strong></p>
+          
+          <p>Dear ${user.name},</p>
+          
+          <p>We are pleased to inform you that your Teaching Assistant application for the following module has been accepted:</p>
+          
+          <p><strong>Module Details:</strong></p>
+          <ul>
+            <li><strong>Module Code:</strong> ${module.moduleCode}</li>
+            <li><strong>Module Name:</strong> ${module.moduleName}</li>
+            <li><strong>Semester:</strong> ${module.semester}</li>
+          </ul>
+          
+          <p>Please log into the TA Appointment System to provide the necessary personal details and complete your onboarding process. You will need to submit the following documents:</p>
+          
+          <ul>
+            <li>Bank Passbook Copy</li>
+            <li>NIC Copy</li>
+            <li>CV (Curriculum Vitae)</li>
+            ${user.role === 'postgraduate' ? '<li>Degree Certificate</li>' : ''}
+          </ul>
+          
+          <p><strong>Important:</strong> Please complete your profile and submit all required documents as soon as possible to proceed with your TA appointment.</p>
+          
+          <p>If you have any questions or need assistance, please don't hesitate to contact the module coordinator or the CSE office.</p>
+          
+          <p>Best regards,</p>
+          <p>The TA Recruitment Team</p>
+        `;
+
+        await sendEmail(user.email, subject, htmlContent);
+        console.log('Acceptance email sent successfully to:', user.email);
+      } catch (emailError) {
+        console.error('Failed to send acceptance email:', emailError);
+      }
+    });
 
     console.log('lecturer acceptApplication -> accepted application', applicationId, 'for', coordinatorId);
 
@@ -567,43 +577,55 @@ const rejectApplication = async (req, res) => {
     if (req.body && typeof req.body.reason === 'string' && req.body.reason.trim().length > 0) {
       application.rejectionReason = req.body.reason.trim();
     }
-    await application.save();
+
+    // Prepare parallel updates
+    const updatePromises = [application.save()];
 
     // Update module counts based on user role
     if (user.role === 'undergraduate') {
-      await ModuleDetails.findByIdAndUpdate(applicationModuleId, {
-        $inc: {
-          'undergraduateCounts.reviewed': 1,
-          'undergraduateCounts.remaining': 1
-        }
-      });
+      updatePromises.push(
+        ModuleDetails.findByIdAndUpdate(applicationModuleId, {
+          $inc: {
+            'undergraduateCounts.reviewed': 1,
+            'undergraduateCounts.remaining': 1
+          }
+        })
+      );
     } else if (user.role === 'postgraduate') {
-      await ModuleDetails.findByIdAndUpdate(applicationModuleId, {
-        $inc: {
-          'postgraduateCounts.reviewed': 1,
-          'postgraduateCounts.remaining': 1
-        }
-      });
+      updatePromises.push(
+        ModuleDetails.findByIdAndUpdate(applicationModuleId, {
+          $inc: {
+            'postgraduateCounts.reviewed': 1,
+            'postgraduateCounts.remaining': 1
+          }
+        })
+      );
     }
 
-    // Get the module details to retrieve requiredTAHours
+    // Get the module details to retrieve requiredTAHours and update hours
     const moduleDetails = await ModuleDetails.findById(applicationModuleId).select('requiredTAHours');
     if (moduleDetails && moduleDetails.requiredTAHours) {
-      // Find the AppliedModules record for this user and increment availableHoursPerWeek
-      const appliedModuleRecord = await AppliedModules.findOne({ userId: application.userId });
-      if (appliedModuleRecord) {
-        await AppliedModules.findByIdAndUpdate(appliedModuleRecord._id, {
-          $inc: {
-            availableHoursPerWeek: moduleDetails.requiredTAHours
+      // Find and update AppliedModules record in one operation
+      updatePromises.push(
+        AppliedModules.findOneAndUpdate(
+          { userId: application.userId },
+          {
+            $inc: {
+              availableHoursPerWeek: moduleDetails.requiredTAHours
+            }
           }
-        });
-        console.log(`Incremented availableHoursPerWeek by ${moduleDetails.requiredTAHours} for user ${application.userId}`);
-      } else {
-        console.log(`No AppliedModules record found for user ${application.userId}`);
-      }
-    } else {
-      console.log(`No requiredTAHours found for module ${applicationModuleId}`);
+        ).then(result => {
+          if (result) {
+            console.log(`Incremented availableHoursPerWeek by ${moduleDetails.requiredTAHours} for user ${application.userId}`);
+          } else {
+            console.log(`No AppliedModules record found for user ${application.userId}`);
+          }
+        })
+      );
     }
+
+    // Execute all updates in parallel
+    await Promise.all(updatePromises);
 
     console.log('lecturer rejectApplication -> rejected application', applicationId, 'for', coordinatorId);
 

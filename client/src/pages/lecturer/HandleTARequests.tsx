@@ -90,21 +90,32 @@ const HandleTARequests = () => {
       setIsProcessing(true);
       setProcessingActions(prev => new Set(prev).add(applicationId));
       
+      // Optimistically update local state before API call
+      const newStatus = type === 'accept' ? 'accepted' : 'rejected';
+      setModules(prevModules => 
+        prevModules.map(module => ({
+          ...module,
+          appliedTAs: module.appliedTAs.map(ta => 
+            ta.applicationId === applicationId 
+              ? { ...ta, status: newStatus }
+              : ta
+          )
+        }))
+      );
+      
       if (type === 'accept') {
         await axiosInstance.patch(`/lecturer/applications/${applicationId}/accept`);
       } else {
         await axiosInstance.patch(`/lecturer/applications/${applicationId}/reject`);
       }
       
-      // Brief delay to show success state before closing
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
       setShowConfirmModal(false);
       setPendingAction(null);
-      await fetchTAApplications();
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Unknown error occurred';
       alert(`Failed to ${type} ${studentName}: ${errorMessage}`);
+      // Revert optimistic update on error
+      await fetchTAApplications();
       setShowConfirmModal(false);
       setPendingAction(null);
     } finally {
