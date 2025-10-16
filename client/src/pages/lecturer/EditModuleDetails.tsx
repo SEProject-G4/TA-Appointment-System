@@ -57,6 +57,9 @@ const EditModuleDetails: React.FC = () => {
     pendingChanges: ModuleFromApi[];
     changesSubmitted: ModuleFromApi[];
     advertised: ModuleFromApi[];
+    full: ModuleFromApi[];
+    gettingDocuments: ModuleFromApi[];
+    closed: ModuleFromApi[];
   };
 
   const [modules, setModules] = useState<ModuleFromApi[]>([]);
@@ -120,7 +123,10 @@ const EditModuleDetails: React.FC = () => {
         const allModules = [
           ...res.data.pendingChanges,
           ...res.data.changesSubmitted,
-          ...res.data.advertised
+          ...res.data.advertised,
+          ...res.data.full,
+          ...res.data.gettingDocuments,
+          ...res.data.closed
         ];
         
         setModules(allModules);

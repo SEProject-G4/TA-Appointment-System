@@ -16,12 +16,12 @@ const getMyModules = async (req, res) => {
 
     const coordinatorId = req.user._id;
 
-    // Get all modules where user is coordinator with editable statuses
+    // Get all modules where user is coordinator with displayable statuses
     const modules = await ModuleDetails
       .find({ 
         coordinators: coordinatorId,
         moduleStatus: { 
-          $in: ['pending changes', 'changes submitted', 'advertised'] 
+          $in: ['pending changes', 'changes submitted', 'advertised', 'full', 'getting-documents', 'closed'] 
         }
       })
       .select('_id moduleCode moduleName semester year coordinators applicationDueDate documentDueDate requiredTAHours requiredUndergraduateTACount requiredPostgraduateTACount requirements moduleStatus undergraduateCounts postgraduateCounts')
@@ -34,13 +34,19 @@ const getMyModules = async (req, res) => {
     const groupedModules = {
       pendingChanges: activeModules.filter(m => m.moduleStatus === 'pending changes'),
       changesSubmitted: activeModules.filter(m => m.moduleStatus === 'changes submitted'),
-      advertised: activeModules.filter(m => m.moduleStatus === 'advertised')
+      advertised: activeModules.filter(m => m.moduleStatus === 'advertised'),
+      full: activeModules.filter(m => m.moduleStatus === 'full'),
+      gettingDocuments: activeModules.filter(m => m.moduleStatus === 'getting-documents'),
+      closed: activeModules.filter(m => m.moduleStatus === 'closed')
     };
 
     console.log('lecturer getMyModules -> matched', 
       groupedModules.pendingChanges.length, 'pending changes,',
-      groupedModules.changesSubmitted.length, 'changes submitted, and',
-      groupedModules.advertised.length, 'advertised modules for', 
+      groupedModules.changesSubmitted.length, 'changes submitted,',
+      groupedModules.advertised.length, 'advertised,',
+      groupedModules.full.length, 'full,',
+      groupedModules.gettingDocuments.length, 'getting-documents, and',
+      groupedModules.closed.length, 'closed modules for', 
       coordinatorId
     );
 
@@ -89,7 +95,7 @@ const editModuleRequirments = async (req, res) => {
     }
 
     // Verify the module is in an editable status
-    const editableStatuses = ['pending changes', 'changes submitted', 'advertised'];
+    const editableStatuses = ['pending changes', 'changes submitted', 'advertised', 'full', 'getting-documents'];
     if (!editableStatuses.includes(moduleDoc.moduleStatus)) {
       return res.status(400).json({ error: 'Module is not in an editable status' });
     }
@@ -105,40 +111,50 @@ const editModuleRequirments = async (req, res) => {
 
     // Handle undergraduate and postgraduate TA count changes
     // Convert to numbers and handle undefined/null cases
-    const undergradCount = requiredUndergraduateTACount !== undefined ? Number(requiredUndergraduateTACount) : 0;
-    const postgradCount = requiredPostgraduateTACount !== undefined ? Number(requiredPostgraduateTACount) : 0;
+    // If not provided, use existing values from moduleDoc
+    const currentUndergradRequired = moduleDoc.undergraduateCounts?.required || 0;
+    const currentPostgradRequired = moduleDoc.postgraduateCounts?.required || 0;
+    const undergradCount = requiredUndergraduateTACount !== undefined ? Number(requiredUndergraduateTACount) : currentUndergradRequired;
+    const postgradCount = requiredPostgraduateTACount !== undefined ? Number(requiredPostgraduateTACount) : currentPostgradRequired;
     
-    // Validation for advertised modules: check if applied count exceeds new required count
-    if (moduleDoc.moduleStatus === 'advertised') {
+    // Validation for advertised, full, and getting-documents modules: check if applied count exceeds new required count
+    const statusesRequiringValidation = ['advertised', 'full', 'getting-documents'];
+    if (statusesRequiringValidation.includes(moduleDoc.moduleStatus)) {
       const currentAppliedUndergrad = moduleDoc.undergraduateCounts?.applied || 0;
       const currentAppliedPostgrad = moduleDoc.postgraduateCounts?.applied || 0;
       
-      // Prevent setting undergraduate count to 0 when there are applied TAs
-      if (undergradCount === 0 && currentAppliedUndergrad > 0) {
-        return res.status(400).json({ 
-          error: `Cannot set undergraduate TA count to 0 because ${currentAppliedUndergrad} students have already applied.` 
-        });
+      // Only validate undergraduate count if it's being changed
+      if (requiredUndergraduateTACount !== undefined) {
+        // Prevent setting undergraduate count to 0 when there are applied TAs
+        if (undergradCount === 0 && currentAppliedUndergrad > 0) {
+          return res.status(400).json({ 
+            error: `Cannot set undergraduate TA count to 0 because ${currentAppliedUndergrad} student${currentAppliedUndergrad > 1 ? 's have' : ' has'} already applied.` 
+          });
+        }
+        
+        // Prevent reducing undergraduate count below applied count
+        if (undergradCount > 0 && currentAppliedUndergrad > undergradCount) {
+          return res.status(400).json({ 
+            error: `Cannot reduce undergraduate TA count to ${undergradCount} because ${currentAppliedUndergrad} student${currentAppliedUndergrad > 1 ? 's have' : ' has'} already applied.` 
+          });
+        }
       }
       
-      // Prevent reducing undergraduate count below applied count
-      if (undergradCount > 0 && currentAppliedUndergrad > undergradCount) {
-        return res.status(400).json({ 
-          error: `Cannot reduce undergraduate TA count to ${undergradCount} because ${currentAppliedUndergrad} students have already applied.` 
-        });
-      }
-      
-      // Prevent setting postgraduate count to 0 when there are applied TAs
-      if (postgradCount === 0 && currentAppliedPostgrad > 0) {
-        return res.status(400).json({ 
-          error: `Cannot set postgraduate TA count to 0 because ${currentAppliedPostgrad} students have already applied.` 
-        });
-      }
-      
-      // Prevent reducing postgraduate count below applied count
-      if (postgradCount > 0 && currentAppliedPostgrad > postgradCount) {
-        return res.status(400).json({ 
-          error: `Cannot reduce postgraduate TA count to ${postgradCount} because ${currentAppliedPostgrad} students have already applied.` 
-        });
+      // Only validate postgraduate count if it's being changed
+      if (requiredPostgraduateTACount !== undefined) {
+        // Prevent setting postgraduate count to 0 when there are applied TAs
+        if (postgradCount === 0 && currentAppliedPostgrad > 0) {
+          return res.status(400).json({ 
+            error: `Cannot set postgraduate TA count to 0 because ${currentAppliedPostgrad} student${currentAppliedPostgrad > 1 ? 's have' : ' has'} already applied.` 
+          });
+        }
+        
+        // Prevent reducing postgraduate count below applied count
+        if (postgradCount > 0 && currentAppliedPostgrad > postgradCount) {
+          return res.status(400).json({ 
+            error: `Cannot reduce postgraduate TA count to ${postgradCount} because ${currentAppliedPostgrad} student${currentAppliedPostgrad > 1 ? 's have' : ' has'} already applied.` 
+          });
+        }
       }
     }
     

@@ -85,15 +85,28 @@ const EditModuleDetailsCard: React.FC<EditModuleDetailsCardProps> = ({
         </div>
         <>
           {module.moduleStatus === "pending changes" && (
-            <span className="badge badge-warning mr-2">Pending Changes</span>
+            <span className="badge badge-pending-changes mr-2">Pending Changes</span>
           )}
           {module.moduleStatus === "changes submitted" && (
-            <span className="badge badge-accepted mr-2">Changes Submitted</span>
+            <span className="badge badge-changes-submitted mr-2">Changes Submitted</span>
           )}
           {module.moduleStatus === "advertised" && (
-            <span className="badge badge-info mr-2">Advertised</span>
+            <span className="badge badge-advertised mr-2">Advertised</span>
           )}
-          {(module.moduleStatus === "pending changes" || module.moduleStatus === "changes submitted" || module.moduleStatus === "advertised") && (
+          {module.moduleStatus === "full" && (
+            <span className="badge badge-full mr-2">Full</span>
+          )}
+          {module.moduleStatus === "getting-documents" && (
+            <span className="badge badge-getting-documents mr-2">Getting Documents</span>
+          )}
+          {module.moduleStatus === "closed" && (
+            <span className="badge badge-closed mr-2">Closed</span>
+          )}
+          {(module.moduleStatus === "pending changes" || 
+            module.moduleStatus === "changes submitted" || 
+            module.moduleStatus === "advertised" || 
+            module.moduleStatus === "full" || 
+            module.moduleStatus === "getting-documents") && (
             <button
               type="button"
               onClick={onEditClick}
@@ -251,7 +264,11 @@ const EditModuleDetailsCard: React.FC<EditModuleDetailsCardProps> = ({
               Cancel
             </button>
           )}
-          {(module.moduleStatus === "pending changes" || module.moduleStatus === "changes submitted" || module.moduleStatus === "advertised") && isEditing && (
+          {(module.moduleStatus === "pending changes" || 
+            module.moduleStatus === "changes submitted" || 
+            module.moduleStatus === "advertised" || 
+            module.moduleStatus === "full" || 
+            module.moduleStatus === "getting-documents") && isEditing && (
             <button
               type="submit"
               disabled={updating || !areAllFieldsEdited}
