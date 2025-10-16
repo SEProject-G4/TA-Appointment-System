@@ -77,6 +77,23 @@ const googleVerify = async (req, res) => {
         req.session.loginAt = new Date();
         req.session.loginMethod = 'google';
         
+        console.log('🔐 Session created:', {
+            sessionId: req.sessionID,
+            userId: user._id,
+            role: user.role,
+            cookies: req.headers.cookie ? 'present' : 'missing',
+            origin: req.headers.origin
+        });
+        
+        // Force session save and add debugging
+        req.session.save((err) => {
+            if (err) {
+                console.error('❌ Session save error:', err);
+            } else {
+                console.log('✅ Session saved successfully');
+            }
+        });
+        
         // Update last activity
         authService.updateLastActivity(user._id);
 
@@ -88,6 +105,12 @@ const googleVerify = async (req, res) => {
 
         // Return user profile
         const userProfile = await authService.getUserSessionInfo(user._id);
+        
+        console.log('📤 Sending response with headers:', {
+            setCookie: res.getHeaders()['set-cookie'],
+            sessionId: req.sessionID
+        });
+        
         return res.status(200).json(userProfile);
 
     } catch (error) {
