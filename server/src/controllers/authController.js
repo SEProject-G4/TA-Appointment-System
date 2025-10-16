@@ -102,12 +102,22 @@ const googleVerify = async (req, res) => {
 };
 
 const getCurrentUser = async (req, res) => {
+    console.log('🔍 getCurrentUser called:', {
+        hasSession: !!req.session,
+        sessionId: req.session?.id,
+        userId: req.session?.userId,
+        cookies: req.headers.cookie ? 'present' : 'missing',
+        origin: req.headers.origin
+    });
+
     if (!req.session?.userId) {
+        console.log('❌ No session or userId in getCurrentUser');
         return res.status(401).json({ error: 'User not authenticated' });
     }
 
     try {
         const userProfile = await authService.getUserSessionInfo(req.session.userId);
+        console.log('✅ User profile retrieved:', userProfile.email);
         
         // Add session info
         userProfile.sessionInfo = {

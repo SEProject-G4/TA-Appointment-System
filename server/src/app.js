@@ -1,10 +1,22 @@
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const config = require('./config');
 const { protected, authorize } = require('./middleware/authMiddleware');
 
 const app = express();
+
+// Request logging middleware for debugging
+app.use((req, res, next) => {
+  console.log(`📨 ${req.method} ${req.path}`, {
+    origin: req.headers.origin,
+    userAgent: req.headers['user-agent']?.slice(0, 50),
+    hasCookies: !!req.headers.cookie,
+    sessionId: req.session?.id
+  });
+  next();
+});
 
 app.use(express.json());
 app.use(cors({
@@ -20,12 +32,16 @@ app.use(session({
   secret: config.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: config.MONGO_URI,
+    touchAfter: 24 * 3600, // lazy session update
+    ttl: 24 * 60 * 60 // 24 hours
+  }),
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 1000 * 60 * 60 * 24,
-    domain: process.env.NODE_ENV === 'production' ? undefined : undefined
+    maxAge: 1000 * 60 * 60 * 24 // 24 hours
   },
 }));
 
@@ -41,6 +57,18 @@ app.use('/api/ta', require('./routes/taRoutes'));
 
 app.get('/', (req, res) => {
   res.send('TA Appointment System Backend is running!');
+});
+
+// Debug endpoint to check session status
+app.get('/api/debug/session', (req, res) => {
+  res.json({
+    hasSession: !!req.session,
+    sessionId: req.session?.id,
+    userId: req.session?.userId,
+    cookies: req.headers.cookie ? 'present' : 'missing',
+    origin: req.headers.origin,
+    userAgent: req.headers['user-agent']?.slice(0, 100)
+  });
 });
 
 module.exports = app;

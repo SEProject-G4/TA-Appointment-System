@@ -17,7 +17,16 @@ const sessionUserCache = new NodeCache({
 });
 
 exports.protected = async (req, res, next) => {
+    console.log('🔒 Protected middleware - Session check:', {
+        hasSession: !!req.session,
+        sessionId: req.session?.id,
+        userId: req.session?.userId,
+        cookies: req.headers.cookie ? 'present' : 'missing',
+        origin: req.headers.origin
+    });
+
     if (!req.session?.userId) {
+        console.log('❌ No session or userId found');
         return res.status(401).json({ error: 'Not authorized, no session' });
     }
 
@@ -29,9 +38,11 @@ exports.protected = async (req, res, next) => {
         let user = userCache.get(cacheKey);
         
         if (!user) {
+            console.log('💾 Cache miss for user:', userId);
             // Cache miss - fetch from database
             user = await authService.findUserByIdOptimized(userId);
             if (!user) {
+                console.log('❌ User not found in database:', userId);
                 req.session.destroy((err) => {
                     if (err) console.error('Session destroy error:', err);
                 });
@@ -40,6 +51,9 @@ exports.protected = async (req, res, next) => {
             
             // Cache the user data
             userCache.set(cacheKey, user);
+            console.log('✅ User cached:', user.email);
+        } else {
+            console.log('🚀 Cache hit for user:', user.email);
         }
         
         // Attach user to request
