@@ -1,4 +1,5 @@
 const { OAuth2Client } = require('google-auth-library');
+const jwt = require('jsonwebtoken');
 const config = require('../config');
 const authService = require('../services/authService');
 const { invalidateUserCache } = require('../middleware/authMiddleware');
@@ -98,11 +99,6 @@ const googleVerify = async (req, res) => {
                 });
             }
         });
-        
-        // CRITICAL FIX: Manually set the session cookie since express-session is failing
-        const sessionCookieValue = `connect.sid=${req.sessionID}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=86400`;
-        res.setHeader('Set-Cookie', sessionCookieValue);
-        console.log('🔧 Manually set cookie:', sessionCookieValue);
         
         // Update last activity
         authService.updateLastActivity(user._id);

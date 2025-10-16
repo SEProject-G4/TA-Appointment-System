@@ -22,6 +22,7 @@ exports.protected = async (req, res, next) => {
         sessionId: req.session?.id,
         userId: req.session?.userId,
         cookies: req.headers.cookie ? 'present' : 'missing',
+        cookieValue: req.headers.cookie,
         origin: req.headers.origin
     });
 

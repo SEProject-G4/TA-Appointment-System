@@ -13,6 +13,7 @@ app.use((req, res, next) => {
     origin: req.headers.origin,
     userAgent: req.headers['user-agent']?.slice(0, 50),
     hasCookies: !!req.headers.cookie,
+    cookies: req.headers.cookie?.slice(0, 100),
     sessionId: req.session?.id
   });
   next();
@@ -25,12 +26,11 @@ app.use(session({
   secret: config.SESSION_SECRET,
   resave: true,
   saveUninitialized: true,
-  // Temporarily disable MongoDB store for testing
-  // store: MongoStore.create({
-  //   mongoUrl: config.MONGO_URI,
-  //   touchAfter: 24 * 3600, // lazy session update
-  //   ttl: 24 * 60 * 60 // 24 hours
-  // }),
+  store: MongoStore.create({
+    mongoUrl: config.MONGO_URI,
+    touchAfter: 24 * 3600, // lazy session update
+    ttl: 24 * 60 * 60 // 24 hours
+  }),
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -78,6 +78,8 @@ app.get('/api/test', (req, res) => {
 
 // Test cookie setting
 app.get('/api/test-cookie', (req, res) => {
+  console.log('🧪 Setting test cookie...');
+  
   res.cookie('test-cookie', 'test-value', {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -85,10 +87,34 @@ app.get('/api/test-cookie', (req, res) => {
     maxAge: 1000 * 60 * 60 * 24
   });
   
+  // Also set a non-httpOnly cookie for client-side testing
+  res.cookie('test-client-cookie', 'client-value', {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: false,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 1000 * 60 * 60 * 24
+  });
+  
+  console.log('📤 Test cookies set. Response headers:', res.getHeaders());
+  
   res.json({ 
-    message: 'Test cookie set',
+    message: 'Test cookies set',
     environment: process.env.NODE_ENV,
-    secure: process.env.NODE_ENV === 'production'
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    responseHeaders: res.getHeaders()
+  });
+});
+
+// Test endpoint to check what cookies are received
+app.get('/api/test-cookie-check', (req, res) => {
+  console.log('🔍 Checking received cookies:', req.headers.cookie);
+  
+  res.json({
+    receivedCookies: req.headers.cookie || 'none',
+    sessionId: req.sessionID,
+    hasSession: !!req.session,
+    sessionUserId: req.session?.userId
   });
 });
 

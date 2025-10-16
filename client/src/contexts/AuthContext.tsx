@@ -44,7 +44,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const loginWithGIS = async (idToken: string) => {
     setLoading(true);
     try {
+      console.log('🔐 Starting Google login...');
+      console.log('📋 Before login - Document cookies:', document.cookie);
+      
       const authenticatedUser = await verifyGoogleToken(idToken);
+      
+      console.log('✅ Login successful:', authenticatedUser);
+      console.log('📋 After login - Document cookies:', document.cookie);
+      
+      // Check if session cookie was set
+      if (!document.cookie.includes('connect.sid')) {
+        console.warn('⚠️ No session cookie found after login!');
+        
+        // Test if we can manually set a cookie to see if cookies work at all
+        document.cookie = 'test-cookie=test-value; path=/; secure; samesite=none';
+        console.log('🧪 Test cookie set. Document cookies now:', document.cookie);
+      }
+      
       setUser(authenticatedUser);
     } catch (error) {
       console.error("Login failed:", error);
