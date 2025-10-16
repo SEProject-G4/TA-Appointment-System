@@ -21,7 +21,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-app.use(session({
+const sessionConfig = {
   name: 'connect.sid',
   secret: config.SESSION_SECRET,
   resave: true,
@@ -32,13 +32,17 @@ app.use(session({
     ttl: 24 * 60 * 60 // 24 hours
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: true, // Force secure in production
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: 'none', // Force 'none' for cross-origin
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    path: '/'
+    path: '/',
+    domain: undefined // Don't set domain to allow cross-origin
   },
-}));
+};
+
+console.log('🔧 Session configuration:', JSON.stringify(sessionConfig, null, 2));
+app.use(session(sessionConfig));
 
 app.use(cors({
   origin: [

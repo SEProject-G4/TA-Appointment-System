@@ -19,11 +19,13 @@ const sessionUserCache = new NodeCache({
 exports.protected = async (req, res, next) => {
     console.log('🔒 Protected middleware - Session check:', {
         hasSession: !!req.session,
-        sessionId: req.session?.id,
+        sessionId: req.sessionID,
+        sessionData: req.session,
         userId: req.session?.userId,
         cookies: req.headers.cookie ? 'present' : 'missing',
         cookieValue: req.headers.cookie,
-        origin: req.headers.origin
+        origin: req.headers.origin,
+        cookieConfig: req.session?.cookie
     });
 
     if (!req.session?.userId) {
