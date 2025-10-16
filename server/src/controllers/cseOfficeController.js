@@ -1,223 +1,99 @@
 const RecruitmentRound = require('../models/RecruitmentRound');
 const ModuleDetails = require('../models/ModuleDetails');
 const TaApplication = require('../models/TaApplication');
-const TaDocumentSubmission = require('../models/TaDocumentSubmission');
+const TaDocumentSubmission = require('../models/documentModel');
 const User = require('../models/User');
-
-// const viewTADocuments = async (req, res) => {
-//   try {
-//     if (!req.user || !req.user._id) {
-//       return res.status(401).json({ error: 'Not authenticated' });
-//     }
-
-//     // Active recruitment series
-//     const activeSeries = await RecruitmentRound.find({ status: 'initialised' }).select('_id');
-//     const activeSeriesIds = new Set(activeSeries.map(rs => rs._id.toString()));
-
-//     // Modules in active series
-//     const modules = await ModuleDetails.find({ recruitmentSeriesId: { $in: [...activeSeriesIds] } })
-//       .select('_id moduleCode moduleName semester year recruitmentSeriesId');
-
-//     if (!modules || modules.length === 0) {
-//       return res.status(200).json({ tas: [] });
-//     }
-
-//     const moduleIdObjects = modules.map(m => m._id);
-//     const moduleMap = modules.reduce((acc, m) => { acc[m._id.toString()] = m; return acc; }, {});
-
-//     // Accepted applications in these modules
-//     const applications = await TaApplication.find({
-//       moduleId: { $in: moduleIdObjects },
-//       status: 'accepted'
-//     }).lean();
-//     console.log("applications", applications);
-
-//     if (applications.length === 0) {
-//       return res.status(200).json({ tas: [] });
-//     }
-
-//     const userIds = [...new Set(applications.map(a => a.userId))];
-//     const userIdsStrings = userIds.map(id => id.toString());
-
-//     // Only TAs whose document submission is fully submitted (status === 'submitted')
-//     const docSubs = await TaDocumentSubmission.find({ userId: { $in: userIdsStrings }, status: 'submitted' })
-//       .select('userId documents status').lean();
-//     console.log("docSubs", docSubs);
-
-//     const submittedUserIds = new Set(docSubs.map(d => d.userId));
-//     console.log("submittedUserIds", submittedUserIds);
-
-//     // Filter applications to those users only
-//     const filteredApps = applications.filter(a => submittedUserIds.has(a.userId));
-//     if (filteredApps.length === 0) {
-//       return res.status(200).json({ tas: [] });
-//     }
-//     console.log("filteredApps", filteredApps);
-
-//     const filteredUserIds = [...new Set(filteredApps.map(a => a.userId))];
-
-//     const users = await User.find({ _id: { $in: filteredUserIds } }).select('name indexNumber');
-//     const userMap = users.reduce((acc, u) => { acc[u._id] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
-
-//     const docMap = docSubs.reduce((acc, d) => { acc[d.userId] = d.documents || {}; return acc; }, {});
-
-//     const normalize = (d) => {
-//       if (!d) return { submitted: false };
-//       if (typeof d === 'string') {
-//         return { submitted: true, fileUrl: d };
-//       }
-//       return {
-//         submitted: Boolean(d.submitted || d.fileUrl),
-//         fileUrl: d.fileUrl,
-//         fileName: d.fileName,
-//         uploadedAt: d.uploadedAt
-//       };
-//     };
-
-//     // Group accepted modules per TA
-//     const modulesByUser = new Map();
-//     for (const app of filteredApps) {
-//       const mod = moduleMap[String(app.moduleId)];
-//       if (!mod) continue;
-//       if (!modulesByUser.has(app.userId)) modulesByUser.set(app.userId, []);
-//       modulesByUser.get(app.userId).push({
-//         moduleId: mod._id,
-//         moduleCode: mod.moduleCode,
-//         moduleName: mod.moduleName,
-//         semester: mod.semester,
-//         year: mod.year
-//       });
-//     }
-
-//     const tas = filteredUserIds.map(uid => {
-//       const docs = docMap[uid] || {};
-//       const documents = {
-//         bankPassbookCopy: normalize(docs.bankPassbookCopy),
-//         nicCopy: normalize(docs.nicCopy),
-//         cv: normalize(docs.cv),
-//         degreeCertificate: normalize(docs.degreeCertificate)
-//       };
-//       return {
-//         userId: uid,
-//         name: userMap[uid]?.name || 'Unknown',
-//         indexNumber: userMap[uid]?.indexNumber || 'N/A',
-//         acceptedModules: modulesByUser.get(uid) || [],
-//         documents
-//       };
-//     });
-
-//     return res.status(200).json({ tas });
-//   } catch (error) {
-//     console.error('Error in viewTADocuments:', error);
-//     return res.status(500).json({ error: 'Failed to fetch TA documents' });
-//   }
-// }
 
 const viewTADocuments = async (req, res) => {
     try {
-        // Optional auth guard if middleware attaches req.user
-        if (!req.user || !req.user._id) {
-            return res.status(401).json({ error: 'Not authenticated' });
-        }
+        // Get all documents with user details populated
+        const documents = await TaDocumentSubmission.find({})
+            .populate('userId', 'name indexNumber email role')
+            .lean();
 
-        // 1) Active recruitment series
-        const activeSeries = await RecruitmentRound.find({ status: 'initialised' }).select('_id');
-        const activeSeriesIds = new Set(activeSeries.map(rs => rs._id.toString()));
-
-        // 2) Modules in active series
-        const modules = await ModuleDetails.find({ recruitmentSeriesId: { $in: [...activeSeriesIds] } })
-            .select('_id moduleCode moduleName semester year recruitmentSeriesId');
-        console.log("modules", modules);
-
-        if (!modules || modules.length === 0) {
+        if (!documents || documents.length === 0) {
             return res.status(200).json({ tas: [] });
         }
 
-        const moduleIdObjects = modules.map(m => m._id);
-        const moduleMap = modules.reduce((acc, m) => { acc[m._id.toString()] = m; return acc; }, {});
+        // Build response for each TA
+        const tasPromises = documents.map(async (doc) => {
+            const userId = doc.userId._id;
+            const userName = doc.userId.name;
+            const userIndex = doc.userId.indexNumber;
 
-        // 3) Accepted applications in these modules
-        const applications = await TaApplication.find({
-            moduleId: { $in: moduleIdObjects },
-            status: 'accepted'
-        }).lean();
-        console.log("applications", applications);
+            // Find all accepted TA applications for this user
+            const acceptedApplications = await TaApplication.find({
+                userId: userId,
+                status: 'accepted'
+            })
+            .populate('moduleId', 'moduleCode moduleName semester')
+            .lean();
 
-        if (applications.length === 0) {
-            return res.status(200).json({ tas: [] });
-        }
+            // Get recruitment series info to extract the year
+            const acceptedModules = await Promise.all(
+                acceptedApplications.map(async (app) => {
+                    const module = await ModuleDetails.findById(app.moduleId)
+                        .populate('recruitmentSeriesId', 'name')
+                        .lean();
+                    
+                    // Try to extract year from recruitment series name (e.g., "2024/2025 Semester 1")
+                    let year = new Date().getFullYear();
+                    if (module?.recruitmentSeriesId?.name) {
+                        const yearMatch = module.recruitmentSeriesId.name.match(/(\d{4})/);
+                        if (yearMatch) {
+                            year = parseInt(yearMatch[1]);
+                        }
+                    }
+                    
+                    return {
+                        moduleId: app.moduleId._id.toString(),
+                        moduleCode: app.moduleId.moduleCode,
+                        moduleName: app.moduleId.moduleName,
+                        semester: app.moduleId.semester,
+                        year: year
+                    };
+                })
+            );
 
-        const userIds = [...new Set(applications.map(a => a.userId))];
-        const userIdsStrings = userIds.map(id => id.toString());
-
-        // 4) Only TAs whose document submission is fully submitted
-        const docSubs = await TaDocumentSubmission.find({ userId: { $in: userIdsStrings }, status: 'submitted' })
-            .select('userId documents status').lean();
-
-        const submittedUserIds = new Set(docSubs.map(d => d.userId));
-
-        // 5) Filter applications to those users only
-        const filteredApps = applications.filter(a => submittedUserIds.has(a.userId));
-        if (filteredApps.length === 0) {
-            return res.status(200).json({ tas: [] });
-        }
-
-        const filteredUserIds = [...new Set(filteredApps.map(a => a.userId))];
-
-        const users = await User.find({ _id: { $in: filteredUserIds } }).select('name indexNumber');
-        const userMap = users.reduce((acc, u) => { acc[u._id] = { name: u.name, indexNumber: u.indexNumber }; return acc; }, {});
-
-        const docMap = docSubs.reduce((acc, d) => { acc[d.userId] = d.documents || {}; return acc; }, {});
-
-        const normalize = (d) => {
-            if (!d) return { submitted: false };
-            if (typeof d === 'string') {
-                return { submitted: true, fileUrl: d };
-            }
-            return {
-                submitted: Boolean(d.submitted || d.fileUrl),
-                fileUrl: d.fileUrl,
-                fileName: d.fileName,
-                uploadedAt: d.uploadedAt
+            // Format documents to match frontend expectations
+            const formatFileMeta = (fileData) => {
+                if (!fileData) return { submitted: false };
+                return {
+                    submitted: true,
+                    fileUrl: fileData.viewLink || fileData.downloadLink || '',
+                    fileName: fileData.name || '',
+                    uploadedAt: doc.updatedAt || doc.createdAt
+                };
             };
-        };
 
-        // 6) Group accepted modules per TA
-        const modulesByUser = new Map();
-        for (const app of filteredApps) {
-            const mod = moduleMap[String(app.moduleId)];
-            if (!mod) continue;
-            if (!modulesByUser.has(app.userId)) modulesByUser.set(app.userId, []);
-            modulesByUser.get(app.userId).push({
-                moduleId: mod._id,
-                moduleCode: mod.moduleCode,
-                moduleName: mod.moduleName,
-                semester: mod.semester,
-                year: mod.year
-            });
-        }
-
-        const tas = filteredUserIds.map(uid => {
-            const docs = docMap[uid] || {};
             const documents = {
-                bankPassbookCopy: normalize(docs.bankPassbookCopy),
-                nicCopy: normalize(docs.nicCopy),
-                cv: normalize(docs.cv),
-                degreeCertificate: normalize(docs.degreeCertificate)
+                bankPassbook: formatFileMeta(doc.driveFiles?.bankPassbook),
+                nicCopy: formatFileMeta(doc.driveFiles?.nicCopy),
+                cv: formatFileMeta(doc.driveFiles?.cv),
+                degreeCertificate: formatFileMeta(doc.driveFiles?.degreeCertificate),
+                declarationForm: formatFileMeta(doc.driveFiles?.declarationForm)
             };
+
             return {
-                userId: uid,
-                name: userMap[uid]?.name || 'Unknown',
-                indexNumber: userMap[uid]?.indexNumber || 'N/A',
-                acceptedModules: modulesByUser.get(uid) || [],
-                documents
+                userId: userId.toString(),
+                name: userName,
+                indexNumber: userIndex,
+                role: doc.userId.role,
+                acceptedModules: acceptedModules,
+                documents: documents
             };
         });
 
+        const tas = await Promise.all(tasPromises);
+
         return res.status(200).json({ tas });
+
     } catch (error) {
-        console.error('Error in viewTADocuments:', error);
-        return res.status(500).json({ error: 'Failed to fetch TA documents' });
+        console.error('Error fetching TA documents:', error);
+        return res.status(500).json({ 
+            error: 'Failed to fetch TA documents',
+            details: error.message 
+        });
     }
 }
 

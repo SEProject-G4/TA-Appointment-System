@@ -22,7 +22,7 @@ function TADashboardApplied() {
       try {
         setLoading(true);
         const response = await axios.get(
-          "http://localhost:5000/api/ta/applied-modules",
+          "http://localhost:5001/api/ta/applied-modules",
           { params: { userId } }
         );
         setApplications(response.data);

@@ -39,6 +39,7 @@
   --color-success: 28 100 208; /* Blue*/
   --color-warning: 244 67 54; /* Standard Red */
   --color-info: 33 150 243; /* Standard Blue */
+  --color-advertised: 244 67 54; /* Standard Red */
 
   /* --- Font Families --- */
   --font-marcellus: "Marcellus", serif;
@@ -84,6 +85,32 @@
   }
   .badge-rejected {
     @apply bg-red-500/10 text-red-700;
+  }
+  
+  /* Module Status Badges */
+  .badge-pending-changes {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  .badge-changes-submitted {
+    @apply bg-lime-100 text-lime-800;
+  }
+  .badge-advertised {
+    @apply bg-purple-100 text-purple-800;
+  }
+  .badge-full {
+    @apply bg-green-100 text-green-800 px-4 py-1.5;
+  }
+  .badge-getting-documents {
+    @apply bg-pink-100 text-pink-800;
+  }
+  .badge-closed {
+    @apply bg-black text-white;
+  }
+  .badge-info {
+    @apply bg-blue-100 text-blue-800;
+  }
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-800;
   }
 
   .panel {
