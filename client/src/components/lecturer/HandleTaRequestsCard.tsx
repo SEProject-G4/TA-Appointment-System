@@ -129,15 +129,13 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
                           <span className="font-medium text-text-primary text-sm sm:text-base">{ta.name}</span>
                           <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                         </div>
-                        <span className={`badge text-xs ${
-                          statusLower === 'accepted' 
-                            ? 'badge-accepted' 
-                            : statusLower === 'rejected' 
-                            ? 'badge-rejected' 
-                            : 'badge-pending'
-                        }`}>
-                          {statusLower === 'accepted' ? 'Accepted' : statusLower === 'rejected' ? 'Rejected' : 'Pending'}
-                        </span>
+                        {(statusLower === 'accepted' || statusLower === 'rejected') && (
+                          <span className={`badge text-xs ${
+                            statusLower === 'accepted' ? 'badge-accepted' : 'badge-rejected'
+                          }`}>
+                            {statusLower === 'accepted' ? 'Accepted' : 'Rejected'}
+                          </span>
+                        )}
                   </div>
                       {isPending && (
                         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
@@ -180,7 +178,7 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
                 <FaClipboardList className="text-primary-dark h-4 w-4" />
                 <span className="text-xs sm:text-sm text-text-secondary">Pending:</span>
                 <span className="font-semibold text-text-primary text-sm sm:text-base">{filteredTAs.filter(ta => (ta.status || '').toLowerCase() === 'pending').length}</span>
-        </div>
+              </div>
             </div>
           </div>
 
@@ -216,15 +214,13 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
                         <span className="font-medium text-text-primary text-sm sm:text-base">{ta.name}</span>
                         <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
                       </div>
-                      <span className={`badge text-xs ${
-                        statusLower === 'accepted' 
-                          ? 'badge-accepted' 
-                          : statusLower === 'rejected' 
-                          ? 'badge-rejected' 
-                          : 'badge-pending'
-                      }`}>
-                        {statusLower === 'accepted' ? 'Accepted' : statusLower === 'rejected' ? 'Rejected' : 'Pending'}
-                      </span>
+                      {(statusLower === 'accepted' || statusLower === 'rejected') && (
+                        <span className={`badge text-xs ${
+                          statusLower === 'accepted' ? 'badge-accepted' : 'badge-rejected'
+                        }`}>
+                          {statusLower === 'accepted' ? 'Accepted' : 'Rejected'}
+                        </span>
+                      )}
                     </div>
                     {isPending && (
                       <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
