@@ -4,6 +4,12 @@ import { createPortal } from "react-dom";
 import { useAuth } from "../contexts/AuthContext";
 import LoginBgImage from "../assets/images/sumanadasa.jpg";
 
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 type AlertModalProps = {
@@ -136,7 +142,7 @@ const LoginPage: React.FC = () => {
       case 'admin':
         return '/admin-dashboard';
       case 'lecturer':
-        return '/lecturer-dashboard';
+        return '/lec-view-module-details';
       case 'undergraduate':
         return '/ta-dashboard';
       case 'postgraduate':
@@ -152,10 +158,10 @@ const LoginPage: React.FC = () => {
 
     // Redirect based on user role if already authenticated
     if ( user && !loading ) {
-      const redirectPath = location.state?.from || getDefaultRouteForRole(user.role);
+      const redirectPath = (location as any).state?.from || getDefaultRouteForRole(user.role);
       navigate(redirectPath, { replace: true });
     }
-  }, [loading, user, navigate, location.state]);
+  }, [loading, user]);
 
 
   useEffect(() => {

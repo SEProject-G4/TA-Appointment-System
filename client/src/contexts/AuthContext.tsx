@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getCurrentUser,
   logout as apiLogout,
@@ -22,6 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const navigate = useNavigate();
 
   // Check for an existing session on initial load
   useEffect(() => {
@@ -61,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     apiLogout()
       .then(() => {
         setUser(null);
+        navigate("/"); // Navigate to Home page after logout
       })
       .catch((error) => {
         console.error("Logout failed:", error);

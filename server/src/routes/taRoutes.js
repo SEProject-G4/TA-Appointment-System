@@ -1,6 +1,6 @@
 const express= require('express');
 const router = express.Router();
-const { protected, authorize } = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
 const { getAllRequests, applyForTA,getAppliedModules, getAcceptedModules } = require('../controllers/taControllers');
 
 

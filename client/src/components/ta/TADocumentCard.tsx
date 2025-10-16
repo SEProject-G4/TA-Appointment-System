@@ -7,9 +7,13 @@ import {
   FilePen,
   CheckCircle2,
   Download,
+  Loader2,
 } from "lucide-react";
 import React, { useState } from "react";
 import { Button } from "../ui/Button";
+import { useAuth } from "../../contexts/AuthContext";
+import axiosInstance from "../../api/axiosConfig";
+import { useToast } from "../../contexts/ToastContext";
 
 interface DocumentSubmissionModalProps {
   isDocOpen: boolean;
@@ -29,6 +33,10 @@ export default function DocumentSubmissionModal({
   onClose,
   position,
 }: DocumentSubmissionModalProps) {
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [formData, setFormData] = useState({
     bankAccountName: "",
     address: "",
@@ -39,6 +47,7 @@ export default function DocumentSubmissionModal({
     nicCopy: null as File | null,
     cv: null as File | null,
     degreeCertificate: null as File | null,
+    declarationForm: null as File | null,
   });
 
   const handleChange = (
@@ -58,25 +67,88 @@ export default function DocumentSubmissionModal({
     setFormData((prev) => ({ ...prev, [name]: file }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitted data:", formData);
-    alert("Documents submitted for all accepted ta positions");
-    onClose();
+    
+    // Validate required fields
+    if (!formData.bankAccountName || !formData.nicNumber || !formData.accountNumber || !formData.address || !formData.studentType) {
+      showToast("Please fill in all required fields", "error");
+      return;
+    }
+
+    if (!user?.id) {
+      showToast("User not authenticated", "error");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Create FormData for multipart/form-data request
+      const submitData = new FormData();
+      
+      // Append text fields
+      submitData.append("userId", user.id);
+      submitData.append("bankAccountName", formData.bankAccountName);
+      submitData.append("address", formData.address);
+      submitData.append("nicNumber", formData.nicNumber);
+      submitData.append("accountNumber", formData.accountNumber);
+      submitData.append("studentType", formData.studentType);
+      submitData.append("position", JSON.stringify(position));
+
+      // Append files if they exist
+      if (formData.bankPassbook) {
+        submitData.append("bankPassbook", formData.bankPassbook);
+      }
+      if (formData.nicCopy) {
+        submitData.append("nicCopy", formData.nicCopy);
+      }
+      if (formData.cv) {
+        submitData.append("cv", formData.cv);
+      }
+      if (formData.degreeCertificate) {
+        submitData.append("degreeCertificate", formData.degreeCertificate);
+      }
+      if (formData.declarationForm) {
+        submitData.append("declarationForm", formData.declarationForm);
+      }
+
+      const response = await axiosInstance.post("/documents/submit", submitData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.status === 201) {
+        showToast("Documents submitted successfully!", "success");
+        onClose();
+      } else if (response.status === 207) {
+        showToast(
+          "Documents uploaded with some failures. Please check and retry.",
+          "info"
+        );
+      }
+    } catch (error: any) {
+      console.error("Error submitting documents:", error);
+      const errorMessage = error.response?.data?.message || "Failed to submit documents. Please try again.";
+      showToast(errorMessage, "error");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isDocOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 bg-black/50 sm:p-4">
       <div className="bg-white rounded-lg w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 sm:pb-4 mb-4 sm:mb-6 border-b">
+        <div className="flex items-center justify-between pb-3 mb-4 border-b sm:pb-4 sm:mb-6">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10">
               <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             </div>
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-800">
+            <h1 className="text-lg font-semibold text-gray-800 sm:text-xl">
               Document Submission
             </h1>
           </div>
@@ -84,16 +156,16 @@ export default function DocumentSubmissionModal({
             onClick={onClose}
             className="p-1.5 sm:p-2 transition rounded-full hover:bg-gray-100"
           >
-            <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+            <X className="w-4 h-4 text-gray-600 sm:w-5 sm:h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Position Info */}
-          <div className="p-3 sm:p-4 mb-4 sm:mb-6 border rounded-lg bg-gradient-to-r from-primary/5 to-accent/5">
+          <div className="p-3 mb-4 border rounded-lg sm:p-4 sm:mb-6 bg-gradient-to-r from-primary/5 to-accent/5">
             <div className="flex items-center gap-2 mb-2 sm:mb-3">
               <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-              <h2 className="text-sm sm:text-base font-semibold text-gray-800">
+              <h2 className="text-sm font-semibold text-gray-800 sm:text-base">
                 Position Information
               </h2>
             </div>
@@ -316,16 +388,19 @@ export default function DocumentSubmissionModal({
           <div className="flex justify-end gap-4 pt-4 border-t">
             <button
               type="button"
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50"
               onClick={onClose}
+              disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSubmitting}
             >
-              Submit Documents
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isSubmitting ? "Submitting..." : "Submit Documents"}
             </button>
           </div>
         </form>
