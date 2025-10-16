@@ -203,7 +203,7 @@ const ViewModuleDetails: React.FC = () => {
             {/* Search input */}
             <input
               type="text"
-              placeholder="Search modules..."
+              placeholder="Search modules"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-3 py-2 text-sm border rounded-lg sm:w-64 focus:outline-none focus:ring-2 focus:ring-primary-dark bg-bg-card text-text-primary placeholder:text-text-secondary"
