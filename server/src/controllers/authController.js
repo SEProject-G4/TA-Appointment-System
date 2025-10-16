@@ -99,6 +99,19 @@ const googleVerify = async (req, res) => {
             }
         });
         
+        // FORCE session cookie to be sent to browser
+        // Use express's cookie signing mechanism
+        const signature = require('crypto')
+            .createHmac('sha256', config.SESSION_SECRET)
+            .update(req.sessionID)
+            .digest('base64')
+            .replace(/=+$/, '');
+        
+        const signedSessionId = `s%3A${req.sessionID}.${signature}`;
+        const sessionCookie = `connect.sid=${signedSessionId}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=86400`;
+        res.setHeader('Set-Cookie', sessionCookie);
+        console.log('🔧 Force setting signed session cookie:', sessionCookie);
+        
         // Update last activity
         authService.updateLastActivity(user._id);
 
