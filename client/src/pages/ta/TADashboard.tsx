@@ -249,7 +249,7 @@ function TADashboard() {
                 requiredTANumber={
                   userRole === "undergraduate"
                     ? module.undergraduateCounts.required
-                    : module.ostgraduateCounts.required
+                    : module.postgraduateCounts.required
                 }
                 appliedTANumber={
                   userRole === "undergraduate"
