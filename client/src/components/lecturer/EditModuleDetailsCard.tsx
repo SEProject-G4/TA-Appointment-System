@@ -72,7 +72,7 @@ const EditModuleDetailsCard: React.FC<EditModuleDetailsCardProps> = ({
   areAllFieldsEdited,
 }) => {
   return (
-    <div className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-0 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
+    <div className="flex w-full flex-col items-center border border-black rounded-md p-0 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
       <div className="flex w-full items-center justify-between px-4 py-3 border-b border-border-default">
         <div className="flex flex-col">
           <div className="flex items-center space-x-3">

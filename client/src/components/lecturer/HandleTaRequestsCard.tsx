@@ -40,7 +40,7 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
   const progress = Math.min(appliedInTab > 0 ? (acceptedInTab / appliedInTab) * 100 : 0, 100);
 
   return (
-    <div className="flex w-full flex-col items-center outline-dashed outline-1 rounded-md p-3 sm:p-4 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
+    <div className="flex w-full flex-col items-center border border-black rounded-md p-3 sm:p-4 bg-bg-card shadow-sm hover:shadow-md transition-shadow">
       <div className="flex flex-col sm:flex-row w-full items-start sm:items-center space-y-2 sm:space-y-0">
         {collapsible ? (
           <FaChevronRight
@@ -52,7 +52,7 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
         ) : (
           <span className="w-5 sm:w-6" />
         )}
-        <div className="flex flex-1 flex-col ml-2 sm:ml-3">
+        <div className="flex flex-1 flex-col ml-2 sm:-ml-4 lg:-ml-6">
           <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
             <h3 className="text-base sm:text-lg font-semibold text-text-primary">{moduleCode}</h3>
             <span className="bg-primary/10 text-primary-dark text-xs px-2 py-1 rounded-full font-medium self-start">

@@ -188,7 +188,7 @@ const HandleTARequests = () => {
       </div>
 
       {/* Content Card */}
-      <div className="gap-2 p-6 m-4 mt-0 rounded-xl shadow-sm bg-bg-card border border-border-default">
+      <div className="gap-2 p-4 sm:p-6 ml-1 sm:ml-2 mr-4 mt-0 rounded-xl shadow-sm bg-bg-card border border-border-default">
         {/* Controls section */}
         <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-start">
           <div className="flex flex-col items-stretch w-full gap-3 sm:flex-row sm:items-center lg:w-auto">
