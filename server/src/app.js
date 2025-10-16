@@ -19,6 +19,27 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+
+app.use(session({
+  name: 'connect.sid',
+  secret: config.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  // Temporarily disable MongoDB store for testing
+  // store: MongoStore.create({
+  //   mongoUrl: config.MONGO_URI,
+  //   touchAfter: 24 * 3600, // lazy session update
+  //   ttl: 24 * 60 * 60 // 24 hours
+  // }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    path: '/'
+  },
+}));
+
 app.use(cors({
   origin: [
     'http://localhost:5173', 
@@ -30,27 +51,6 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-}));
-
-// app.use(cors());
-
-app.use(session({
-  name: 'ta.session.id',
-  secret: config.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: config.MONGO_URI,
-    touchAfter: 24 * 3600, // lazy session update
-    ttl: 24 * 60 * 60 // 24 hours
-  }),
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    path: '/'
-  },
 }));
 
 // ... mount your other routes here

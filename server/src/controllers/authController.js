@@ -91,6 +91,11 @@ const googleVerify = async (req, res) => {
                 console.error('❌ Session save error:', err);
             } else {
                 console.log('✅ Session saved successfully');
+                console.log('🍪 Session details:', {
+                    id: req.sessionID,
+                    userId: req.session.userId,
+                    cookie: req.session.cookie
+                });
             }
         });
         
@@ -108,7 +113,9 @@ const googleVerify = async (req, res) => {
         
         console.log('📤 Sending response with headers:', {
             setCookie: res.getHeaders()['set-cookie'],
-            sessionId: req.sessionID
+            allHeaders: res.getHeaders(),
+            sessionId: req.sessionID,
+            environment: process.env.NODE_ENV
         });
         
         return res.status(200).json(userProfile);
