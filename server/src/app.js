@@ -7,31 +7,50 @@ const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();
 
+// Request logging middleware (simplified)
+app.use((req, res, next) => {
+  // Log only important requests in production
+  if (process.env.NODE_ENV !== 'production' || req.path.includes('/auth/')) {
+    console.log(`📨 ${req.method} ${req.path}`, {
+      origin: req.headers.origin,
+      hasSession: !!req.session?.userId
+    });
+  }
+  next();
+});
+
 app.use(express.json());
-app.use(cors({
-  // origin: config.FRONTEND_URL,
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
-  credentials: true,
-}));
 
 app.use(session({
+  name: 'connect.sid',
   secret: config.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
   store: MongoStore.create({
     mongoUrl: config.MONGO_URI,
-    collectionName: 'sessions',
-    ttl: 60 * 60 * 24, // 1 day
-    stringify: false,
-    autoRemove: 'interval',
-    autoRemoveInterval: 10 // minutes
+    touchAfter: 24 * 3600, // lazy session update
+    ttl: 24 * 60 * 60 // 24 hours
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: true, 
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 1000 * 60 * 60 * 24
+    sameSite: 'none', 
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    path: '/',
+    domain: undefined // Don't set domain to allow cross-origin
   },
+}));
+
+app.use(cors({
+  origin: [
+    'http://localhost:5173', 
+    'http://localhost:3000',
+    config.FRONTEND_URL,
+    'https://ta-appointment-system.vercel.app'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
 // ... mount your other routes here

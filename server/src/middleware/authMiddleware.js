@@ -18,6 +18,7 @@ const sessionUserCache = new NodeCache({
 
 exports.protected = async (req, res, next) => {
     if (!req.session?.userId) {
+        console.log('❌ Authentication failed - no session');
         return res.status(401).json({ error: 'Not authorized, no session' });
     }
 
@@ -29,9 +30,11 @@ exports.protected = async (req, res, next) => {
         let user = userCache.get(cacheKey);
         
         if (!user) {
+            console.log('💾 Cache miss for user:', userId);
             // Cache miss - fetch from database
             user = await authService.findUserByIdOptimized(userId);
             if (!user) {
+                console.log('❌ User not found in database:', userId);
                 req.session.destroy((err) => {
                     if (err) console.error('Session destroy error:', err);
                 });
@@ -40,6 +43,9 @@ exports.protected = async (req, res, next) => {
             
             // Cache the user data
             userCache.set(cacheKey, user);
+            console.log('✅ User cached:', user.email);
+        } else {
+            console.log('🚀 Cache hit for user:', user.email);
         }
         
         // Attach user to request
