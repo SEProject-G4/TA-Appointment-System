@@ -10,6 +10,8 @@ app.use(express.json());
 app.use(cors({
   origin: ['http://localhost:5173', config.FRONTEND_URL],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
 // app.use(cors());
@@ -17,12 +19,13 @@ app.use(cors({
 app.use(session({
   secret: config.SESSION_SECRET,
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 1000 * 60 * 60 * 24
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 1000 * 60 * 60 * 24,
+    domain: process.env.NODE_ENV === 'production' ? undefined : undefined
   },
 }));
 

@@ -26,9 +26,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Check for an existing session on initial load
   useEffect(() => {
     const fetchUser = async () => {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
-      setLoading(false);
+      try {
+        console.log('Fetching current user...');
+        const currentUser = await getCurrentUser();
+        console.log('Current user:', currentUser);
+        setUser(currentUser);
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchUser();
   }, []);
