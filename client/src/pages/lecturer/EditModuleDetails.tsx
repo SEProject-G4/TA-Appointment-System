@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../../api/axiosConfig";
 import Modal from "../../components/common/Modal";
+import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import EditModuleDetailsCard from "../../components/lecturer/EditModuleDetailsCard";
 import { ChevronDown, RefreshCw } from "lucide-react";
 
@@ -396,37 +397,17 @@ const EditModuleDetails: React.FC = () => {
         )}
       </div>
 
-      <Modal 
-        isOpen={showConfirmModal} 
-        onClose={cancelSubmission} 
-        showCloseButton={false}
-      >
-        <div className="max-w-md w-full mx-4">
-          <div className="flex items-center gap-2 sm:gap-3 mb-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-warning/20 rounded-full flex items-center justify-center">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-warning" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-bold text-gray-900">Confirm Submission</h3>
-              <p className="text-xs sm:text-sm text-gray-600">Final confirmation required</p>
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
-              Are you sure you want to submit these TA requirements?
-              <span className="font-semibold text-warning"> This action cannot be undone</span> and will finalize the module requirements.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button onClick={cancelSubmission} className="btn btn-outline flex-1 text-sm sm:text-base">Cancel</button>
-            <button onClick={confirmSubmission} disabled={updating[pendingModuleId || ""]} className={`btn btn-primary flex-1 text-sm sm:text-base ${updating[pendingModuleId || ""] ? 'btn-disabled' : ''}`}>{updating[pendingModuleId || ""] ? "Submitting..." : "Confirm & Submit"}</button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        isOpen={showConfirmModal}
+        title="Confirm Submission"
+        message="Are you sure you want to submit these TA requirements?"
+        onConfirm={confirmSubmission}
+        onCancel={cancelSubmission}
+        confirmButtonText="Submit"
+        cancelButtonText="Cancel"
+        confirmButtonClassName="px-4 py-2 font-medium text-white bg-gray-700 rounded-lg shadow-sm hover:bg-gray-800 transition"
+        cancelButtonClassName="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
+      />
 
       {/* Error Modal */}
       <Modal 
