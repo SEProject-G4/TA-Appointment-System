@@ -1,5 +1,4 @@
 const { OAuth2Client } = require('google-auth-library');
-const jwt = require('jsonwebtoken');
 const config = require('../config');
 const authService = require('../services/authService');
 const { invalidateUserCache } = require('../middleware/authMiddleware');
