@@ -26,12 +26,16 @@ interface DocumentSubmissionModalProps {
 
     totalTAHours: number;
   };
+  isDocSubmitted: boolean;
+  onSuccess?: () => void; // Add optional success callback
 }
 
 export default function DocumentSubmissionModal({
   isDocOpen,
   onClose,
   position,
+  isDocSubmitted,
+  onSuccess, // Add to destructuring
 }: DocumentSubmissionModalProps) {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -121,7 +125,11 @@ export default function DocumentSubmissionModal({
 
       if (response.status === 201) {
         showToast("Documents submitted successfully!", "success");
-        onClose();
+        if (onSuccess) {
+          onSuccess(); // Call success callback to refresh parent
+        } else {
+          onClose(); // Fallback to just closing
+        }
       } else if (response.status === 207) {
         showToast(
           "Documents uploaded with some failures. Please check and retry.",

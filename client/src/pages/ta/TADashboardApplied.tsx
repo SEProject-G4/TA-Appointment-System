@@ -5,6 +5,7 @@ import TAStatCard from "../../components/ta/TAStatCard";
 import ViewToggle from "../../components/ta/ViewToggle";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
+import axiosInstance from "../../api/axiosConfig";
 
 function TADashboardApplied() {
   const { user } = useAuth();
@@ -21,8 +22,8 @@ function TADashboardApplied() {
     const fetchApplications = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(
-          "http://localhost:5001/api/ta/applied-modules",
+        const response = await axiosInstance.get(
+          "/ta/applied-modules",
           { params: { userId } }
         );
         setApplications(response.data);
@@ -40,14 +41,14 @@ function TADashboardApplied() {
   return (
     <div>
       <div className="min-h-screen bg-bg-card text-text-primary">
-        <div className="container px-2 sm:px-4 py-4 sm:py-8 mx-auto">
+        <div className="container px-2 py-4 mx-auto sm:px-4 sm:py-8">
           {/* header */}
-          <div className="mb-8 sm:mb-12 text-center">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-4">
+          <div className="mb-8 text-center sm:mb-12">
+            <div className="flex flex-col items-center justify-center gap-2 mb-4 sm:flex-row sm:gap-3">
               <div className="p-2 sm:p-3 rounded-xl bg-primary/10">
                 <FileUser className="w-6 h-6 sm:w-8 sm:h-8 text-text-primary" />
               </div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center">Applied TA Positions</h1>
+              <h1 className="text-2xl font-bold text-center sm:text-3xl lg:text-4xl">Applied TA Positions</h1>
             </div>
             {/* <p className="max-w-2xl mx-auto text-lg text-text-secondary">
               Track the status of your TA position applications. Stay updated on
@@ -55,7 +56,7 @@ function TADashboardApplied() {
             </p> */}
           </div>
           {/* stats */}
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 mb-6 sm:gap-6 sm:mb-8 sm:grid-cols-2 lg:grid-cols-3">
             <TAStatCard
               statName="Applications Submitted"
               statValue={applications.length}
@@ -81,11 +82,11 @@ function TADashboardApplied() {
         </div>
         {/* applied TA positions */}
         <div className="gap-2 m-2 sm:m-4 lg:m-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <h2 className="text-xl sm:text-2xl font-semibold text-foreground">
+          <div className="flex flex-col items-start justify-between gap-4 mb-6 sm:flex-row sm:items-center">
+            <h2 className="text-xl font-semibold sm:text-2xl text-foreground">
               Applied TA Positions
             </h2>
-            <div className="flex justify-center sm:justify-start w-full sm:w-auto">
+            <div className="flex justify-center w-full sm:justify-start sm:w-auto">
               <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
             </div>
           </div>
@@ -94,7 +95,7 @@ function TADashboardApplied() {
               <p className="text-base sm:text-lg text-text-secondary">Loading...</p>
             </div>
           ) : applications.length === 0 ? (
-            <div className="py-8 sm:py-12 text-center">
+            <div className="py-8 text-center sm:py-12">
               <p className="text-base sm:text-lg text-text-secondary">
                 You have not applied for any TA positions yet.
               </p>
