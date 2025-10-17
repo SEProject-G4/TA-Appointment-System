@@ -70,12 +70,28 @@ const findUserByIdOptimized = async (id, fields = null) => {
 
 const findUserByEmail = async (email) => {
   try {
-    // Add index on email field for better performance
-    const user = await User.findOne({ email }).lean();
-    if (!user) {
+    // Find all users with this email (may have multiple roles like admin + lecturer)
+    const users = await User.find({ email }).lean();
+    
+    if (!users || users.length === 0) {
       throw new Error("User not found");
     }
-    return user;
+    
+    // If only one user exists, return it
+    if (users.length === 1) {
+      return users[0];
+    }
+    
+    // If multiple users exist (e.g., admin and lecturer), prioritize admin
+    const adminUser = users.find(u => u.role === 'admin');
+    if (adminUser) {
+      console.log(`Multiple roles found for ${email}, defaulting to admin role`);
+      return adminUser;
+    }
+    
+    // Otherwise return the first user
+    console.log(`Multiple roles found for ${email}, returning first user with role: ${users[0].role}`);
+    return users[0];
   } catch (error) {
     console.error("Error finding user by email:", error);
     throw error;
@@ -142,11 +158,41 @@ const getUserSessionInfo = async (userId) => {
   }
 };
 
+// Get all users with a specific email (for multi-role support)
+const findAllUsersByEmail = async (email) => {
+  try {
+    const users = await User.find({ email })
+      .select('_id name email role userGroup profilePicture')
+      .lean();
+    
+    return users;
+  } catch (error) {
+    console.error("Error finding users by email:", error);
+    throw error;
+  }
+};
+
+// Find user by email and role
+const findUserByEmailAndRole = async (email, role) => {
+  try {
+    const user = await User.findOne({ email, role }).lean();
+    if (!user) {
+      throw new Error("User not found");
+    }
+    return user;
+  } catch (error) {
+    console.error("Error finding user by email and role:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   handleFirstLogin,
   findUserById,
   findUserByIdOptimized,
   findUserByEmail,
+  findAllUsersByEmail,
+  findUserByEmailAndRole,
   findUsersByIds,
   updateLastActivity,
   getUserSessionInfo,

@@ -75,6 +75,48 @@ const createNewUsers = async (req, res) => {
       userGroup: assignedGroupId,
     }));
 
+    // Validate email uniqueness before inserting
+    const emails = users.map(u => u.email);
+    
+    // Check for existing users with same email
+    const existingUsers = await User.find({ email: { $in: emails } });
+    
+    // Group existing users by email
+    const existingByEmail = {};
+    existingUsers.forEach(user => {
+      if (!existingByEmail[user.email]) {
+        existingByEmail[user.email] = [];
+      }
+      existingByEmail[user.email].push(user.role);
+    });
+
+    // Validate each new user
+    for (const user of newUsers) {
+      const existingRoles = existingByEmail[user.email] || [];
+      
+      // Check if same email+role already exists
+      if (existingRoles.includes(userRole)) {
+        return res.status(400).json({ 
+          message: `User with email ${user.email} and role ${userRole} already exists` 
+        });
+      }
+      
+      // If email exists with other roles, validate admin+lecturer combination
+      if (existingRoles.length > 0) {
+        const allRoles = [...existingRoles, userRole];
+        const hasAdmin = allRoles.includes('admin');
+        const hasLecturer = allRoles.includes('lecturer');
+        const onlyAdminAndLecturer = allRoles.every(r => r === 'admin' || r === 'lecturer');
+        
+        // Only allow admin+lecturer combination
+        if (!(hasAdmin && hasLecturer && onlyAdminAndLecturer && allRoles.length === 2)) {
+          return res.status(400).json({ 
+            message: `Email ${user.email} is already in use. Only admin accounts can have an additional lecturer role.` 
+          });
+        }
+      }
+    }
+
     // Save the new users to the database
     await User.insertMany(newUsers);
     res
@@ -82,6 +124,14 @@ const createNewUsers = async (req, res) => {
       .json({ message: `${users.length} ${userRole} users successfully created and added to the group.` });
   } catch (error) {
     console.error("Error creating users:", error);
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        message: "Duplicate email and role combination detected" 
+      });
+    }
+    
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -190,17 +240,60 @@ const updateUserDetails = async (req, res) => {
   try {
     const { userId } = req.params;
     const { name, email, role, ...others } = req.body;
+    
+    // Get the current user
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // If email is being changed, validate uniqueness
+    if (email && email !== currentUser.email) {
+      const existingUsers = await User.find({ 
+        email: email,
+        _id: { $ne: userId }
+      });
+
+      if (existingUsers.length > 0) {
+        // Check if any existing user has the same role
+        const sameRoleExists = existingUsers.some(user => user.role === currentUser.role);
+        if (sameRoleExists) {
+          return res.status(400).json({ 
+            message: `User with email ${email} and role ${currentUser.role} already exists` 
+          });
+        }
+
+        // Check admin+lecturer combination
+        const existingRoles = existingUsers.map(u => u.role);
+        const allRoles = [...existingRoles, currentUser.role];
+        const hasAdmin = allRoles.includes('admin');
+        const hasLecturer = allRoles.includes('lecturer');
+        const onlyAdminAndLecturer = allRoles.every(r => r === 'admin' || r === 'lecturer');
+
+        if (!(hasAdmin && hasLecturer && onlyAdminAndLecturer && allRoles.length === 2)) {
+          return res.status(400).json({ 
+            message: `Email ${email} is already in use. Only admin accounts can have an additional lecturer role.` 
+          });
+        }
+      }
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { name, email, ...others },
       { new: true }
     );
-    if (!updatedUser) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    
     res.status(200).json({ message: "User details updated successfully", user: updatedUser });
   } catch (error) {
     console.error("Error updating user details:", error);
+    
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        message: "Duplicate email and role combination detected" 
+      });
+    }
+    
     res.status(500).json({ message: "Internal server error" });
   }
 };

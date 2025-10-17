@@ -7,7 +7,7 @@ const createIndexes = async () => {
         console.log('Creating database indexes for optimal performance...');
         
         // User collection indexes
-        await User.collection.createIndex({ email: 1 }, { unique: true });
+        await User.collection.createIndex({ email: 1 }); // Non-unique email index for queries
         await User.collection.createIndex({ googleId: 1 }, { sparse: true });
         await User.collection.createIndex({ role: 1 });
         await User.collection.createIndex({ userGroup: 1 });
@@ -16,7 +16,7 @@ const createIndexes = async () => {
         
         // Compound indexes for common queries
         await User.collection.createIndex({ role: 1, userGroup: 1 });
-        await User.collection.createIndex({ email: 1, role: 1 });
+        await User.collection.createIndex({ email: 1, role: 1 }, { unique: true }); // Compound unique index
         
         console.log('Database indexes created successfully');
     } catch (error) {
