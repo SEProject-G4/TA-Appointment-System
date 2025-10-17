@@ -4,6 +4,7 @@ import Modal from "../../components/common/Modal";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import EditModuleDetailsCard from "../../components/lecturer/EditModuleDetailsCard";
 import { ChevronDown, RefreshCw } from "lucide-react";
+import EmptyState from "../../components/lecturer/EmptyState";
 
 interface ModuleEditData {
   moduleCode: string;
@@ -305,10 +306,7 @@ const EditModuleDetails: React.FC = () => {
   if (modules.length === 0) {
     return (
       <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-4 sm:px-8 md:px-12 lg:px-20 py-5">
-        <div className="text-center w-full py-16">
-          <h3 className="text-text-primary text-lg sm:text-xl font-semibold mb-2">No Modules Assigned</h3>
-          <p className="text-text-secondary text-sm sm:text-base">No modules have been assigned to you yet.</p>
-        </div>
+        <EmptyState title="No Modules Assigned" subtitle="No modules have been assigned to you yet." />
       </div>
     );
   }
@@ -389,11 +387,7 @@ const EditModuleDetails: React.FC = () => {
             })}
           </div>
         ) : (
-          <div className="py-8 text-center sm:py-12">
-            <p className="text-base sm:text-lg text-text-secondary">
-              No modules found matching your search.
-            </p>
-          </div>
+          <EmptyState title="No Modules Found" subtitle="No modules found matching your search." />
         )}
       </div>
 

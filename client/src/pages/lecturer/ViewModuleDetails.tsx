@@ -3,6 +3,7 @@ import axiosInstance from "../../api/axiosConfig";
 import { FaTimes, FaUserGraduate } from "react-icons/fa";
 import ViewModuleDetailsCard from "../../components/lecturer/ViewModuleDetailsCard";
 import { ChevronDown, RefreshCw } from "lucide-react";
+import EmptyState from "../../components/lecturer/EmptyState";
 
 interface PersonalDetails {
   bankAccountName: string;
@@ -234,6 +235,15 @@ const ViewModuleDetails: React.FC = () => {
     );
   }
 
+  // When there are no modules at all, show a clean empty state without header/controls
+  if (modules.length === 0) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-4 sm:px-8 md:px-12 lg:px-20 py-5">
+        <EmptyState title="No Modules Assigned" subtitle="No modules have been assigned to you yet." />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-bg-page text-text-primary">
       {/* Page Header */}
@@ -300,11 +310,10 @@ const ViewModuleDetails: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="py-8 text-center sm:py-12">
-            <p className="text-base sm:text-lg text-text-secondary">
-              No modules found matching your search.
-            </p>
-          </div>
+          <EmptyState
+            title="No Modules Found"
+            subtitle="No modules found matching your search."
+          />
         )}
       </div>
 
