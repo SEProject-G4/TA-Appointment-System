@@ -507,6 +507,8 @@ const acceptApplication = async (req, res) => {
           
           <p>Please log into the TA Appointment System to provide the necessary personal details and complete your onboarding process. You will need to submit the following documents:</p>
           
+          <p style="text-align: center;"><a href="https://ta-appointment-system.vercel.app/login" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Access TA System</a></p>
+          
           <ul>
             <li>Bank Passbook Copy</li>
             <li>NIC Copy</li>
