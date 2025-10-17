@@ -385,25 +385,16 @@ const notifyModules = async (req, res) => {
             return res.status(404).json({ error: "No initialised modules found in this recruitment series" });
         }
 
-        const notificationResults = [];
-        let successCount = 0;
-        let failureCount = 0;
+        // Prepare emails for job queue
+        const emails = [];
+        const moduleUpdates = [];
 
-        await Promise.all(modules.map(async (module) => {
+        for (const module of modules) {
             try {
                 if (!module.coordinators || module.coordinators.length === 0) {
-                    console.warn(`Module ${module.moduleCode} has no coordinators assigned`);
-                    failureCount++;
-                    notificationResults.push({
-                        moduleId: module._id,
-                        moduleCode: module.moduleCode,
-                        status: 'failed',
-                        reason: 'No coordinators assigned'
-                    });
-                    return;
+                    console.warn(`Module ${module.moduleCode} has no coordinators assigned - skipping`);
+                    continue;
                 }
-
-                // Module status is already validated by the query, so we don't need to check it again
 
                 // Fetch coordinators for this module
                 const coordinators = await User.find({ 
@@ -412,15 +403,8 @@ const notifyModules = async (req, res) => {
                 }).lean();
 
                 if (coordinators.length === 0) {
-                    console.warn(`Module ${module.moduleCode} has no coordinators with valid email addresses`);
-                    failureCount++;
-                    notificationResults.push({
-                        moduleId: module._id,
-                        moduleCode: module.moduleCode,
-                        status: 'failed',
-                        reason: 'No coordinators with valid email addresses'
-                    });
-                    return;
+                    console.warn(`Module ${module.moduleCode} has no coordinators with valid email addresses - skipping`);
+                    continue;
                 }
 
                 const emailAddresses = coordinators.map(coordinator => coordinator.email);
@@ -446,59 +430,75 @@ const notifyModules = async (req, res) => {
                     </div>
                 `;
 
-                const emailSent = await emailService.sendEmail(emailAddresses, subject, htmlContent);
-                
-                if (emailSent) {
-                    console.log(`Notification email sent successfully to coordinators of module ${module.moduleCode}`);
-                    successCount++;
-                    notificationResults.push({
-                        moduleId: module._id,
-                        moduleCode: module.moduleCode,
-                        status: 'success',
-                        recipientCount: emailAddresses.length
+                // Add each coordinator email as a separate job for better tracking
+                emailAddresses.forEach(email => {
+                    emails.push({
+                        to: email,
+                        subject: subject,
+                        html: htmlContent,
+                        metadata: {
+                            moduleId: module._id,
+                            moduleCode: module.moduleCode,
+                            moduleName: module.moduleName,
+                            coordinatorEmail: email,
+                        }
                     });
-                    // Update module status to "pending changes"
-                    await ModuleDetails.findByIdAndUpdate(module._id, { moduleStatus: "pending changes" });
-                } else {
-                    console.error(`Failed to send notification email for module ${module.moduleCode}`);
-                    failureCount++;
-                    notificationResults.push({
-                        moduleId: module._id,
-                        moduleCode: module.moduleCode,
-                        status: 'failed',
-                        reason: 'Email delivery failed'
-                    });
-                }
-            } catch (moduleError) {
-                console.error(`Error processing notification for module ${module.moduleCode}:`, moduleError);
-                failureCount++;
-                notificationResults.push({
-                    moduleId: module._id,
-                    moduleCode: module.moduleCode,
-                    status: 'failed',
-                    reason: 'Processing error'
                 });
+
+                // Track modules that will be updated
+                moduleUpdates.push(module._id);
+
+            } catch (moduleError) {
+                console.error(`Error preparing notification for module ${module.moduleCode}:`, moduleError);
             }
-        }));
+        }
 
-        const responseMessage = successCount > 0 
-            ? `Notification process completed. Success: ${successCount}, Failed: ${failureCount}`
-            : "All notification attempts failed";
+        if (emails.length === 0) {
+            return res.status(400).json({ 
+                error: "No valid emails could be prepared. Check module coordinators and email addresses.",
+                totalModulesFound: modules.length
+            });
+        }
 
-        console.log(responseMessage);
-
-        res.status(200).json({ 
-            message: responseMessage,
-            summary: {
-                total: modules.length,
-                successful: successCount,
-                failed: failureCount
-            },
-            details: notificationResults
+        // Queue the bulk email job
+        const jobResult = await emailService.sendBulkEmails(emails, 'notify_lecturers', seriesId, {
+            moduleUpdates,
+            originalModuleCount: modules.length,
         });
+
+        if (!jobResult.success) {
+            return res.status(500).json({ 
+                error: "Failed to queue notification emails",
+                details: jobResult.error
+            });
+        }
+
+        // Update module statuses to "pending changes" immediately
+        await ModuleDetails.updateMany(
+            { _id: { $in: moduleUpdates } },
+            { $set: { moduleStatus: "pending changes" } }
+        );
+
+        console.log(`✅ Queued ${emails.length} notification emails for ${moduleUpdates.length} modules`);
+
+        res.status(200).json({
+            message: `Notification emails queued successfully`,
+            jobId: jobResult.jobId,
+            summary: {
+                modulesProcessed: moduleUpdates.length,
+                emailsQueued: emails.length,
+                estimatedDuration: jobResult.estimatedDuration,
+            },
+            details: {
+                jobId: jobResult.jobId,
+                queueName: jobResult.queueName,
+                statusCheckUrl: `/api/jobs/${jobResult.jobId}/status`,
+            }
+        });
+
     } catch (error) {
         console.error("Error in notifyModules function:", error);
-        res.status(500).json({ error: "Internal server error while sending notifications" });
+        res.status(500).json({ error: "Internal server error while queuing notifications" });
     }
 };
 
@@ -560,10 +560,11 @@ const advertiseModules = async (req, res) => {
             }
         });
 
-        const emailResults = [];
-        let successfulEmails = 0;
+        // Prepare emails for job queue
+        const emails = [];
+        let emailGroups = [];
 
-        // Send undergraduate emails if there are eligible modules and recipients
+        // Prepare undergraduate emails
         if (undergradModules.length > 0 && undergradMailingList.length > 0) {
             const undergradEmails = undergradMailingList.map(user => user.email);
             const undergradSubject = `New TA Opportunities Available - Semester${underSemesters.size > 1 ? 's' : ''} ${Array.from(underSemesters).sort().join(', ')}`;
@@ -608,17 +609,28 @@ const advertiseModules = async (req, res) => {
                 </div>
             `;
 
-            const undergradEmailSent = await emailService.sendEmail(undergradEmails, undergradSubject, undergradHtmlContent);
-            emailResults.push({
+            // Add each undergraduate email to the batch
+            undergradEmails.forEach(email => {
+                emails.push({
+                    to: email,
+                    subject: undergradSubject,
+                    html: undergradHtmlContent,
+                    metadata: {
+                        userType: 'undergraduate',
+                        moduleCount: undergradModules.length,
+                        userEmail: email,
+                    }
+                });
+            });
+
+            emailGroups.push({
                 type: 'undergraduate',
                 recipientCount: undergradEmails.length,
                 moduleCount: undergradModules.length,
-                success: undergradEmailSent
             });
-            if (undergradEmailSent) successfulEmails++;
         }
 
-        // Send postgraduate emails if there are eligible modules and recipients
+        // Prepare postgraduate emails
         if (postgradModules.length > 0 && postgradMailingList.length > 0) {
             const postgradEmails = postgradMailingList.map(user => user.email);
             const postgradSubject = `New TA Opportunities Available - Semester${postSemesters.size > 1 ? 's' : ''} ${Array.from(postSemesters).sort().join(', ')}`;
@@ -663,48 +675,83 @@ const advertiseModules = async (req, res) => {
                 </div>
             `;
 
-            const postgradEmailSent = await emailService.sendEmail(postgradEmails, postgradSubject, postgradHtmlContent);
-            emailResults.push({
+            // Add each postgraduate email to the batch
+            postgradEmails.forEach(email => {
+                emails.push({
+                    to: email,
+                    subject: postgradSubject,
+                    html: postgradHtmlContent,
+                    metadata: {
+                        userType: 'postgraduate',
+                        moduleCount: postgradModules.length,
+                        userEmail: email,
+                    }
+                });
+            });
+
+            emailGroups.push({
                 type: 'postgraduate',
                 recipientCount: postgradEmails.length,
                 moduleCount: postgradModules.length,
-                success: postgradEmailSent
             });
-            if (postgradEmailSent) successfulEmails++;
         }
 
-        // Update module status to 'advertised' for successfully processed modules
-        if (successfulEmails > 0) {
-            const moduleIds = modules.map(mod => mod._id);
-            await ModuleDetails.updateMany(
-                { _id: { $in: moduleIds } },
-                { $set: { moduleStatus: 'advertised' } }
-            );
-            console.log(`Updated ${modules.length} modules to 'advertised' status`);
+        if (emails.length === 0) {
+            return res.status(400).json({ 
+                error: "No valid emails could be prepared. Check student groups and email addresses.",
+                totalModulesFound: modules.length,
+                undergradModules: undergradModules.length,
+                postgradModules: postgradModules.length,
+                undergradStudents: undergradMailingList.length,
+                postgradStudents: postgradMailingList.length,
+            });
         }
 
-        const totalEmailsSent = emailResults.reduce((sum, result) => sum + (result.success ? result.recipientCount : 0), 0);
-        const responseMessage = successfulEmails > 0 
-            ? `Advertisement completed successfully. ${totalEmailsSent} emails sent across ${successfulEmails} user group(s).`
-            : "Advertisement failed - no emails were sent";
+        // Queue the bulk email job
+        const jobResult = await emailService.sendBulkEmails(emails, 'advertise_modules', seriesId, {
+            emailGroups,
+            originalModuleCount: modules.length,
+            undergradModules: undergradModules.length,
+            postgradModules: postgradModules.length,
+        });
 
-        console.log(responseMessage);
+        if (!jobResult.success) {
+            return res.status(500).json({ 
+                error: "Failed to queue advertisement emails",
+                details: jobResult.error
+            });
+        }
 
-        res.status(200).json({ 
-            message: responseMessage,
+        // Update module statuses to "advertised" immediately
+        const moduleIds = modules.map(mod => mod._id);
+        await ModuleDetails.updateMany(
+            { _id: { $in: moduleIds } },
+            { $set: { moduleStatus: 'advertised' } }
+        );
+
+        console.log(`✅ Queued ${emails.length} advertisement emails for ${modules.length} modules`);
+
+        res.status(200).json({
+            message: `Advertisement emails queued successfully`,
+            jobId: jobResult.jobId,
             summary: {
                 modulesProcessed: modules.length,
-                emailGroupsSent: successfulEmails,
-                totalEmailsSent: totalEmailsSent,
+                emailsQueued: emails.length,
                 undergradModules: undergradModules.length,
-                postgradModules: postgradModules.length
+                postgradModules: postgradModules.length,
+                estimatedDuration: jobResult.estimatedDuration,
             },
-            emailResults: emailResults
+            details: {
+                jobId: jobResult.jobId,
+                queueName: jobResult.queueName,
+                emailGroups: emailGroups,
+                statusCheckUrl: `/api/jobs/${jobResult.jobId}/status`,
+            }
         });
 
     } catch (error) {
         console.error("Error in advertiseModules function:", error);
-        res.status(500).json({ error: "Internal server error while advertising modules" });
+        res.status(500).json({ error: "Internal server error while queuing advertisements" });
     }
 };
 
