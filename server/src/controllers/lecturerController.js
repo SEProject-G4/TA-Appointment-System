@@ -292,7 +292,7 @@ const handleRequests = async (req, res) => {
     // First, get all modules where the coordinator is responsible
     const coordinatorModulesAll = await ModuleDetails.find({
       coordinators: coordinatorId
-    }).select('_id moduleCode moduleName semester year requiredTACount requiredUndergraduateTACount requiredPostgraduateTACount recruitmentSeriesId');
+    }).select('_id moduleCode moduleName semester requiredUndergraduateTACount requiredPostgraduateTACount recruitmentSeriesId');
     console.log('edit modules -> matched', coordinatorModulesAll.length, 'modules for', coordinatorId);
 
     // No recruitment series status filtering; consider all modules for the coordinator
@@ -374,8 +374,6 @@ const handleRequests = async (req, res) => {
           moduleCode: module.moduleCode,
           moduleName: module.moduleName,
           semester: module.semester,
-          year: module.year,
-          requiredTACount: module.requiredTACount,
           requiredUndergraduateTACount: module.requiredUndergraduateTACount || 0,
           requiredPostgraduateTACount: module.requiredPostgraduateTACount || 0,
           requiredTAHours: module.requiredTAHours || 0,
@@ -653,7 +651,7 @@ const viewModuleDetails = async (req, res) => {
     // Step 1: Get all modules where the coordinator is responsible
     const coordinatorModules = await ModuleDetails.find({
       coordinators: coordinatorId
-    }).select('_id moduleCode moduleName semester year requiredTAHours requiredTACount requiredUndergraduateTACount requiredPostgraduateTACount');
+    }).select('_id moduleCode moduleName semester requiredTAHours requiredUndergraduateTACount requiredPostgraduateTACount');
 
     if (coordinatorModules.length === 0) {
       return res.status(200).json({ 
@@ -788,9 +786,7 @@ const viewModuleDetails = async (req, res) => {
           moduleCode: module.moduleCode,
           moduleName: module.moduleName,
           semester: module.semester,
-          year: module.year,
           requiredTAHours: module.requiredTAHours || 0,
-          requiredTACount: module.requiredTACount || 0,
           acceptedTAs: []
         });
       }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import axios from '../../api/axiosConfig'
 import { FaTimes, FaUserGraduate } from 'react-icons/fa'
-import { ChevronDown, RefreshCw } from 'lucide-react'
+import { ChevronDown, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import CSEofficeCard from '../../components/cse office/CSEofficeCard'
 
 type FileMeta = {
@@ -31,6 +31,8 @@ type PersonalDetails = {
 type AcceptedModule = { moduleId: string; moduleCode: string; moduleName: string; semester: number; year: number }
 type TAView = { userId: string; name: string; indexNumber: string; role: string; acceptedModules: AcceptedModule[]; documents: Documents; personalDetails?: PersonalDetails }
 
+const ITEMS_PER_PAGE = 9
+
 const CSEofficeDashboard = () => {
   const [tas, setTas] = useState<TAView[]>([])
   // card view only
@@ -41,6 +43,7 @@ const CSEofficeDashboard = () => {
   const [sortOption, setSortOption] = useState<string>("")
   const [refreshKey, setRefreshKey] = useState(0)
   const [activeTab, setActiveTab] = useState<'undergraduate' | 'postgraduate'>('undergraduate')
+  const [currentPage, setCurrentPage] = useState<number>(1)
 
   const fetchData = async () => {
     setLoading(true)
@@ -58,6 +61,11 @@ const CSEofficeDashboard = () => {
   useEffect(() => {
     fetchData()
   }, [refreshKey])
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, activeTab, sortOption])
 
   // list view removed
 
@@ -94,6 +102,16 @@ const CSEofficeDashboard = () => {
   // Count TAs by role
   const undergraduateCount = tas.filter(ta => ta.role === 'undergraduate').length
   const postgraduateCount = tas.filter(ta => ta.role === 'postgraduate').length
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredTas.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const paginatedTas = filteredTas.slice(startIndex, endIndex)
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages))
+  }
 
   const openDocModal = (ta: TAView) => setDocModal({ open: true, ta })
   const closeDocModal = () => setDocModal({ open: false })
@@ -242,15 +260,73 @@ const CSEofficeDashboard = () => {
         </div>
 
         {filteredTas.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
-            {filteredTas.map(ta => (
-              <CSEofficeCard 
-                key={ta.userId} 
-                ta={ta} 
-                onViewDocuments={openDocModal}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
+              {paginatedTas.map(ta => (
+                <CSEofficeCard 
+                  key={ta.userId} 
+                  ta={ta} 
+                  onViewDocuments={openDocModal}
+                />
+              ))}
+            </div>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-border-default">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg border border-border-default bg-bg-card hover:bg-primary-light/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-bg-card transition-colors"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-4 h-4 text-text-primary" />
+                </button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                    // Show first page, last page, current page, and pages around current
+                    const showPage = 
+                      page === 1 || 
+                      page === totalPages || 
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    
+                    const showEllipsisBefore = page === currentPage - 2 && currentPage > 3
+                    const showEllipsisAfter = page === currentPage + 2 && currentPage < totalPages - 2
+                    
+                    if (showEllipsisBefore || showEllipsisAfter) {
+                      return <span key={page} className="px-2 text-text-secondary">...</span>
+                    }
+                    
+                    if (!showPage) return null
+                    
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => goToPage(page)}
+                        className={`min-w-[2rem] px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === page
+                            ? 'bg-primary text-white'
+                            : 'border border-border-default bg-bg-card hover:bg-primary-light/20 text-text-primary'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg border border-border-default bg-bg-card hover:bg-primary-light/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-bg-card transition-colors"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-4 h-4 text-text-primary" />
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="py-8 text-center sm:py-12">
             <p className="text-base sm:text-lg text-text-secondary">

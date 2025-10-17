@@ -61,7 +61,7 @@ const CSEofficeCard: React.FC<CSEofficeCardProps> = ({ ta, onViewDocuments }) =>
               >
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                   <div className="flex flex-col text-xs sm:text-sm leading-tight min-w-0">
-                    <span className="font-bold text-black truncate">{m.moduleName}</span>
+                    <span className="text-black truncate">{m.moduleName}</span>
                     <span className="text-text-secondary text-[11px] sm:text-xs truncate">{m.moduleCode}</span>
                   </div>
                   <span className="text-[10px] sm:text-xs rounded-full bg-primary/10 text-primary-dark px-2 py-1 whitespace-nowrap flex-shrink-0">
