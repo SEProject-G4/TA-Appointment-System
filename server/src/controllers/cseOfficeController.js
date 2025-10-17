@@ -80,7 +80,13 @@ const viewTADocuments = async (req, res) => {
                 indexNumber: userIndex,
                 role: doc.userId.role,
                 acceptedModules: acceptedModules,
-                documents: documents
+                documents: documents,
+                personalDetails: {
+                    bankAccountName: doc.bankAccountName || '',
+                    address: doc.address || '',
+                    nicNumber: doc.nicNumber || '',
+                    accountNumber: doc.accountNumber || ''
+                }
             };
         });
 

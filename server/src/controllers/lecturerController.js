@@ -292,7 +292,7 @@ const handleRequests = async (req, res) => {
     // First, get all modules where the coordinator is responsible
     const coordinatorModulesAll = await ModuleDetails.find({
       coordinators: coordinatorId
-    }).select('_id moduleCode moduleName semester year requiredTACount requiredUndergraduateTACount requiredPostgraduateTACount recruitmentSeriesId');
+    }).select('_id moduleCode moduleName semester requiredUndergraduateTACount requiredPostgraduateTACount recruitmentSeriesId');
     console.log('edit modules -> matched', coordinatorModulesAll.length, 'modules for', coordinatorId);
 
     // No recruitment series status filtering; consider all modules for the coordinator
@@ -374,8 +374,6 @@ const handleRequests = async (req, res) => {
           moduleCode: module.moduleCode,
           moduleName: module.moduleName,
           semester: module.semester,
-          year: module.year,
-          requiredTACount: module.requiredTACount,
           requiredUndergraduateTACount: module.requiredUndergraduateTACount || 0,
           requiredPostgraduateTACount: module.requiredPostgraduateTACount || 0,
           requiredTAHours: module.requiredTAHours || 0,
@@ -508,6 +506,8 @@ const acceptApplication = async (req, res) => {
           </ul>
           
           <p>Please log into the TA Appointment System to provide the necessary personal details and complete your onboarding process. You will need to submit the following documents:</p>
+          
+          <p style="text-align: center;"><a href="https://ta-appointment-system.vercel.app/login" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Access TA System</a></p>
           
           <ul>
             <li>Bank Passbook Copy</li>
@@ -650,145 +650,165 @@ const viewModuleDetails = async (req, res) => {
 
     const coordinatorId = req.user._id;
 
-    // Get modules coordinated by the lecturer
-    const coordinatorModulesAll = await ModuleDetails.find({
+    // Step 1: Get all modules where the coordinator is responsible
+    const coordinatorModules = await ModuleDetails.find({
       coordinators: coordinatorId
-    }).select('_id moduleCode moduleName semester year requiredTACount requiredTAHours requirements recruitmentSeriesId');
+    }).select('_id moduleCode moduleName semester requiredTAHours requiredUndergraduateTACount requiredPostgraduateTACount');
 
-    const coordinatorModules = coordinatorModulesAll;
     if (coordinatorModules.length === 0) {
-      return res.status(200).json({ modules: [] });
-    }
-
-    const moduleIdObjects = coordinatorModules.map(m => m._id);
-
-    // Get all applications for these modules
-    const applications = await TaApplication.find({ moduleId: { $in: moduleIdObjects } });
-
-    // Build map of accepted applications per module
-    const acceptedByModule = new Map();
-    for (const app of applications) {
-      const statusLower = String(app.status || '').toLowerCase();
-      if (statusLower === 'accepted') {
-        const key = app.moduleId && typeof app.moduleId.toString === 'function' ? app.moduleId.toString() : String(app.moduleId || '');
-        if (!key) continue;
-        if (!acceptedByModule.has(key)) acceptedByModule.set(key, []);
-        acceptedByModule.get(key).push(app);
-      }
-    }
-
-    // Collect userIds from accepted applications to fetch user + appliedModules
-    const acceptedUserIds = [...new Set(applications.filter(a => String(a.status || '').toLowerCase() === 'accepted').map(a => a.userId))];
-
-    const users = await User.find({ _id: { $in: acceptedUserIds } }).select('_id name indexNumber role');
-    const userMap = users.reduce((acc, u) => { acc[u._id.toString()] = { name: u.name, indexNumber: u.indexNumber, role: u.role }; return acc; }, {});
-
-    // Fetch TA document submissions for these users from documentModel
-    const docSubs = await documentModel.find({ userId: { $in: acceptedUserIds } })
-      .select('userId driveFiles updatedAt createdAt')
-      .lean();
-
-    const buildFileMeta = (fileData, uploadedAt) => {
-      if (!fileData) return { submitted: false };
-      return {
-        submitted: true,
-        fileUrl: fileData.viewLink || fileData.downloadLink || '',
-        fileName: fileData.name || '',
-        uploadedAt: uploadedAt || null
-      };
-    };
-
-    const docMap = docSubs.reduce((acc, d) => {
-      const ts = d.updatedAt || d.createdAt;
-      const files = d.driveFiles || {};
-      acc[String(d.userId)] = {
-        bankPassbook: buildFileMeta(files.bankPassbook, ts),
-        nicCopy: buildFileMeta(files.nicCopy, ts),
-        cv: buildFileMeta(files.cv, ts),
-        degreeCertificate: buildFileMeta(files.degreeCertificate, ts),
-        declarationForm: buildFileMeta(files.declarationForm, ts)
-      };
-      return acc;
-    }, {});
-
-    // Also fetch AppliedModules status to honor isDocSubmitted flag
-    const appliedModulesDocs = await AppliedModules.find({ userId: { $in: acceptedUserIds } }).select('userId isDocSubmitted').lean();
-    const isDocSubmittedByUser = appliedModulesDocs.reduce((acc, d) => { acc[String(d.userId)] = Boolean(d.isDocSubmitted); return acc; }, {});
-
-    // Build response and filter out modules with no accepted TAs
-    console.log(`Total coordinator modules before filtering: ${coordinatorModules.length}`);
-    const modules = coordinatorModules.map(m => {
-      const modId = m._id.toString();
-      const acceptedApps = acceptedByModule.get(modId) || [];
-      const acceptedTAs = acceptedApps.map(a => {
-        const userIdStr = a.userId?.toString?.() || String(a.userId);
-        const role = userMap[userIdStr]?.role;
-        const docs = docMap[userIdStr] || {
-          bankPassbook: { submitted: false },
-          nicCopy: { submitted: false },
-          cv: { submitted: false },
-          degreeCertificate: { submitted: false },
-          declarationForm: { submitted: false }
-        };
-
-        // Compute submitted counts; degreeCertificate only required for postgraduates
-        const requiredDocs = role === 'undergraduate'
-          ? [docs.bankPassbook, docs.nicCopy, docs.cv, docs.declarationForm]
-          : [docs.bankPassbook, docs.nicCopy, docs.cv, docs.degreeCertificate, docs.declarationForm];
-        const submittedCountComputed = requiredDocs.filter(d => d.submitted).length;
-        const totalRequired = requiredDocs.length;
-
-        // If AppliedModules says submitted, trust it
-        const isSubmittedFlag = isDocSubmittedByUser[userIdStr] === true;
-        const allSubmitted = isSubmittedFlag || (submittedCountComputed === totalRequired);
-        const submittedCount = allSubmitted ? totalRequired : submittedCountComputed;
-
-        return {
-          userId: a.userId,
-          name: userMap[userIdStr]?.name || 'Unknown',
-          indexNumber: userMap[userIdStr]?.indexNumber || 'N/A',
-          role,
-          documents: docs,
-          docStatus: allSubmitted ? 'submitted' : 'pending',
-          documentSummary: { submittedCount, total: totalRequired, allSubmitted }
-        };
+      return res.status(200).json({ 
+        message: 'No modules found for this coordinator',
+        modules: [] 
       });
+    }
 
-      return {
-        moduleId: m._id,
-        moduleCode: m.moduleCode,
-        moduleName: m.moduleName,
-        semester: m.semester,
-        year: m.year,
-        requiredTAHours: m.requiredTAHours || 0,
-        assignedTAsCount: acceptedTAs.length,
-        requiredTACount: m.requiredTACount || 0,
-        acceptedTAs,
-        applicationsCount: applications.filter(a => String(a.moduleId) === modId).length
+    const moduleIds = coordinatorModules.map(module => module._id);
+    console.log('viewModuleDetails -> found', coordinatorModules.length, 'modules for coordinator', coordinatorId);
+
+    // Step 2: Find all accepted TA applications for these modules
+    const acceptedApplications = await TaApplication.find({
+      moduleId: { $in: moduleIds },
+      status: 'accepted'
+    }).lean();
+
+    console.log('viewModuleDetails -> found', acceptedApplications.length, 'accepted applications');
+
+    if (acceptedApplications.length === 0) {
+      return res.status(200).json({ 
+        message: 'No accepted applications found',
+        modules: [] 
+      });
+    }
+
+    // Step 3: Get unique user IDs from accepted applications
+    const userIds = [...new Set(acceptedApplications.map(app => app.userId))];
+
+    // Step 4: Fetch user details (name, index number, role)
+    const users = await User.find({
+      _id: { $in: userIds }
+    }).select('name indexNumber role');
+
+    const userMap = {};
+    users.forEach(user => {
+      userMap[user._id.toString()] = {
+        name: user.name,
+        indexNumber: user.indexNumber,
+        role: user.role
       };
-    }).filter(module => {
-      // Filter out modules where both undergraduate and postgraduate accepted TA counts are 0
-      const undergraduateAcceptedCount = module.acceptedTAs.filter(ta => ta.role === 'undergraduate').length;
-      const postgraduateAcceptedCount = module.acceptedTAs.filter(ta => ta.role === 'postgraduate').length;
-      
-      console.log(`Module ${module.moduleCode}: undergrad accepted: ${undergraduateAcceptedCount}, postgrad accepted: ${postgraduateAcceptedCount}, total accepted: ${module.acceptedTAs.length}`);
-      
-      // Only show modules that have at least one accepted TA (either undergraduate or postgraduate)
-      const shouldShow = undergraduateAcceptedCount > 0 || postgraduateAcceptedCount > 0;
-      console.log(`Module ${module.moduleCode} should show: ${shouldShow}`);
-      
-      // TEMPORARY: Test with a more aggressive filter - only show modules with CS2034 in the code
-      const testFilter = module.moduleCode.includes('CS2034');
-      console.log(`Module ${module.moduleCode} test filter (CS2034 only): ${testFilter}`);
-      
-      return testFilter; // Temporarily return test filter instead of shouldShow
     });
 
-    console.log(`Total modules after filtering: ${modules.length}`);
-    return res.status(200).json({ modules });
+    // Step 5: Fetch AppliedModules to check document submission status
+    const appliedModulesData = await AppliedModules.find({
+      userId: { $in: userIds }
+    }).select('userId isDocSubmitted Documents');
+
+    const appliedModulesMap = {};
+    appliedModulesData.forEach(am => {
+      appliedModulesMap[am.userId.toString()] = {
+        isDocSubmitted: am.isDocSubmitted,
+        documentsId: am.Documents
+      };
+    });
+
+    // Step 6: Fetch document details for users who have submitted documents
+    const documentIds = appliedModulesData
+      .filter(am => am.isDocSubmitted && am.Documents)
+      .map(am => am.Documents);
+
+    const documents = await documentModel.find({
+      _id: { $in: documentIds }
+    }).lean();
+
+    const documentsMap = {};
+    documents.forEach(doc => {
+      documentsMap[doc._id.toString()] = doc;
+    });
+
+    // Step 7: Group applications by module
+    const moduleMap = new Map();
+
+    for (const app of acceptedApplications) {
+      const moduleIdStr = app.moduleId.toString();
+      const userIdStr = app.userId.toString();
+      
+      const module = coordinatorModules.find(m => m._id.toString() === moduleIdStr);
+      if (!module) continue;
+
+      const userDetails = userMap[userIdStr];
+      if (!userDetails) continue;
+
+      const appliedModuleInfo = appliedModulesMap[userIdStr] || { isDocSubmitted: false };
+      
+      // Prepare TA object
+      const taInfo = {
+        userId: userIdStr,
+        name: userDetails.name,
+        indexNumber: userDetails.indexNumber,
+        role: userDetails.role,
+        docStatus: appliedModuleInfo.isDocSubmitted ? 'submitted' : 'pending'
+      };
+
+      // If documents are submitted, fetch and format them
+      if (appliedModuleInfo.isDocSubmitted && appliedModuleInfo.documentsId) {
+        const docData = documentsMap[appliedModuleInfo.documentsId.toString()];
+        if (docData && docData.driveFiles) {
+          // Map driveFiles to expected format
+          taInfo.documents = {
+            bankPassbook: docData.driveFiles.bankPassbook ? {
+              fileUrl: docData.driveFiles.bankPassbook.viewLink || docData.driveFiles.bankPassbook.downloadLink
+            } : undefined,
+            nicCopy: docData.driveFiles.nicCopy ? {
+              fileUrl: docData.driveFiles.nicCopy.viewLink || docData.driveFiles.nicCopy.downloadLink
+            } : undefined,
+            cv: docData.driveFiles.cv ? {
+              fileUrl: docData.driveFiles.cv.viewLink || docData.driveFiles.cv.downloadLink
+            } : undefined,
+            degreeCertificate: docData.driveFiles.degreeCertificate ? {
+              fileUrl: docData.driveFiles.degreeCertificate.viewLink || docData.driveFiles.degreeCertificate.downloadLink
+            } : undefined,
+            declarationForm: docData.driveFiles.declarationForm ? {
+              fileUrl: docData.driveFiles.declarationForm.viewLink || docData.driveFiles.declarationForm.downloadLink
+            } : undefined
+          };
+          
+          // Add personal details
+          taInfo.personalDetails = {
+            bankAccountName: docData.bankAccountName || '',
+            address: docData.address || '',
+            nicNumber: docData.nicNumber || '',
+            accountNumber: docData.accountNumber || ''
+          };
+        }
+      }
+
+      // Initialize module group if not exists
+      if (!moduleMap.has(moduleIdStr)) {
+        moduleMap.set(moduleIdStr, {
+          moduleId: moduleIdStr,
+          moduleCode: module.moduleCode,
+          moduleName: module.moduleName,
+          semester: module.semester,
+          requiredTAHours: module.requiredTAHours || 0,
+          acceptedTAs: []
+        });
+      }
+
+      // Add TA to module's acceptedTAs array
+      moduleMap.get(moduleIdStr).acceptedTAs.push(taInfo);
+    }
+
+    const modulesWithAcceptedTAs = Array.from(moduleMap.values());
+
+    console.log('viewModuleDetails -> returning', modulesWithAcceptedTAs.length, 'modules with accepted TAs');
+
+    return res.status(200).json({
+      message: 'Modules with accepted TAs retrieved successfully',
+      modules: modulesWithAcceptedTAs
+    });
+
   } catch (error) {
-    console.error('Error fetching modules with TA requests:', error);
-    return res.status(500).json({ error: 'Failed to fetch modules with TA requests' });
+    console.error('Error fetching module details with accepted TAs:', error);
+    return res.status(500).json({ error: 'Failed to fetch module details' });
   }
 }
 
