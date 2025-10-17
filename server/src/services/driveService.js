@@ -35,7 +35,7 @@ async function createOrGetFolderForTA(taId) {
     });
 
     if (list.data.files.length) {
-      console.log(`✅ Found existing folder: ${folderName}`);
+      console.log(`Found existing folder: ${folderName}`);
       return list.data.files[0].id;
     }
 
@@ -50,7 +50,7 @@ async function createOrGetFolderForTA(taId) {
       supportsAllDrives: true,
     });
 
-    console.log(`✅ Created folder in Shared Drive: ${folderName} with ID: ${res.data.id}`);
+    console.log(`Created folder in Shared Drive: ${folderName} with ID: ${res.data.id}`);
     return res.data.id;
   } else {
     // Regular Drive with parent folder
@@ -69,7 +69,7 @@ async function createOrGetFolderForTA(taId) {
     });
 
     if (list.data.files.length) {
-      console.log(`✅ Found existing folder: ${folderName}`);
+      console.log(`Found existing folder: ${folderName}`);
       return list.data.files[0].id;
     }
 
@@ -84,7 +84,7 @@ async function createOrGetFolderForTA(taId) {
       supportsAllDrives: true,
     });
 
-    console.log(`✅ Created folder: ${folderName} with ID: ${res.data.id}`);
+    console.log(`Created folder: ${folderName} with ID: ${res.data.id}`);
     return res.data.id;
   }
 }
@@ -124,9 +124,9 @@ async function uploadFileToDrive(file, folderId) {
   // Delete local temp file
   try {
     fs.unlinkSync(file.path);
-    console.log(`✅ Deleted temp file: ${file.path}`);
+    console.log(`Deleted temp file: ${file.path}`);
   } catch (err) {
-    console.error(`❌ Failed to delete temp file: ${file.path}`, err);
+    console.error(`Failed to delete temp file: ${file.path}`, err);
   }
 
   return uploaded.data;

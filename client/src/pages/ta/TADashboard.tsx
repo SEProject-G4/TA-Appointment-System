@@ -94,12 +94,14 @@ function TADashboard() {
     );
   });
 
+  const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
+
   useEffect(() => {
     if (!user) return;
     const fetchModules = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/ta/requests",
+          `${backendURL}/ta/requests`,
           {
             params: {
               userId,
@@ -249,7 +251,7 @@ function TADashboard() {
                 requiredTANumber={
                   userRole === "undergraduate"
                     ? module.undergraduateCounts.required
-                    : module.ostgraduateCounts.required
+                    : module.postgraduateCounts.required
                 }
                 appliedTANumber={
                   userRole === "undergraduate"
