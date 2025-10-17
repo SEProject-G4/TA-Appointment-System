@@ -5,6 +5,7 @@ import { FaChevronRight, FaRegCalendarAlt, FaBoxOpen } from "react-icons/fa";
 import { MdMoreVert } from "react-icons/md";
 import { LuCirclePlus, LuMail } from "react-icons/lu";
 import { FiClock } from "react-icons/fi";
+import { HiSpeakerphone, HiBell } from "react-icons/hi";
 
 import { useModal } from "../../contexts/ModalProvider";
 import { useToast } from "../../contexts/ToastContext";
@@ -122,6 +123,9 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
   const { openModal, closeModal } = useModal();
   const { showToast } = useToast();
 
+  const changesSubmittedModules = moduleDetails.filter(mod => mod.moduleStatus === 'changes submitted');
+  const initialisedModules = moduleDetails.filter(mod => mod.moduleStatus === 'initialised');
+
   const refreshModuleDetails = () => {
     setHasFetched(false);
   };
@@ -139,6 +143,94 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
       console.error("Error fetching module details:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const notifyModules = async () => {
+    try {
+      const response = await axiosInstance.post(`/recruitment-series/${_id}/notify-modules`);
+      const { summary, details } = response.data;
+      
+      if (summary.successful > 0) {
+        const successModules = details.filter((d: any) => d.status === 'success');
+        const moduleNames = successModules.map((d: any) => d.moduleCode).join(', ');
+        const totalEmails = successModules.reduce((sum: number, d: any) => sum + (d.recipientCount || 0), 0);
+        
+        showToast(
+          `Successfully notified ${summary.successful} module(s): ${moduleNames}. ${totalEmails} emails sent to coordinators.`,
+          "success"
+        );
+        
+        if (summary.failed > 0) {
+          const failedModules = details.filter((d: any) => d.status === 'failed');
+          const failedNames = failedModules.map((d: any) => d.moduleCode).join(', ');
+          showToast(
+            `Failed to notify ${summary.failed} module(s): ${failedNames}`,
+            "info"
+          );
+        }
+      } else {
+        showToast("No modules could be notified. Please check module status and coordinator assignments.", "error");
+      }
+      
+      // Refresh module details to update status
+      refreshModuleDetails();
+    } catch (error: any) {
+      console.error("Error notifying module coordinators:", error);
+      if (error.response?.data?.error) {
+        showToast(error.response.data.error, "error");
+      } else {
+        showToast("Failed to notify module coordinators.", "error");
+      }
+    }
+  };
+
+  const advertiseModules = async () => {
+    try {
+      const response = await axiosInstance.post(`/recruitment-series/${_id}/advertise-modules`);
+      const { summary, emailResults } = response.data;
+      
+      if (summary.totalEmailsSent > 0) {
+        let detailMessage = `Successfully advertised ${summary.modulesProcessed} module(s) to ${summary.totalEmailsSent} students`;
+        
+        if (summary.undergradModules > 0 && summary.postgradModules > 0) {
+          detailMessage += ` (${summary.undergradModules} undergraduate + ${summary.postgradModules} postgraduate modules)`;
+        } else if (summary.undergradModules > 0) {
+          detailMessage += ` (${summary.undergradModules} undergraduate modules)`;
+        } else if (summary.postgradModules > 0) {
+          detailMessage += ` (${summary.postgradModules} postgraduate modules)`;
+        }
+        
+        // Add email group breakdown
+        const emailBreakdown = emailResults.map((result: any) => {
+          return `${result.recipientCount} ${result.type}s`;
+        }).join(' + ');
+        
+        if (emailBreakdown) {
+          detailMessage += `. Emails sent to: ${emailBreakdown}`;
+        }
+        
+        showToast(detailMessage, "success");
+        
+        // Show any failed email groups
+        const failedResults = emailResults.filter((result: any) => !result.success);
+        if (failedResults.length > 0) {
+          const failedGroups = failedResults.map((result: any) => result.type).join(', ');
+          showToast(`Failed to send emails to: ${failedGroups}`, "info");
+        }
+      } else {
+        showToast("No advertisement emails were sent. Please check module status and student groups.", "error");
+      }
+      
+      // Refresh module details to update status
+      refreshModuleDetails();
+    } catch (error: any) {
+      console.error("Error advertising modules:", error);
+      if (error.response?.data?.error) {
+        showToast(error.response.data.error, "error");
+      } else {
+        showToast("Failed to advertise modules.", "error");
+      }
     }
   };
 
@@ -412,6 +504,28 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
                 Selected: <span className="text-text-primary">2 modules</span>
               </p> */}
             <div className="flex gap-x-2">
+              {/* Notify Lecturers button */}
+              {initialisedModules.length > 0 && (
+                <button
+                  onClick={notifyModules}
+                  className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 rounded-md p-2 px-4 transition-all duration-200"
+                >
+                  <HiBell className="h-4 w-4 mr-2" />
+                  Notify Lecturers
+                </button>
+              )}
+
+              {/* Advertise Modules button */}
+              {changesSubmittedModules.length > 0 && (
+                <button
+                  onClick={advertiseModules}
+                  className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 rounded-md p-2 px-4 transition-all duration-200"
+                >
+                  <HiSpeakerphone className="h-4 w-4 mr-2" />
+                  Advertise Modules
+                </button>
+              )}
+
               {/* Add new module button */}
               <Link
                 to={"/recruitment-series/" + _id + "/add-module"}

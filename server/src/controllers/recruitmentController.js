@@ -3,6 +3,8 @@ const UserGroup = require("../models/UserGroup");
 const ModuleDetails = require("../models/ModuleDetails");
 const User = require("../models/User");
 const { default: mongoose } = require("mongoose");
+const emailService = require("../services/emailService");
+const config = require("../config");
 
 const createRecruitmentRound = async (req, res) => {
     try{
@@ -362,6 +364,350 @@ const updateRecruitmentRoundHourLimits = async (req, res) => {
     }
 };
 
+const notifyModules = async (req, res) => {
+    try {
+        const { seriesId } = req.params;
+
+        // Validate input
+        if (!seriesId) {
+            return res.status(400).json({ error: "seriesId is required" });
+        }
+
+        console.log(`Starting notification process for recruitment series ${seriesId}`);
+        
+        // Find all initialised modules in the recruitment series
+        const modules = await ModuleDetails.find({ 
+            recruitmentSeriesId: seriesId,
+            moduleStatus: "initialised" 
+        }).lean();
+        
+        if (modules.length === 0) {
+            return res.status(404).json({ error: "No initialised modules found in this recruitment series" });
+        }
+
+        const notificationResults = [];
+        let successCount = 0;
+        let failureCount = 0;
+
+        await Promise.all(modules.map(async (module) => {
+            try {
+                if (!module.coordinators || module.coordinators.length === 0) {
+                    console.warn(`Module ${module.moduleCode} has no coordinators assigned`);
+                    failureCount++;
+                    notificationResults.push({
+                        moduleId: module._id,
+                        moduleCode: module.moduleCode,
+                        status: 'failed',
+                        reason: 'No coordinators assigned'
+                    });
+                    return;
+                }
+
+                // Module status is already validated by the query, so we don't need to check it again
+
+                // Fetch coordinators for this module
+                const coordinators = await User.find({ 
+                    _id: { $in: module.coordinators },
+                    email: { $exists: true, $ne: null, $ne: '' }
+                }).lean();
+
+                if (coordinators.length === 0) {
+                    console.warn(`Module ${module.moduleCode} has no coordinators with valid email addresses`);
+                    failureCount++;
+                    notificationResults.push({
+                        moduleId: module._id,
+                        moduleCode: module.moduleCode,
+                        status: 'failed',
+                        reason: 'No coordinators with valid email addresses'
+                    });
+                    return;
+                }
+
+                const emailAddresses = coordinators.map(coordinator => coordinator.email);
+                const subject = `Please enter your TA requests for ${module.moduleCode} - ${module.moduleName} in semester ${module.semester}`;
+                const htmlContent = `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2>TA Request Required</h2>
+                        <p>Dear Module Coordinator,</p>
+                        <p>This is a reminder to submit your TA requirements for the following module:</p>
+                        <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-left: 4px solid #007bff;">
+                            <strong>Module:</strong> ${module.moduleCode} - ${module.moduleName}<br>
+                            <strong>Semester:</strong> ${module.semester}<br>
+                        </div>
+                        <p>Please log into the TA Appointment System to review and submit your TA requirements.</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="${config.FRONTEND_URL}/login" 
+                               style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                                Access TA System
+                            </a>
+                        </div>
+                        <p>If you have any questions or need assistance, please contact the system administrators.</p>
+                        <p>Best regards,<br>TA Appointment System</p>
+                    </div>
+                `;
+
+                const emailSent = await emailService.sendEmail(emailAddresses, subject, htmlContent);
+                
+                if (emailSent) {
+                    console.log(`Notification email sent successfully to coordinators of module ${module.moduleCode}`);
+                    successCount++;
+                    notificationResults.push({
+                        moduleId: module._id,
+                        moduleCode: module.moduleCode,
+                        status: 'success',
+                        recipientCount: emailAddresses.length
+                    });
+                    // Update module status to "pending changes"
+                    await ModuleDetails.findByIdAndUpdate(module._id, { moduleStatus: "pending changes" });
+                } else {
+                    console.error(`Failed to send notification email for module ${module.moduleCode}`);
+                    failureCount++;
+                    notificationResults.push({
+                        moduleId: module._id,
+                        moduleCode: module.moduleCode,
+                        status: 'failed',
+                        reason: 'Email delivery failed'
+                    });
+                }
+            } catch (moduleError) {
+                console.error(`Error processing notification for module ${module.moduleCode}:`, moduleError);
+                failureCount++;
+                notificationResults.push({
+                    moduleId: module._id,
+                    moduleCode: module.moduleCode,
+                    status: 'failed',
+                    reason: 'Processing error'
+                });
+            }
+        }));
+
+        const responseMessage = successCount > 0 
+            ? `Notification process completed. Success: ${successCount}, Failed: ${failureCount}`
+            : "All notification attempts failed";
+
+        console.log(responseMessage);
+
+        res.status(200).json({ 
+            message: responseMessage,
+            summary: {
+                total: modules.length,
+                successful: successCount,
+                failed: failureCount
+            },
+            details: notificationResults
+        });
+    } catch (error) {
+        console.error("Error in notifyModules function:", error);
+        res.status(500).json({ error: "Internal server error while sending notifications" });
+    }
+};
+
+const advertiseModules = async (req, res) => {
+    try {
+        const { seriesId } = req.params;
+
+        // Validate input
+        if (!seriesId) {
+            return res.status(400).json({ error: "seriesId is required" });
+        }
+
+        console.log(`Starting advertisement process for recruitment series ${seriesId}`);
+
+        // Fetch recruitment series and validate
+        const recruitmentSeries = await RecruitmentRound.findById(seriesId).lean();
+        if (!recruitmentSeries) {
+            return res.status(404).json({ error: "Recruitment series not found" });
+        }
+
+        // Find all modules with "changes submitted" status in the recruitment series
+        const modules = await ModuleDetails.find({ 
+            recruitmentSeriesId: seriesId,
+            moduleStatus: "changes submitted"
+        }).lean();
+
+        if (modules.length === 0) {
+            return res.status(404).json({ error: "No modules with 'changes submitted' status found in this recruitment series" });
+        }
+
+        // Fetch mailing lists in parallel
+        const [undergradMailingList, postgradMailingList] = await Promise.all([
+            User.find({ 
+                userGroup: { $in: recruitmentSeries.undergradMailingList }, 
+                role: 'undergraduate',
+                email: { $exists: true, $ne: null, $ne: '' }
+            }, 'email displayName').lean(),
+            User.find({ 
+                userGroup: { $in: recruitmentSeries.postgradMailingList }, 
+                role: 'postgraduate',
+                email: { $exists: true, $ne: null, $ne: '' }
+            }, 'email displayName').lean()
+        ]);
+
+        // Categorize modules and collect semester information
+        const undergradModules = [];
+        const postgradModules = [];
+        const underSemesters = new Set();
+        const postSemesters = new Set();
+
+        modules.forEach(module => {
+            if (module.openForUndergraduates) {
+                underSemesters.add(module.semester);
+                undergradModules.push(module);
+            }
+            if (module.openForPostgraduates) {
+                postSemesters.add(module.semester);
+                postgradModules.push(module);
+            }
+        });
+
+        const emailResults = [];
+        let successfulEmails = 0;
+
+        // Send undergraduate emails if there are eligible modules and recipients
+        if (undergradModules.length > 0 && undergradMailingList.length > 0) {
+            const undergradEmails = undergradMailingList.map(user => user.email);
+            const undergradSubject = `New TA Opportunities Available - Semester${underSemesters.size > 1 ? 's' : ''} ${Array.from(underSemesters).sort().join(', ')}`;
+            
+            const undergradHtmlContent = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #007bff;">New TA Opportunities Available!</h2>
+                    <p>Dear Undergraduate Student,</p>
+                    <p>We are excited to announce that TA positions are now available for the following modules:</p>
+                    
+                    <div style="background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
+                        ${undergradModules.map(mod => `
+                            <div style="margin-bottom: 15px; padding: 10px; background-color: white; border-left: 4px solid #28a745; border-radius: 4px;">
+                                <strong>${mod.moduleCode} - ${mod.moduleName}</strong><br>
+                                <span style="color: #6c757d;">Semester: ${mod.semester}</span><br>
+                                ${mod.undergraduateCounts ? `<span style="color: #007bff;">Positions Available: ${mod.undergraduateCounts.required}</span><br>` : ''}
+                                ${mod.requiredTAHours ? `<span style="color: #fd7e14;">Hours per week: ${mod.requiredTAHours}</span>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div style="background-color: #e7f3ff; padding: 15px; margin: 20px 0; border-radius: 5px;">
+                        <strong>Application Deadlines:</strong><br>
+                        Application Due: ${new Date(recruitmentSeries.applicationDueDate).toLocaleDateString()}<br>
+                        Document Due: ${new Date(recruitmentSeries.documentDueDate).toLocaleDateString()}<br>
+                        Hour Limit: ${recruitmentSeries.undergradHourLimit} hours per week
+                    </div>
+
+                    <p>Don't miss this opportunity to gain valuable teaching experience and enhance your academic journey!</p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${config.FRONTEND_URL}/login" 
+                           style="background-color: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                            Apply Now
+                        </a>
+                    </div>
+
+                    <p style="font-size: 14px; color: #6c757d;">
+                        For questions or support, please contact the TA Appointment System administrators.
+                    </p>
+                    <p>Best regards,<br>TA Appointment System</p>
+                </div>
+            `;
+
+            const undergradEmailSent = await emailService.sendEmail(undergradEmails, undergradSubject, undergradHtmlContent);
+            emailResults.push({
+                type: 'undergraduate',
+                recipientCount: undergradEmails.length,
+                moduleCount: undergradModules.length,
+                success: undergradEmailSent
+            });
+            if (undergradEmailSent) successfulEmails++;
+        }
+
+        // Send postgraduate emails if there are eligible modules and recipients
+        if (postgradModules.length > 0 && postgradMailingList.length > 0) {
+            const postgradEmails = postgradMailingList.map(user => user.email);
+            const postgradSubject = `New TA Opportunities Available - Semester${postSemesters.size > 1 ? 's' : ''} ${Array.from(postSemesters).sort().join(', ')}`;
+            
+            const postgradHtmlContent = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #007bff;">New TA Opportunities Available!</h2>
+                    <p>Dear Postgraduate Student,</p>
+                    <p>We are excited to announce that TA positions are now available for the following modules:</p>
+                    
+                    <div style="background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
+                        ${postgradModules.map(mod => `
+                            <div style="margin-bottom: 15px; padding: 10px; background-color: white; border-left: 4px solid #6f42c1; border-radius: 4px;">
+                                <strong>${mod.moduleCode} - ${mod.moduleName}</strong><br>
+                                <span style="color: #6c757d;">Semester: ${mod.semester}</span><br>
+                                ${mod.postgraduateCounts ? `<span style="color: #007bff;">Positions Available: ${mod.postgraduateCounts.required}</span><br>` : ''}
+                                ${mod.requiredTAHours ? `<span style="color: #fd7e14;">Hours per week: ${mod.requiredTAHours}</span>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div style="background-color: #f3e7ff; padding: 15px; margin: 20px 0; border-radius: 5px;">
+                        <strong>Application Deadlines:</strong><br>
+                        Application Due: ${new Date(recruitmentSeries.applicationDueDate).toLocaleDateString()}<br>
+                        Document Due: ${new Date(recruitmentSeries.documentDueDate).toLocaleDateString()}<br>
+                        Hour Limit: ${recruitmentSeries.postgradHourLimit} hours per week
+                    </div>
+
+                    <p>This is an excellent opportunity to contribute to the academic community while developing your teaching and mentoring skills.</p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${config.FRONTEND_URL}/login" 
+                           style="background-color: #6f42c1; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                            Apply Now
+                        </a>
+                    </div>
+
+                    <p style="font-size: 14px; color: #6c757d;">
+                        For questions or support, please contact the TA Appointment System administrators.
+                    </p>
+                    <p>Best regards,<br>TA Appointment System</p>
+                </div>
+            `;
+
+            const postgradEmailSent = await emailService.sendEmail(postgradEmails, postgradSubject, postgradHtmlContent);
+            emailResults.push({
+                type: 'postgraduate',
+                recipientCount: postgradEmails.length,
+                moduleCount: postgradModules.length,
+                success: postgradEmailSent
+            });
+            if (postgradEmailSent) successfulEmails++;
+        }
+
+        // Update module status to 'advertised' for successfully processed modules
+        if (successfulEmails > 0) {
+            const moduleIds = modules.map(mod => mod._id);
+            await ModuleDetails.updateMany(
+                { _id: { $in: moduleIds } },
+                { $set: { moduleStatus: 'advertised' } }
+            );
+            console.log(`Updated ${modules.length} modules to 'advertised' status`);
+        }
+
+        const totalEmailsSent = emailResults.reduce((sum, result) => sum + (result.success ? result.recipientCount : 0), 0);
+        const responseMessage = successfulEmails > 0 
+            ? `Advertisement completed successfully. ${totalEmailsSent} emails sent across ${successfulEmails} user group(s).`
+            : "Advertisement failed - no emails were sent";
+
+        console.log(responseMessage);
+
+        res.status(200).json({ 
+            message: responseMessage,
+            summary: {
+                modulesProcessed: modules.length,
+                emailGroupsSent: successfulEmails,
+                totalEmailsSent: totalEmailsSent,
+                undergradModules: undergradModules.length,
+                postgradModules: postgradModules.length
+            },
+            emailResults: emailResults
+        });
+
+    } catch (error) {
+        console.error("Error in advertiseModules function:", error);
+        res.status(500).json({ error: "Internal server error while advertising modules" });
+    }
+};
+
 module.exports = {
     createRecruitmentRound,
     getAllRecruitmentRounds,
@@ -372,5 +718,7 @@ module.exports = {
     copyRecruitmentRound,
     deleteRecruitmentRound,
     updateRecruitmentRoundDeadlines,
-    updateRecruitmentRoundHourLimits
+    updateRecruitmentRoundHourLimits,
+    notifyModules,
+    advertiseModules
 };
