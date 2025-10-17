@@ -4,15 +4,19 @@ import {
   getCurrentUser,
   logout as apiLogout,
   verifyGoogleToken,
+  selectRole as apiSelectRole,
 } from "../api/authApi";
-import type { User } from "../api/authApi";
+import type { User, RoleSelectionResponse, AuthResponse } from "../api/authApi";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   isLoggingOut: boolean;
+  roleSelectionData: RoleSelectionResponse | null;
   logout: () => void;
   loginWithGIS: (idToken: string) => Promise<void>;
+  selectRole: (userId: string, role: string) => Promise<void>;
+  clearRoleSelection: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,6 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [roleSelectionData, setRoleSelectionData] = useState<RoleSelectionResponse | null>(null);
   const navigate = useNavigate();
 
   // Check for an existing session on initial load
@@ -38,15 +43,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const loginWithGIS = async (idToken: string) => {
     setLoading(true);
     try {
-      const authenticatedUser = await verifyGoogleToken(idToken);
-      setUser(authenticatedUser);
+      const response: AuthResponse = await verifyGoogleToken(idToken);
+      
+      // Check if role selection is required
+      if ('requiresRoleSelection' in response && response.requiresRoleSelection) {
+        setRoleSelectionData(response);
+        setUser(null);
+      } else {
+        // Direct login - single role
+        setUser(response as User);
+        setRoleSelectionData(null);
+      }
     } catch (error) {
       console.error("Login failed:", error);
       setUser(null);
+      setRoleSelectionData(null);
       throw error; // Re-throw the error so the component can handle it
     } finally {
       setLoading(false);
     }
+  };
+
+  const selectRole = async (userId: string, role: string) => {
+    setLoading(true);
+    try {
+      const authenticatedUser = await apiSelectRole(userId, role);
+      setUser(authenticatedUser);
+      setRoleSelectionData(null);
+    } catch (error) {
+      console.error("Role selection failed:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearRoleSelection = () => {
+    setRoleSelectionData(null);
   };
 
   const logout = () => {
@@ -69,10 +102,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       user,
       loading,
       isLoggingOut,
+      roleSelectionData,
       logout,
       loginWithGIS,
+      selectRole,
+      clearRoleSelection,
     }),
-    [user, loading, isLoggingOut]
+    [user, loading, isLoggingOut, roleSelectionData]
   );
 
   return (

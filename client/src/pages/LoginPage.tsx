@@ -3,6 +3,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { useAuth } from "../contexts/AuthContext";
 import LoginBgImage from "../assets/images/sumanadasa.jpg";
+import { 
+  LuUserCog, 
+  LuBookOpen, 
+  LuGraduationCap, 
+  LuBookMarked, 
+  LuBuilding2, 
+  LuUser 
+} from "react-icons/lu";
 
 declare global {
   interface Window {
@@ -34,19 +42,160 @@ const AlertModal = ({ message, onClose }: AlertModalProps) => {
   );
 };
 
+type RoleSelectionModalProps = {
+  email: string;
+  availableRoles: Array<{ userId: string; role: string; groupId: string; firstLogin: boolean }>;
+  onSelectRole: (userId: string, role: string) => void;
+  onClose: () => void;
+};
+
+const RoleSelectionModal = ({ availableRoles, onSelectRole, onClose }: RoleSelectionModalProps) => {
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'Admin';
+      case 'lecturer':
+        return 'Lecturer';
+      default:
+        return role;
+    }
+  };
+
+  const getRoleDescription = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'Manage system settings and users';
+      case 'lecturer':
+        return 'View and manage TA applications';
+      default:
+        return '';
+    }
+  };
+
+  const getRoleIcon = (role: string) => {
+    const iconClass = "w-6 h-6";
+    switch (role) {
+      case 'admin':
+        return <LuUserCog className={iconClass} />;
+      case 'lecturer':
+        return <LuBookOpen className={iconClass} />;
+      case 'undergraduate':
+        return <LuGraduationCap className={iconClass} />;
+      case 'postgraduate':
+        return <LuBookMarked className={iconClass} />;
+      case 'cse-office':
+        return <LuBuilding2 className={iconClass} />;
+      case 'hod':
+        return <LuUser className={iconClass} />;
+      default:
+        return <LuUser className={iconClass} />;
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
+      <div className="w-full max-w-md p-6 rounded-xl shadow-2xl bg-bg-card">
+        <h2 className="mb-2 text-3xl font-extrabold text-center text-text-primary">
+          Select Your Role
+        </h2>
+        <p className="mb-6 text-center text-text-secondary">
+          You have access to multiple roles. Please choose which dashboard you'd like to access.
+        </p>
+        <div className="space-y-3">
+          {availableRoles
+            .filter((r) => r.role === 'admin' || r.role === 'lecturer')
+            .map((roleOption) => (
+            <button
+              key={roleOption.userId}
+              onClick={() => onSelectRole(roleOption.userId, roleOption.role)}
+              aria-label={`Continue as ${getRoleDisplayName(roleOption.role)}`}
+              className="w-full group relative p-4 text-left transition-all border rounded-xl bg-bg-page border-border-default hover:border-primary hover:bg-bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center justify-center w-11 h-11 rounded-full bg-primary/10 text-primary">
+                    {getRoleIcon(roleOption.role)}
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-base font-semibold text-text-primary">
+                        {getRoleDisplayName(roleOption.role)}
+                      </span>
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary">
+                        Dashboard
+                      </span>
+                    </div>
+                    <div className="mt-0.5 text-sm text-text-secondary">
+                      {getRoleDescription(roleOption.role)}
+                    </div>
+                  </div>
+                </div>
+                <div className="ml-3 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="text-text-secondary"
+                  >
+                    <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+        <div className="mt-4">
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 transition-colors border rounded-lg text-text-secondary border-border-default hover:bg-bg-page"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 const LoginPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading, loginWithGIS } = useAuth();
+  const { user, loading, loginWithGIS, roleSelectionData, selectRole, clearRoleSelection } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [isGisScriptLoaded, setIsGisScriptLoaded] = useState(false);
-  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
   const [autoLoginStatus, setAutoLoginStatus] = useState<string>('');
 
   const showAlert = (message: string) => {
     setModalMessage(message);
     setShowModal(true);
+  };
+
+  const handleRoleSelection = async (userId: string, role: string) => {
+    try {
+      await selectRole(userId, role);
+      console.log('Role selected successfully:', role);
+    } catch (error) {
+      let errorMessage = "Role selection failed. Please try again.";
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof (error as any).response === "object" &&
+        (error as any).response !== null &&
+        "data" in (error as any).response &&
+        typeof (error as any).response.data === "object" &&
+        (error as any).response.data !== null &&
+        "error" in (error as any).response.data
+      ) {
+        errorMessage = (error as any).response.data.error || errorMessage;
+      }
+      showAlert(errorMessage);
+      console.error("Role selection failed:", error);
+    }
   };
 
   const handleCredentialResponse = async (response: any) => {
@@ -128,14 +277,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  // Manual trigger for Google sign-in
-  const triggerGoogleSignIn = () => {
-    if (window.google?.accounts?.id) {
-      console.log('Manually triggering Google sign-in...');
-      window.google.accounts.id.prompt();
-    }
-  };
-
   // Helper function to get default route based on user role
   const getDefaultRouteForRole = (role: string): string => {
     switch (role) {
@@ -143,12 +284,6 @@ const LoginPage: React.FC = () => {
         return '/admin-dashboard';
       case 'lecturer':
         return '/lec-view-module-details';
-      case 'undergraduate':
-        return '/ta-dashboard';
-      case 'postgraduate':
-        return '/ta-dashboard';
-      case 'cse office' :
-        return '/cse-office-dashboard';
       default:
         return '/login'; // fallback to login if role is not recognized
     }
@@ -191,7 +326,6 @@ const LoginPage: React.FC = () => {
 
         console.log('Google auth initialized, attempting auto-login...');
         setAutoLoginStatus('Checking for existing Google session...');
-        setAutoLoginAttempted(true);
 
         // Attempt One Tap auto-login with notification handler
         window.google.accounts.id.prompt(handlePromptNotification);
@@ -268,6 +402,14 @@ const LoginPage: React.FC = () => {
         <AlertModal
           message={modalMessage}
           onClose={() => setShowModal(false)}
+        />
+      )}
+      {roleSelectionData && (
+        <RoleSelectionModal
+          email={roleSelectionData.email}
+          availableRoles={roleSelectionData.availableRoles}
+          onSelectRole={handleRoleSelection}
+          onClose={clearRoleSelection}
         />
       )}
     </div>

@@ -9,12 +9,37 @@ export interface User {
     profilePicture: string;
 }
 
-export const verifyGoogleToken = async (id_token: string): Promise<User> => {
+export interface AvailableRole {
+    userId: string;
+    role: string;
+    groupId: string;
+    firstLogin: boolean;
+}
+
+export interface RoleSelectionResponse {
+    requiresRoleSelection: true;
+    availableRoles: AvailableRole[];
+    email: string;
+}
+
+export type AuthResponse = User | RoleSelectionResponse;
+
+export const verifyGoogleToken = async (id_token: string): Promise<AuthResponse> => {
   try{
-    const response = await axiosInstance.post<User>('/auth/google-verify', { id_token });
+    const response = await axiosInstance.post<AuthResponse>('/auth/google-verify', { id_token });
     return response.data;
   }catch(error) {
     console.error('Error verifying Google token:', error);
+    throw error;
+  }
+};
+
+export const selectRole = async (userId: string, role: string): Promise<User> => {
+  try {
+    const response = await axiosInstance.post<User>('/auth/select-role', { userId, role });
+    return response.data;
+  } catch (error) {
+    console.error('Error selecting role:', error);
     throw error;
   }
 };
