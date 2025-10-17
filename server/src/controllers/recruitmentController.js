@@ -376,10 +376,13 @@ const notifyModules = async (req, res) => {
         console.log(`Starting notification process for recruitment series ${seriesId}`);
         
         // Find all initialised modules in the recruitment series
+        console.log(`🔍 Searching for modules with seriesId: ${seriesId} and status: "initialised"`);
         const modules = await ModuleDetails.find({ 
             recruitmentSeriesId: seriesId,
             moduleStatus: "initialised" 
         }).lean();
+        
+        console.log(`📊 Found ${modules.length} modules to process`);
         
         if (modules.length === 0) {
             return res.status(404).json({ error: "No initialised modules found in this recruitment series" });
@@ -391,16 +394,21 @@ const notifyModules = async (req, res) => {
 
         for (const module of modules) {
             try {
+                console.log(`🔍 Processing module: ${module.moduleCode} - ${module.moduleName}`);
+                
                 if (!module.coordinators || module.coordinators.length === 0) {
                     console.warn(`Module ${module.moduleCode} has no coordinators assigned - skipping`);
                     continue;
                 }
 
+                console.log(`👥 Fetching ${module.coordinators.length} coordinators for ${module.moduleCode}`);
                 // Fetch coordinators for this module
                 const coordinators = await User.find({ 
                     _id: { $in: module.coordinators },
                     email: { $exists: true, $ne: null, $ne: '' }
                 }).lean();
+                
+                console.log(`✅ Found ${coordinators.length} coordinators with valid emails for ${module.moduleCode}`);
 
                 if (coordinators.length === 0) {
                     console.warn(`Module ${module.moduleCode} has no coordinators with valid email addresses - skipping`);
@@ -453,6 +461,8 @@ const notifyModules = async (req, res) => {
             }
         }
 
+        console.log(`📧 Prepared ${emails.length} emails for processing`);
+        
         if (emails.length === 0) {
             return res.status(400).json({ 
                 error: "No valid emails could be prepared. Check module coordinators and email addresses.",
@@ -460,16 +470,16 @@ const notifyModules = async (req, res) => {
             });
         }
 
-        // Queue the bulk email job
-        const jobResult = await emailService.sendBulkEmails(emails, 'notify_lecturers', seriesId, {
-            moduleUpdates,
-            originalModuleCount: modules.length,
-        });
+        // Send notification emails using chunk processing for better performance
+        console.log(`� Sending ${emails.length} notification emails to lecturers`);
+        const notificationResult = await emailService.sendNotificationEmails(emails);
+        
+        console.log(`✅ Notification email results: ${notificationResult.successful}/${notificationResult.total} emails sent successfully`);
+        console.log(`⏱️ Processing time: ${Math.round(notificationResult.duration / 1000)}s`);
 
-        if (!jobResult.success) {
+        if (notificationResult.successful === 0) {
             return res.status(500).json({ 
-                error: "Failed to queue notification emails",
-                details: jobResult.error
+                error: "Failed to send notification emails"
             });
         }
 
@@ -479,20 +489,24 @@ const notifyModules = async (req, res) => {
             { $set: { moduleStatus: "pending changes" } }
         );
 
-        console.log(`✅ Queued ${emails.length} notification emails for ${moduleUpdates.length} modules`);
+        console.log(`✅ Sent ${notificationResult.successful} notification emails for ${moduleUpdates.length} modules`);
 
         res.status(200).json({
-            message: `Notification emails queued successfully`,
-            jobId: jobResult.jobId,
+            message: `Notification emails sent successfully`,
+            results: {
+                successful: notificationResult.successful,
+                failed: notificationResult.failed,
+                total: notificationResult.total,
+                duration: notificationResult.duration
+            },
             summary: {
                 modulesProcessed: moduleUpdates.length,
-                emailsQueued: emails.length,
-                estimatedDuration: jobResult.estimatedDuration,
+                emailsSent: notificationResult.successful,
+                emailsFailed: notificationResult.failed,
             },
             details: {
-                jobId: jobResult.jobId,
-                queueName: jobResult.queueName,
-                statusCheckUrl: `/api/jobs/${jobResult.jobId}/status`,
+                jobIds: jobResults,
+                totalJobs: jobResults.length,
             }
         });
 
@@ -707,18 +721,40 @@ const advertiseModules = async (req, res) => {
             });
         }
 
-        // Queue the bulk email job
-        const jobResult = await emailService.sendBulkEmails(emails, 'advertise_modules', seriesId, {
-            emailGroups,
-            originalModuleCount: modules.length,
-            undergradModules: undergradModules.length,
-            postgradModules: postgradModules.length,
-        });
+        // Send separate jobs for undergraduate and postgraduate emails (different content)
+        const jobResults = [];
+        
+        // Send undergraduate emails using chunk processing
+        const undergradEmails = emails.filter(email => email.metadata.userType === 'undergraduate');
+        if (undergradEmails.length > 0) {
+            console.log(`📢 Sending ${undergradEmails.length} advertisement emails to undergraduates`);
+            const undergradJobResult = await emailService.sendAdvertisementEmails(undergradEmails);
+            jobResults.push({
+                type: 'undergraduate',
+                success: undergradJobResult.successful > 0,
+                count: undergradJobResult.successful,
+                total: undergradJobResult.total,
+                duration: undergradJobResult.duration
+            });
+        }
 
-        if (!jobResult.success) {
+        // Send postgraduate emails using chunk processing
+        const postgradEmails = emails.filter(email => email.metadata.userType === 'postgraduate');
+        if (postgradEmails.length > 0) {
+            console.log(`📢 Sending ${postgradEmails.length} advertisement emails to postgraduates`);
+            const postgradJobResult = await emailService.sendAdvertisementEmails(postgradEmails);
+            jobResults.push({
+                type: 'postgraduate',
+                success: postgradJobResult.successful > 0,
+                count: postgradJobResult.successful,
+                total: postgradJobResult.total,
+                duration: postgradJobResult.duration
+            });
+        }
+
+        if (jobResults.length === 0) {
             return res.status(500).json({ 
-                error: "Failed to queue advertisement emails",
-                details: jobResult.error
+                error: "Failed to send advertisement emails"
             });
         }
 
@@ -731,21 +767,22 @@ const advertiseModules = async (req, res) => {
 
         console.log(`✅ Queued ${emails.length} advertisement emails for ${modules.length} modules`);
 
+        const totalSent = jobResults.reduce((sum, result) => sum + result.count, 0);
+        const totalEmails = jobResults.reduce((sum, result) => sum + result.total, 0);
+
         res.status(200).json({
-            message: `Advertisement emails queued successfully`,
-            jobId: jobResult.jobId,
+            message: `Advertisement emails sent successfully`,
+            results: jobResults,
             summary: {
                 modulesProcessed: modules.length,
-                emailsQueued: emails.length,
+                emailsSent: totalSent,
+                emailsTotal: totalEmails,
                 undergradModules: undergradModules.length,
                 postgradModules: postgradModules.length,
-                estimatedDuration: jobResult.estimatedDuration,
             },
             details: {
-                jobId: jobResult.jobId,
-                queueName: jobResult.queueName,
                 emailGroups: emailGroups,
-                statusCheckUrl: `/api/jobs/${jobResult.jobId}/status`,
+                processingResults: jobResults,
             }
         });
 
