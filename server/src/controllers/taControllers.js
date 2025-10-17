@@ -29,6 +29,14 @@ const getAllRequests = async (req, res) => {
       );
     }
 
+    // Check if there are any active recruitment series
+    if (activeRecSeries.length === 0) {
+      return res.status(200).json({
+        updatedModules: [],
+        availableHoursPerWeek: userRole === "undergraduate" ? 6 : 10,
+      });
+    }
+
     const recSeriesIds = activeRecSeries.map((r) => r._id);
 
     const appliedModules = await AppliedModules.find(
@@ -224,6 +232,11 @@ const getAppliedModules = async (req, res) => {
       );
     }
 
+    // Check if there are any active recruitment series
+    if (activeRecSeries.length === 0) {
+      return res.status(200).json([]);
+    }
+
     // fetch AppliedModules with nested populate
     const appliedModulesDocs = await AppliedModules.find({
       userId,
@@ -290,6 +303,11 @@ const getAcceptedModules = async (req, res) => {
       );
     }
 
+    // Check if there are any active recruitment series
+    if (activeRecSeries.length === 0) {
+      return res.status(200).json({ acceptedApplications: [], docSubmissionStatus: false });
+    }
+
     // Fetch only accepted applications inside AppliedModules
     const acceptedApplications = await AppliedModules.find({
       userId,
@@ -307,8 +325,15 @@ const getAcceptedModules = async (req, res) => {
         },
       },
     });
+    
+    // Correctly fetch the document submission status
+    const appliedModulesDoc = await AppliedModules.findOne({ 
+      userId, 
+      recSeriesId: activeRecSeries[0]._id 
+    });
+    const docSubmissionStatus = appliedModulesDoc?.isDocSubmitted || false;
 
-    res.status(200).json(acceptedApplications);
+    res.status(200).json({ acceptedApplications, docSubmissionStatus });
   } catch (error) {
     console.error("Error fetching accepted modules:", error);
     res.status(500).json({ message: "Error fetching accepted modules", error });

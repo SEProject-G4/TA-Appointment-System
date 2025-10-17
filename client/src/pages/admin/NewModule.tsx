@@ -126,6 +126,20 @@ const NewModule: React.FC = () => {
         "Module added successfully to the recruitment series!",
         "success"
       );
+      setFormData({
+        moduleCode: "",
+        moduleName: "",
+        semester: null,
+        coordinators: [],
+        undergraduateTAsRequired: 0,
+        postgraduateTAsRequired: 0,
+        taHours: 0,
+        appDueDate: toLocalDatetimeInputValue(new Date(state.appDueDate)),
+        docDueDate: toLocalDatetimeInputValue(new Date(state.docDueDate)),
+        specialNotes: "",
+        openForUndergrads: false,
+        openForPostgrads: false,
+      });
     } catch (error) {
       console.error("Error creating module:", error);
       showToast("Failed to create module.", "error");
