@@ -15,6 +15,7 @@ import TADocumentCard from "../../components/ta/TADocumentCard";
 import ViewToggle from "../../components/ta/ViewToggle";
 import { useAuth } from "../../contexts/AuthContext";
 import axios from "axios";
+import axiosInstance from "../../api/axiosConfig";
 
 function TADashboardAccepted() {
   const { user } = useAuth();
@@ -48,8 +49,8 @@ const totalTAHours = modules.reduce(
     const fetchApplications = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(
-          "http://localhost:5000/api/ta/accepted-modules",
+        const response = await axiosInstance.get(
+          "/ta/accepted-modules",
           { params: { userId } }
         );
         setApplications(response.data.acceptedApplications);

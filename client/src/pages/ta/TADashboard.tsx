@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
+import axiosInstance from "../../api/axiosConfig";
 
 function TADashboard() {
   const { user } = useAuth();
@@ -34,7 +35,7 @@ function TADashboard() {
     taHours: number
   ) => {
     try {
-      const response = await axios.post("http://localhost:5000/api/ta/apply", {
+      const response = await axiosInstance.post("/ta/apply", {
         userId,
         userRole,
         moduleId,
@@ -94,14 +95,14 @@ function TADashboard() {
     );
   });
 
-  const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
+  // const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
 
   useEffect(() => {
     if (!user) return;
     const fetchModules = async () => {
       try {
-        const response = await axios.get(
-          `${backendURL}/ta/requests`,
+        const response = await axiosInstance.get(
+          "/ta/requests",
           {
             params: {
               userId,
