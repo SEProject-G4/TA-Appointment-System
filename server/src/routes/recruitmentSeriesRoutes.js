@@ -1,13 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const recruitmentController = require('../controllers/recruitmentController');
-const authMiddleware = require('../middleware/authMiddleware');
+const { protected, authorize } = require('../middleware/authMiddleware');
 
-router.post('/create', authMiddleware.protected, authMiddleware.authorize(['admin']), recruitmentController.createRecruitmentRound);
-router.get('/', authMiddleware.protected, authMiddleware.authorize(['admin']), recruitmentController.getAllRecruitmentRounds);
-router.post('/:seriesId/add-module', authMiddleware.protected, authMiddleware.authorize(['admin']), recruitmentController.addModuleToRecruitmentRound);
-router.get('/:seriesId/modules', authMiddleware.protected, authMiddleware.authorize(['admin']), recruitmentController.getModuleDetailsBySeriesId);
-router.get('/:seriesId/eligible-undergraduates', authMiddleware.protected, authMiddleware.authorize(['admin']), recruitmentController.getEligibleUndergraduates);
-router.get('/:seriesId/eligible-postgraduates', authMiddleware.protected, authMiddleware.authorize(['admin']), recruitmentController.getEligiblePostgraduates);
+router.post('/create', protected, authorize(['admin']), recruitmentController.createRecruitmentRound);
+router.get('/', protected, authorize(['admin']), recruitmentController.getAllRecruitmentRounds);
+router.post('/:seriesId/add-module', protected, authorize(['admin']), recruitmentController.addModuleToRecruitmentRound);
+router.get('/:seriesId/modules', protected, authorize(['admin']), recruitmentController.getModuleDetailsBySeriesId);
+router.get('/:seriesId/eligible-undergraduates', protected, authorize(['admin']), recruitmentController.getEligibleUndergraduates);
+router.get('/:seriesId/eligible-postgraduates', protected, authorize(['admin']), recruitmentController.getEligiblePostgraduates);
+router.post('/copy/:seriesId', protected, authorize(['admin']), recruitmentController.copyRecruitmentRound);
+router.put('/:seriesId/deadlines', protected, authorize(['admin']), recruitmentController.updateRecruitmentRoundDeadlines);
+router.put('/:seriesId/hour-limits', protected, authorize(['admin']), recruitmentController.updateRecruitmentRoundHourLimits);
+router.post('/:seriesId/notify-modules', protected, authorize(['admin']), recruitmentController.notifyModules);
+router.post('/:seriesId/advertise-modules', protected, authorize(['admin']), recruitmentController.advertiseModules);
+router.delete('/:seriesId', protected, authorize(['admin']), recruitmentController.deleteRecruitmentRound);
 
 module.exports = router;

@@ -16,4 +16,7 @@ module.exports = {
   // Email configuration
   GMAIL_USER: process.env.GMAIL_USER,
   GMAIL_PASS: process.env.GMAIL_PASS,
+
+  // Redis Cloud configuration
+  REDIS_URL: process.env.REDIS_URL, 
 };
