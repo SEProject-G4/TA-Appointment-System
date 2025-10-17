@@ -45,7 +45,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 // A container to manage and display multiple toast notifications.
 const ToastNotificationContainer: React.FC<{ toasts: Toast[]; removeToast: (id: number) => void }> = ({ toasts, removeToast }) => {
   return (
-    <div className="fixed bottom-4 right-4 z-[100] w-full max-w-xs space-y-2 pointer-events-none">
+    <div className="fixed bottom-4 right-4 z-[100] w-full max-w-sm space-y-3 pointer-events-none">
       {toasts.map(toast => (
         <Toast key={toast.id} toast={toast} removeToast={removeToast} />
       ))}
@@ -66,27 +66,61 @@ const Toast: React.FC<{ toast: Toast; removeToast: (id: number) => void }> = ({ 
   }, [id, removeToast]);
 
 
-  const getColors = () => {
+  const getStyles = () => {
     switch (type) {
       case 'success':
-        return 'bg-success text-text-inverted';
+        return {
+          container: 'bg-bg-card border-l-4 border-green-500 text-text-primary shadow-xl',
+          icon: 'bg-green-500/10 text-green-600',
+          close: 'text-green-600 hover:bg-green-500/10'
+        };
       case 'error':
-        return 'bg-warning text-text-inverted';
+        return {
+          container: 'bg-bg-card border-l-4 border-red-500 text-text-primary shadow-xl',
+          icon: 'bg-red-500/10 text-red-600',
+          close: 'text-red-600 hover:bg-red-500/10'
+        };
       case 'info':
-        return 'bg-info text-text-inverted';
+        return {
+          container: 'bg-bg-card border-l-4 border-blue-500 text-text-primary shadow-xl',
+          icon: 'bg-blue-500/10 text-blue-600',
+          close: 'text-blue-600 hover:bg-blue-500/10'
+        };
       default:
-        return 'bg-gray-700 text-text-primary';
+        return {
+          container: 'bg-bg-card border-l-4 border-text-secondary text-text-primary shadow-xl',
+          icon: 'bg-text-secondary/10 text-text-secondary',
+          close: 'text-text-secondary hover:bg-text-secondary/10'
+        };
+    }
+  };
+
+  const styles = getStyles();
+
+  const getTypeIcon = () => {
+    switch (type) {
+      case 'success':
+        return '✓';
+      case 'error':
+        return '!';
+      case 'info':
+        return 'i';
+      default:
+        return 'i';
     }
   };
 
   return (
-    <div className={`p-4 rounded-lg shadow-lg pointer-events-auto flex items-start gap-4 transform transition-all duration-300 ease-out animate-slideIn ${getColors()}`}>
-      <span className="flex-1">{message}</span>
+    <div className={`p-4 rounded-md pointer-events-auto flex items-start gap-3 transform transition-all duration-300 ease-out animate-slideIn backdrop-blur-sm ${styles.container}`}>
+      <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${styles.icon}`}>
+        {getTypeIcon()}
+      </div>
+      <span className="flex-1 text-sm font-medium leading-relaxed">{message}</span>
       <button
         onClick={() => removeToast(id)}
-        className="text-text-inverted text-lg font-bold leading-none"
+        className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold leading-none transition-colors duration-200 flex-shrink-0 ${styles.close}`}
       >
-        &times;
+        ×
       </button>
     </div>
   );

@@ -36,7 +36,8 @@
   --color-border-strong: 156 163 175;
 
   /* --- Semantic State Colors --- */
-  --color-success: 28 100 208; /* Blue*/
+  --color-success: 34 197 94; /* Green */
+  /* --color-success: 28 100 208; Blue */
   --color-warning: 244 67 54; /* Standard Red */
   --color-info: 33 150 243; /* Standard Blue */
   --color-advertised: 244 67 54; /* Standard Red */

@@ -15,6 +15,7 @@ import TADocumentCard from "../../components/ta/TADocumentCard";
 import ViewToggle from "../../components/ta/ViewToggle";
 import { useAuth } from "../../contexts/AuthContext";
 import axios from "axios";
+import axiosInstance from "../../api/axiosConfig";
 
 function TADashboardAccepted() {
   const { user } = useAuth();
@@ -22,6 +23,8 @@ function TADashboardAccepted() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [isDocOpen, setIsDocOpen] = useState(false);
+  const [isDocSubmitted, setIsDocSubmitted] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
   const userRole = user?.role;
   const userId = user?.id; //check weather this correct------------------------------
   const modules = applications.flatMap(app =>
@@ -46,11 +49,12 @@ const totalTAHours = modules.reduce(
     const fetchApplications = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(
-          "http://localhost:5001/api/ta/accepted-modules",
+        const response = await axiosInstance.get(
+          "/ta/accepted-modules",
           { params: { userId } }
         );
-        setApplications(response.data);
+        setApplications(response.data.acceptedApplications);
+        setIsDocSubmitted(response.data.docSubmissionStatus);
         console.log(response.data);
       } catch (error) {
         console.error("error fetching application data", error);
@@ -60,19 +64,19 @@ const totalTAHours = modules.reduce(
     };
 
     fetchApplications();
-  }, [userId]); // <-- run whenever userId changes
+  }, [userId, refreshTrigger]); // <-- run whenever userId or refreshTrigger changes
 
   return (
     <div>
       <div className="min-h-screen bg-bg-card text-text-primary">
-        <div className="container px-2 sm:px-4 py-4 sm:py-8 mx-auto">
+        <div className="container px-2 py-4 mx-auto sm:px-4 sm:py-8">
           {/* header */}
-          <div className="mb-8 sm:mb-12 text-center">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-4">
+          <div className="mb-8 text-center sm:mb-12">
+            <div className="flex flex-col items-center justify-center gap-2 mb-4 sm:flex-row sm:gap-3">
               <div className="p-2 sm:p-3 rounded-xl bg-primary/10">
                 <CircleCheckBig className="w-6 h-6 sm:w-8 sm:h-8 text-success" />
               </div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-primary text-center">
+              <h1 className="text-2xl font-bold text-center sm:text-3xl lg:text-4xl text-text-primary">
                 Accepted TA Positions
               </h1>
             </div>
@@ -82,7 +86,7 @@ const totalTAHours = modules.reduce(
             </p> */}
           </div>
           {/* stats */}
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 mb-6 sm:gap-6 sm:mb-8 sm:grid-cols-2 lg:grid-cols-3">
             <TAStatCard
               statName="Total Hours per Week"
               statValue={3}
@@ -102,20 +106,21 @@ const totalTAHours = modules.reduce(
             </div>
           </div>
         </div>
+        {/* document submission tab */}
+        {applications.length > 0 && (
         <div className="m-2 sm:m-4 lg:m-8 xl:m-16">
-          <div className="p-4 sm:p-6 mb-6 sm:mb-8 border border-blue-200 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 flex-1">
-                <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
-                  <FileIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+          <div className="p-4 mb-6 border border-blue-200 rounded-lg sm:p-6 sm:mb-8 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
+              <div className="flex flex-col items-start flex-1 gap-3 sm:flex-row sm:items-center sm:gap-4">
+                <div className="flex-shrink-0 p-2 bg-blue-100 rounded-lg sm:p-3">
+                  <FileIcon className="w-5 h-5 text-blue-600 sm:w-6 sm:h-6" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="mb-1 text-lg sm:text-xl font-semibold text-gray-900">
-                    Document Submissions Required
+                <div className="flex-1 min-w-0">
+                  <h2 className="mb-1 text-lg font-semibold text-gray-900 sm:text-xl">
+                    {isDocSubmitted?"Documents Uploaded Successfully": "Document Submissions Required"}
                   </h2>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    Submit your documents for the following accepted TA
-                    positions to complete your onboarding process.
+                  <p className="text-sm text-gray-600 sm:text-base">
+                    {isDocSubmitted?"Your documents and required details has been submitted successfully.": "Submit your documents for the following accepted TA positions to complete your onboarding process."}
                   </p>
                 </div>
               </div>
@@ -124,19 +129,21 @@ const totalTAHours = modules.reduce(
                   icon={<UploadIcon className="w-4 h-4" />}
                   label="Submit Documents"
                   onClick={() => setIsDocOpen(true)}
+                  disabled={isDocSubmitted}
                 />
               </div>
             </div>
           </div>
         </div>
+      )}
 
         {/* accepted TA positions */}
         <div className="gap-2 m-2 sm:m-4 lg:m-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <h2 className="text-xl sm:text-2xl font-semibold text-foreground">
+          <div className="flex flex-col items-start justify-between gap-4 mb-6 sm:flex-row sm:items-center">
+            <h2 className="text-xl font-semibold sm:text-2xl text-foreground">
               Accepted TA Positions
             </h2>
-            <div className="flex justify-center sm:justify-start w-full sm:w-auto">
+            <div className="flex justify-center w-full sm:justify-start sm:w-auto">
               <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
             </div>
           </div>
@@ -145,7 +152,7 @@ const totalTAHours = modules.reduce(
               <p className="text-base sm:text-lg text-text-secondary">Loading...</p>
             </div>
           ) : applications.length === 0 ? (
-            <div className="py-8 sm:py-12 text-center">
+            <div className="py-8 text-center sm:py-12">
               <p className="text-base sm:text-lg text-text-secondary">
                 You have not applied for any TA positions yet.
               </p>
@@ -202,6 +209,11 @@ const totalTAHours = modules.reduce(
           position={{
             modules,
             totalTAHours,
+          }}
+          isDocSubmitted={isDocSubmitted}
+          onSuccess={() => {
+            setRefreshTrigger(prev => prev + 1); // Trigger refresh after successful submission
+            setIsDocOpen(false);
           }}
         />
       )}
