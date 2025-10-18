@@ -792,6 +792,117 @@ const advertiseModules = async (req, res) => {
     }
 };
 
+const closeRecruitmentRound = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { seriesId } = req.params;
+
+        // Validate input
+        if (!seriesId) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ error: "seriesId is required" });
+        }
+
+        // Find the recruitment series
+        const recruitmentSeries = await RecruitmentRound.findById(seriesId).session(session);
+        if (!recruitmentSeries) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ error: "Recruitment round not found" });
+        }
+
+        // Check if the recruitment round can be closed
+        if (recruitmentSeries.status === 'closed') {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ error: "Recruitment round is already closed" });
+        }
+
+        if (recruitmentSeries.status === 'archived') {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ error: "Cannot close an archived recruitment round" });
+        }
+
+        // Update all modules in this recruitment series to 'closed' status
+        const moduleUpdateResult = await ModuleDetails.updateMany(
+            { recruitmentSeriesId: seriesId },
+            { $set: { moduleStatus: 'closed' } }
+        ).session(session);
+
+        // Update the recruitment series status to closed
+        recruitmentSeries.status = 'closed';
+        await recruitmentSeries.save({ session });
+
+        await session.commitTransaction();
+
+        console.log(`✅ Recruitment round ${seriesId} has been closed. ${moduleUpdateResult.modifiedCount} modules updated to 'closed' status.`);
+
+        res.status(200).json({ 
+            message: "Recruitment round closed successfully",
+            recruitmentSeries: {
+                _id: recruitmentSeries._id,
+                name: recruitmentSeries.name,
+                status: recruitmentSeries.status
+            },
+            modulesUpdated: moduleUpdateResult.modifiedCount
+        });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error closing recruitment round:", error);
+        res.status(500).json({ error: "Internal server error" });
+    } finally {
+        session.endSession();
+    }
+};
+
+const archiveRecruitmentRound = async (req, res) => {
+    try {
+        const { seriesId } = req.params;
+
+        // Validate input
+        if (!seriesId) {
+            return res.status(400).json({ error: "seriesId is required" });
+        }
+
+        // Find the recruitment series
+        const recruitmentSeries = await RecruitmentRound.findById(seriesId);
+        if (!recruitmentSeries) {
+            return res.status(404).json({ error: "Recruitment round not found" });
+        }
+
+        // Check if the recruitment round can be archived
+        if (recruitmentSeries.status === 'archived') {
+            return res.status(400).json({ error: "Recruitment round is already archived" });
+        }
+
+        if (recruitmentSeries.status !== 'closed') {
+            return res.status(400).json({ error: "Only closed recruitment rounds can be archived" });
+        }
+
+        // Update the status to archived
+        recruitmentSeries.status = 'archived';
+        await recruitmentSeries.save();
+
+        console.log(`✅ Recruitment round ${seriesId} has been archived`);
+
+        res.status(200).json({ 
+            message: "Recruitment round archived successfully",
+            recruitmentSeries: {
+                _id: recruitmentSeries._id,
+                name: recruitmentSeries.name,
+                status: recruitmentSeries.status
+            }
+        });
+    } catch (error) {
+        console.error("Error archiving recruitment round:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 module.exports = {
     createRecruitmentRound,
     getAllRecruitmentRounds,
@@ -804,5 +915,7 @@ module.exports = {
     updateRecruitmentRoundDeadlines,
     updateRecruitmentRoundHourLimits,
     notifyModules,
-    advertiseModules
+    advertiseModules,
+    closeRecruitmentRound,
+    archiveRecruitmentRound
 };
