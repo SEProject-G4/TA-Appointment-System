@@ -44,7 +44,7 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
         { subMenu:false, to: "/admin-dashboard", label: "Admin Dashboard" },
         { subMenu:true, to: "/manage-users/add-user", label: "Manage Users",
           subNavs: [
-            { to: "/manage-users/overview", label: "Overview" },
+            // { to: "/manage-users/overview", label: "Overview" },
             { to: "/manage-users/undergraduates", label: "Undergraduates" },
             { to: "/manage-users/postgraduates", label: "Postgraduates" },
             { to: "/manage-users/add-user", label: "Add User" },

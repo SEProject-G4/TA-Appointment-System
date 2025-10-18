@@ -1,15 +1,13 @@
 import "./AddUser.css";
 
 import { useLocation } from "react-router-dom";
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaCircleCheck } from "react-icons/fa6";
 import { AiOutlineCloseCircle } from "react-icons/ai";
 import { FaUpload, FaMinus } from "react-icons/fa";
 import { AiOutlinePlusCircle } from "react-icons/ai";
 import Papa from "papaparse";
 import {
-  Input,
-  Select,
   Tab,
   TabGroup,
   TabPanel,
@@ -41,7 +39,7 @@ function AddUser() {
     { email?: string; indexNumber?: string; displayName?: string }[]
   >([]);
   const [userRole, setUserRole] = useState("undergraduate");
-  const [users, setUsers] = useState<User[]>([{ email: "" }]);
+  const [users, setUsers] = useState<User[]>([{ email: "", indexNumber: "" }]);
   const [isLoading, setIsLoading] = useState(false);
   const [dialogMessage, setDialogMessage] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -64,7 +62,7 @@ function AddUser() {
 
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
-  const [isFileLoading, setIsFileLoading] = useState(false);
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -156,7 +154,16 @@ function AddUser() {
   };
 
   const handleAddUser = () => {
-    setUsers([...users, { email: "", indexNumber: "" }]);
+    const newUser: User = { email: "" };
+    
+    // Add appropriate fields based on user role
+    if (userRole === "undergraduate" || userRole === "postgraduate") {
+      newUser.indexNumber = "";
+    } else if (userRole === "lecturer" || userRole === "hod") {
+      newUser.displayName = "";
+    }
+    
+    setUsers([...users, newUser]);
   };
 
   const handleRemoveUser = (index: number) => {
@@ -176,6 +183,10 @@ function AddUser() {
     return /^[a-zA-Z0-9]{4,12}$/.test(indexNumber);
   };
 
+  const validateDisplayName = (displayName: string) => {
+    return displayName && displayName.trim().length >= 2;
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -184,7 +195,7 @@ function AddUser() {
       email?: string;
       indexNumber?: string;
       displayName?: string;
-    }[] = users.map((user) => ({}));
+    }[] = users.map(() => ({}));
     let hasError = false;
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
@@ -202,8 +213,11 @@ function AddUser() {
         }
       }
       if (userRole === "lecturer" || userRole === "hod") {
-        if (!user.displayName) {
+        if (!user.displayName || user.displayName.trim() === "") {
           errors[i].displayName = "Display Name is required.";
+          hasError = true;
+        } else if (!validateDisplayName(user.displayName)) {
+          errors[i].displayName = "Display Name must be at least 2 characters.";
           hasError = true;
         }
       }
@@ -222,6 +236,8 @@ function AddUser() {
     };
 
     console.log("Sending payload to backend:", payload);
+    console.log("User role:", userRole);
+    console.log("Users being sent:", users);
 
     try {
       const response = await axiosInstance.post(
@@ -239,9 +255,10 @@ function AddUser() {
       } else {
         setDialogMessage(responseData.message || "Failed to add users.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("API call failed:", error);
-      setDialogMessage("Failed to add users. Please try again.");
+      const errorMessage = error.response?.data?.message || error.message || "Failed to add users. Please try again.";
+      setDialogMessage(errorMessage);
     } finally {
       setIsLoading(false);
       setIsDialogOpen(true);
@@ -275,8 +292,19 @@ function AddUser() {
             className="user-type-select"
             value={userRole}
             onChange={(e) => {
-              setUserRole(e.target.value);
-              // fetchUserGroups();
+              const newRole = e.target.value;
+              setUserRole(newRole);
+              
+              // Reset users array with appropriate fields for new role
+              const newUser: User = { email: "" };
+              if (newRole === "undergraduate" || newRole === "postgraduate") {
+                newUser.indexNumber = "";
+              } else if (newRole === "lecturer" || newRole === "hod") {
+                newUser.displayName = "";
+              }
+              setUsers([newUser]);
+              setInputErrors([]);
+              setSelectedUserGroup(null);
             }}
           >
             <option value="admin">Admin</option>
@@ -305,10 +333,24 @@ function AddUser() {
                     onSubmit={handleSubmit}
                     className="w-full flex flex-col items-center max-w-3xl bg-bg-card p-6"
                   >
-                    <h2 className="text-xl mb-8 font-light text-center">
+                    <h2 className="text-xl mb-4 font-light text-center">
                       Add New{" "}
                       {userRole.charAt(0).toUpperCase() + userRole.slice(1)}(s)
                     </h2>
+                    
+                    {/* Field Requirements Info */}
+                    <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
+                      <p className="font-medium mb-1">Required fields for {userRole}s:</p>
+                      <ul className="list-disc list-inside">
+                        <li>Email address</li>
+                        {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                          <li>Index Number (4-12 alphanumeric characters)</li>
+                        )}
+                        {(userRole === "lecturer" || userRole === "hod") && (
+                          <li>Display Name (minimum 2 characters)</li>
+                        )}
+                      </ul>
+                    </div>
 
                     {/* Dynamic Input Units */}
                     <div className="w-full flex flex-col gap-5 mb-6">
@@ -324,7 +366,7 @@ function AddUser() {
                                 <input
                                   type="text"
                                   name="indexNumber"
-                                  placeholder="Index Number"
+                                  placeholder="e.g., 220001A"
                                   value={user.indexNumber}
                                   onChange={(e) => handleUserChange(index, e)}
                                   // required
@@ -343,7 +385,7 @@ function AddUser() {
                                 <input
                                   type="text"
                                   name="displayName"
-                                  placeholder="Display Name"
+                                  placeholder="e.g., Dr. John Smith, Prof. Jane Doe"
                                   value={user.displayName}
                                   onChange={(e) => handleUserChange(index, e)}
                                   // required
@@ -360,7 +402,7 @@ function AddUser() {
                               <input
                                 type="email"
                                 name="email"
-                                placeholder="Email"
+                                placeholder="user@cse.mrt.ac.lk"
                                 value={user.email}
                                 onChange={(e) => handleUserChange(index, e)}
                                 // required
