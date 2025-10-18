@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { FaChevronRight, FaRegCalendarAlt, FaBoxOpen } from "react-icons/fa";
 import { MdMoreVert } from "react-icons/md";
@@ -124,6 +124,7 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
 
   const { openModal, closeModal } = useModal();
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const changesSubmittedModules = moduleDetails.filter(mod => mod.moduleStatus === 'changes submitted');
   const initialisedModules = moduleDetails.filter(mod => mod.moduleStatus === 'initialised');
@@ -363,7 +364,7 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
           },
           {
             label: "Edit",
-            onClick: () => {}, // TODO: Implement edit functionality
+            onClick: () => {navigate(`/recruitment-series/${_id}/edit`)},
             show: true
           },
           ...baseItems,

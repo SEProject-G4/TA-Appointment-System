@@ -270,13 +270,141 @@ const deleteRecruitmentRound = async (req, res) => {
     }
 };
 
-const updateRecruitmentRoundDeadlines = async (req, res) => {
+const updateRecruitmentRound = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
         const { seriesId } = req.params;
-        const { applicationDueDate, documentDueDate } = req.body;
+        const { 
+            name, 
+            applicationDueDate, 
+            documentDueDate, 
+            undergradHourLimit, 
+            postgradHourLimit, 
+            undergradMailingList, 
+            postgradMailingList,
+            updateModuleDeadlines = true
+        } = req.body;
+
+        // Validate input
+        if (!seriesId) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ error: "seriesId is required" });
+        }
+
+        // Find the recruitment series
+        const recruitmentSeries = await RecruitmentRound.findById(seriesId).session(session);
+        if (!recruitmentSeries) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ error: "Recruitment round not found" });
+        }
+
+        // Validate dates
+        if (applicationDueDate && documentDueDate) {
+            const appDate = new Date(applicationDueDate);
+            const docDate = new Date(documentDueDate);
+
+            if (appDate > docDate) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({ 
+                    error: "Application due date must be on or before document due date" 
+                });
+            }
+        }
+
+        // Validate hour limits
+        if (undergradHourLimit !== undefined && (undergradHourLimit <= 0 || undergradHourLimit > 50)) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ 
+                error: "Undergraduate hour limit must be between 1 and 50" 
+            });
+        }
+
+        if (postgradHourLimit !== undefined && (postgradHourLimit <= 0 || postgradHourLimit > 50)) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ 
+                error: "Postgraduate hour limit must be between 1 and 50" 
+            });
+        }
+
+        // Check if dates are being updated
+        const datesUpdated = (applicationDueDate !== undefined && applicationDueDate !== recruitmentSeries.applicationDueDate.toISOString()) ||
+                            (documentDueDate !== undefined && documentDueDate !== recruitmentSeries.documentDueDate.toISOString());
+
+        // Update fields if provided
+        if (name !== undefined) recruitmentSeries.name = name;
+        if (applicationDueDate !== undefined) recruitmentSeries.applicationDueDate = new Date(applicationDueDate);
+        if (documentDueDate !== undefined) recruitmentSeries.documentDueDate = new Date(documentDueDate);
+        if (undergradHourLimit !== undefined) recruitmentSeries.undergradHourLimit = undergradHourLimit;
+        if (postgradHourLimit !== undefined) recruitmentSeries.postgradHourLimit = postgradHourLimit;
+        if (undergradMailingList !== undefined) recruitmentSeries.undergradMailingList = undergradMailingList;
+        if (postgradMailingList !== undefined) recruitmentSeries.postgradMailingList = postgradMailingList;
+
+        await recruitmentSeries.save({ session });
+
+        let modulesUpdated = 0;
+
+        // Update module deadlines if dates were changed and updateModuleDeadlines is true
+        if (datesUpdated && updateModuleDeadlines) {
+            const updateFields = {};
+            if (applicationDueDate !== undefined) updateFields.applicationDueDate = new Date(applicationDueDate);
+            if (documentDueDate !== undefined) updateFields.documentDueDate = new Date(documentDueDate);
+
+            if (Object.keys(updateFields).length > 0) {
+                const moduleUpdateResult = await ModuleDetails.updateMany(
+                    { recruitmentSeriesId: seriesId },
+                    { $set: updateFields }
+                ).session(session);
+                modulesUpdated = moduleUpdateResult.modifiedCount;
+            }
+        }
+
+        await session.commitTransaction();
+
+        console.log(`✅ Recruitment round ${seriesId} has been updated. ${modulesUpdated} modules updated.`);
+
+        res.status(200).json({ 
+            message: datesUpdated && updateModuleDeadlines && modulesUpdated > 0
+                ? `Recruitment round updated successfully. ${modulesUpdated} modules also updated.`
+                : "Recruitment round updated successfully",
+            recruitmentSeries: {
+                _id: recruitmentSeries._id,
+                name: recruitmentSeries.name,
+                status: recruitmentSeries.status,
+                applicationDueDate: recruitmentSeries.applicationDueDate,
+                documentDueDate: recruitmentSeries.documentDueDate,
+                undergradHourLimit: recruitmentSeries.undergradHourLimit,
+                postgradHourLimit: recruitmentSeries.postgradHourLimit
+            },
+            modulesUpdated: modulesUpdated
+        });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error updating recruitment round:", error);
+        res.status(500).json({ error: "Internal server error" });
+    } finally {
+        session.endSession();
+    }
+};
+
+const updateRecruitmentRoundDeadlines = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { seriesId } = req.params;
+        const { applicationDueDate, documentDueDate, updateModuleDeadlines = true } = req.body;
 
         // Validate required fields
         if (!applicationDueDate || !documentDueDate) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({ error: "Both application due date and document due date are required" });
         }
 
@@ -286,38 +414,72 @@ const updateRecruitmentRoundDeadlines = async (req, res) => {
         const now = new Date();
 
         if (appDate <= now) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({ error: "Application due date must be in the future" });
         }
 
         if (docDate <= now) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({ error: "Document due date must be in the future" });
         }
 
         if (appDate > docDate) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({ error: "Application due date must be on or before document due date" });
         }
 
         // Find and update the recruitment series
-        const recruitmentSeries = await RecruitmentRound.findById(seriesId);
+        const recruitmentSeries = await RecruitmentRound.findById(seriesId).session(session);
         if (!recruitmentSeries) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(404).json({ error: "Recruitment series not found" });
         }
 
         recruitmentSeries.applicationDueDate = appDate;
         recruitmentSeries.documentDueDate = docDate;
-        await recruitmentSeries.save();
+        await recruitmentSeries.save({ session });
+
+        let modulesUpdated = 0;
+        
+        // Update module deadlines if requested
+        if (updateModuleDeadlines) {
+            const moduleUpdateResult = await ModuleDetails.updateMany(
+                { recruitmentSeriesId: seriesId },
+                { 
+                    $set: { 
+                        applicationDueDate: appDate,
+                        documentDueDate: docDate 
+                    } 
+                }
+            ).session(session);
+            modulesUpdated = moduleUpdateResult.modifiedCount;
+        }
+
+        await session.commitTransaction();
+
+        console.log(`✅ Recruitment round ${seriesId} deadlines updated. ${modulesUpdated} modules updated.`);
 
         res.status(200).json({ 
-            message: "Deadlines updated successfully",
+            message: updateModuleDeadlines 
+                ? `Deadlines updated successfully. ${modulesUpdated} modules also updated.`
+                : "Deadlines updated successfully",
             recruitmentSeries: {
                 _id: recruitmentSeries._id,
                 applicationDueDate: recruitmentSeries.applicationDueDate,
                 documentDueDate: recruitmentSeries.documentDueDate
-            }
+            },
+            modulesUpdated: modulesUpdated
         });
     } catch (error) {
+        await session.abortTransaction();
         console.error("Error updating recruitment round deadlines:", error);
         res.status(500).json({ error: "Internal server error" });
+    } finally {
+        session.endSession();
     }
 };
 
@@ -912,6 +1074,7 @@ module.exports = {
     getEligiblePostgraduates,
     copyRecruitmentRound,
     deleteRecruitmentRound,
+    updateRecruitmentRound,
     updateRecruitmentRoundDeadlines,
     updateRecruitmentRoundHourLimits,
     notifyModules,
