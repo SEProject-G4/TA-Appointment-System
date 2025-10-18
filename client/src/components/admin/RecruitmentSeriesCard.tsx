@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { FaChevronRight, FaRegCalendarAlt, FaBoxOpen } from "react-icons/fa";
+import { FaChevronRight, FaRegCalendarAlt, FaBoxOpen, FaCopy, FaArchive, FaTrash } from "react-icons/fa";
 import { MdMoreVert } from "react-icons/md";
 import { LuCirclePlus, LuMail } from "react-icons/lu";
 import { FiClock } from "react-icons/fi";
@@ -646,20 +646,62 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
                 </button>
               )}
 
-              {/* Add new module button */}
-              <Link
-                to={"/recruitment-series/" + _id + "/add-module"}
-                state={{
-                  id: _id,
-                  name: name,
-                  appDueDate: applicationDueDate,
-                  docDueDate: documentDueDate,
-                }}
-                className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-primary-light to-primary-dark rounded-md p-2 px-5"
-              >
-                <LuCirclePlus className="h-5 w-5 mr-2" />
-                Add Module
-              </Link>
+              {/* Add new module button - only for initialised and active */}
+              {(status === "initialised" || status === "active") && (
+                <Link
+                  to={"/recruitment-series/" + _id + "/add-module"}
+                  state={{
+                    id: _id,
+                    name: name,
+                    appDueDate: applicationDueDate,
+                    docDueDate: documentDueDate,
+                  }}
+                  className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-primary-light to-primary-dark rounded-md p-2 px-5"
+                >
+                  <LuCirclePlus className="h-5 w-5 mr-2" />
+                  Add Module
+                </Link>
+              )}
+
+              {/* Actions for closed status */}
+              {status === "closed" && (
+                <>
+                  <button
+                    onClick={handleCopyRS}
+                    className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 rounded-md p-2 px-4 transition-all duration-200"
+                  >
+                    <FaCopy className="h-4 w-4 mr-2" />
+                    Make a Copy
+                  </button>
+                  <button
+                    onClick={handleArchiveRecruitmentRound}
+                    className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800 rounded-md p-2 px-4 transition-all duration-200"
+                  >
+                    <FaArchive className="h-4 w-4 mr-2" />
+                    Archive
+                  </button>
+                </>
+              )}
+
+              {/* Actions for archived status */}
+              {status === "archived" && (
+                <>
+                  <button
+                    onClick={handleCopyRS}
+                    className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 rounded-md p-2 px-4 transition-all duration-200"
+                  >
+                    <FaCopy className="h-4 w-4 mr-2" />
+                    Make a Copy
+                  </button>
+                  <button
+                    onClick={handleDeleteRS}
+                    className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 rounded-md p-2 px-4 transition-all duration-200"
+                  >
+                    <FaTrash className="h-4 w-4 mr-2" />
+                    Delete
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
