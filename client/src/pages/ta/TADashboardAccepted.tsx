@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import {
   Trophy,
   FileIcon,
-  File,
   Clock,
   CircleCheckBig,
   UploadIcon,
+  CalendarDays
 } from "lucide-react";
 // import TAAcceptedCard from "../components/TAAcceptedCard";
 import TAAppliedCard from "../../components/ta/TAAppliedCard";
@@ -16,6 +16,7 @@ import ViewToggle from "../../components/ta/ViewToggle";
 import { useAuth } from "../../contexts/AuthContext";
 import axios from "axios";
 import axiosInstance from "../../api/axiosConfig";
+import { data } from "react-router-dom";
 
 function TADashboardAccepted() {
   const { user } = useAuth();
@@ -34,6 +35,7 @@ function TADashboardAccepted() {
       moduleCode: mod.moduleId.moduleCode,
       moduleName: mod.moduleId.moduleName,
       requiredTAHours: mod.moduleId.requiredTAHours || 0,
+      documentDueDate: mod.moduleId.documentDueDate,
     }))
 );
 
@@ -42,6 +44,14 @@ const totalTAHours = modules.reduce(
   (sum, mod) => sum + mod.requiredTAHours,
   0
 );
+
+// Get the latest (most recent/nearest) document due date
+const latestDocumentDueDate = modules.length > 0
+  ? modules
+      .map(mod => new Date(mod.documentDueDate))
+      .reduce((latest, current) => current > latest ? current : latest)
+      .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  : 'N/A';
 
   useEffect(() => {
     if (!userId) return; // Don't run until we have userId
@@ -55,7 +65,25 @@ const totalTAHours = modules.reduce(
         );
         setApplications(response.data.acceptedApplications);
         setIsDocSubmitted(response.data.docSubmissionStatus);
-        console.log(response.data);
+        
+        // // Log the actual response data, not the state (state updates are async)
+        // console.log("API Response:", response.data);
+        // console.log("Accepted Applications from API:", response.data.acceptedApplications);
+        // console.log("Length of acceptedApplications:", response.data.acceptedApplications.length);
+        
+        // // Compute modules from the response data directly
+        // const fetchedModules = response.data.acceptedApplications.flatMap((app: any) =>
+        //   app.appliedModules
+        //     .filter((mod: any) => mod?.moduleId)
+        //     .map((mod: any) => ({
+        //       moduleCode: mod.moduleId.moduleCode,
+        //       moduleName: mod.moduleId.moduleName,
+        //       requiredTAHours: mod.moduleId.requiredTAHours || 0,
+        //     }))
+        // );
+        // console.log("Computed Modules:", fetchedModules);
+        // console.log("Number of modules:", fetchedModules.length);
+        
       } catch (error) {
         console.error("error fetching application data", error);
       } finally {
@@ -65,6 +93,16 @@ const totalTAHours = modules.reduce(
 
     fetchApplications();
   }, [userId, refreshTrigger]); // <-- run whenever userId or refreshTrigger changes
+
+  // Separate useEffect to log when applications state actually updates
+  // useEffect(() => {
+  //   console.log("=== STATE UPDATED ===");
+  //   console.log("Applications state:", applications);
+  //   console.log("Applications length:", applications.length);
+  //   console.log("Modules computed from state:", modules);
+  //   console.log("Modules length:", modules.length);
+  //   console.log("Total TA Hours:", totalTAHours);
+  // }, [applications]); // This runs whenever applications state changes
 
   return (
     <div>
@@ -89,25 +127,25 @@ const totalTAHours = modules.reduce(
           <div className="grid grid-cols-1 gap-4 mb-6 sm:gap-6 sm:mb-8 sm:grid-cols-2 lg:grid-cols-3">
             <TAStatCard
               statName="Total Hours per Week"
-              statValue={3}
+              statValue={totalTAHours}
               icon={Clock}
             />
             <TAStatCard
               statName="Accepted Positions"
-              statValue={2}
+              statValue={modules.length}
               icon={Trophy}
             />
             <div className="sm:col-span-2 lg:col-span-1">
               <TAStatCard
-                statName="Documents Pending"
-                statValue={0}
-                icon={File}
+                statName="Document Submission Deadline"
+                statValue={latestDocumentDueDate}
+                icon={CalendarDays}
               />
             </div>
           </div>
         </div>
         {/* document submission tab */}
-        {applications.length > 0 && (
+        {modules.length > 0 && (
         <div className="m-2 sm:m-4 lg:m-8 xl:m-16">
           <div className="p-4 mb-6 border border-blue-200 rounded-lg sm:p-6 sm:mb-8 bg-gradient-to-r from-blue-50 to-indigo-50">
             <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
@@ -154,7 +192,7 @@ const totalTAHours = modules.reduce(
           ) : applications.length === 0 ? (
             <div className="py-8 text-center sm:py-12">
               <p className="text-base sm:text-lg text-text-secondary">
-                You have not applied for any TA positions yet.
+                There is no accepted TA positions at the moment.
               </p>
             </div>
           ) : (

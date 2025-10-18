@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaPlus, FaMinus } from "react-icons/fa";
-import { MdClose, MdOutlineErrorOutline } from "react-icons/md";
+import { MdClose } from "react-icons/md";
 import AutoSelect, { type Option } from "../../components/common/AutoSelect";
-// import { HiOutlineLink } from "react-icons/hi";
+import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 
 import { useToast } from "../../contexts/ToastContext";
 import axiosInstance from "../../api/axiosConfig";
@@ -65,10 +65,9 @@ interface FormData {
 }
 
 function toLocalDatetimeInputValue(date: Date) {
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate()
-  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  // Ensure we get the local time zone offset correctly
+  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+  return localDate.toISOString().slice(0, 16);
 }
 
 const EditModule: React.FC = () => {
@@ -85,9 +84,13 @@ const EditModule: React.FC = () => {
     specialNotes: "",
   });
   const [inputErrors, setInputErrors] = useState<{ [key: string]: string }>({});
-
-  // const [lecturers, setLecturers] = useState<Option[]>([]);
   const [availableLecturers, setAvailableLecturers] = useState<Option[]>([]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmationData, setConfirmationData] = useState<{
+    message: string;
+    applicationsToRemove: any[];
+  } | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -114,8 +117,9 @@ const EditModule: React.FC = () => {
     }
   };
 
-  const postFormData = async () => {
+  const updateModuleData = async (confirmRemoval = false) => {
     try {
+      setIsUpdating(true);
       const payload = {
         moduleCode: formData.moduleCode,
         moduleName: formData.moduleName,
@@ -127,19 +131,36 @@ const EditModule: React.FC = () => {
         requiredUndergraduateTACount: formData.undergraduateTAsRequired,
         requiredPostgraduateTACount: formData.postgraduateTAsRequired,
         requirements: formData.specialNotes,
+        confirmRemoval
       };
-      console.log("Posting payload:", payload);
-      const response = await axiosInstance.post(
-        "/recruitment-series/" + state?.moduleData._id + "/add-module",
+      
+      console.log("Updating module with payload:", payload);
+      await axiosInstance.put(
+        `/modules/${state?.moduleData._id}`,
         payload
       );
-      showToast(
-        "Module added successfully to the recruitment series!",
-        "success"
-      );
-    } catch (error) {
-      console.error("Error creating module:", error);
-      showToast("Failed to create module.", "error");
+      
+      setShowConfirmDialog(false);
+      setConfirmationData(null);
+      showToast("Module updated successfully!", "success");
+      navigate(-1); // Go back to previous page
+      
+    } catch (error: any) {
+      console.error("Error updating module:", error);
+      
+      // Handle confirmation requirement
+      if (error.response?.status === 409 && error.response?.data?.requiresConfirmation) {
+        setConfirmationData({
+          message: error.response.data.message,
+          applicationsToRemove: error.response.data.applicationsToRemove || []
+        });
+        setShowConfirmDialog(true);
+      } else {
+        const errorMessage = error.response?.data?.error || "Failed to update module";
+        showToast(errorMessage, "error");
+      }
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -177,23 +198,33 @@ const EditModule: React.FC = () => {
         return "";
       case "appDueDate":
         if (!value) return "Application due date is required.";
+        const appDate = new Date(value);
+        const now = new Date();
+        if (appDate <= now) {
+          return "Application due date must be after the current date and time.";
+        }
         // If docDueDate is set, check order
         if (
           formData.docDueDate &&
           value &&
-          new Date(formData.docDueDate) < new Date(value)
+          new Date(formData.docDueDate) <= new Date(value)
         ) {
-          return "Application due date must be on or before document submission deadline.";
+          return "Document submission deadline must be after application due date.";
         }
         return "";
       case "docDueDate":
         if (!value) return "Document submission deadline is required.";
+        const docDate = new Date(value);
+        const nowDoc = new Date();
+        if (docDate <= nowDoc) {
+          return "Document due date must be after the current date and time.";
+        }
         if (
           formData.appDueDate &&
           value &&
-          new Date(value) < new Date(formData.appDueDate)
+          new Date(value) <= new Date(formData.appDueDate)
         ) {
-          return "Document submission deadline must be on or after application due date.";
+          return "Document submission deadline must be after application due date.";
         }
         return "";
       default:
@@ -342,14 +373,22 @@ const EditModule: React.FC = () => {
     });
   };
 
-  const handleAddModule = () => {
+  const handleUpdateModule = () => {
     validateForm();
     if (isFormValid()) {
-      postFormData();
+      updateModuleData();
     } else {
       showToast("Please fix the errors in the form.", "error");
     }
-    console.log("Form is ready to send", formData);
+  };
+
+  const handleConfirmUpdate = () => {
+    updateModuleData(true);
+  };
+
+  const handleCancelConfirm = () => {
+    setShowConfirmDialog(false);
+    setConfirmationData(null);
   };
 
   const semesters: Option[] = Array.from({ length: 8 }, (_, i) => ({
@@ -428,7 +467,7 @@ const EditModule: React.FC = () => {
               value={formData.moduleCode}
               onChange={handleChange}
               maxLength={10}
-              className="ml-8 new-module-input"
+              className="ml-8 new-module-input w-32"
             />
             {inputErrors.moduleCode && (
               <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
@@ -448,6 +487,7 @@ const EditModule: React.FC = () => {
               placeholder="e.g. Program Construction"
               value={formData.moduleName}
               onChange={handleChange}
+              maxLength={100}
               className="ml-8 max-w-full w-96 new-module-input"
             />
             {inputErrors.moduleName && (
@@ -751,14 +791,36 @@ const EditModule: React.FC = () => {
             Cancel
           </button>
           <button
-            onClick={handleAddModule}
-            className="w-36 rounded-md outline outline-2 outline-primary-light bg-primary hover:bg-primary-light py-2 px-4 text-text-inverted"
-            // disabled={isFormValid()}
+            onClick={handleUpdateModule}
+            disabled={isUpdating}
+            className="w-36 rounded-md outline outline-2 outline-primary-light bg-primary hover:bg-primary-light py-2 px-4 text-text-inverted disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save Changes
+            {isUpdating ? "Updating..." : "Save Changes"}
           </button>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        title="Remove Applications?"
+        message={
+          confirmationData
+            ? `${confirmationData.message}.\n\nThe following recent applications will be removed:\n${confirmationData.applicationsToRemove
+                .map(
+                  (app, index) =>
+                    `${index + 1}. ${app.userName} (${app.userEmail}) - ${app.studentType} - ${app.hoursAllocated} hours`
+                )
+                .join('\n')}\n\nTA hours will be returned to affected students. Do you want to continue?`
+            : ""
+        }
+        onConfirm={handleConfirmUpdate}
+        onCancel={handleCancelConfirm}
+        confirmButtonText="Yes, Update Module"
+        cancelButtonText="Cancel"
+        confirmButtonClassName="px-4 py-2 font-medium text-white bg-red-600 rounded-lg shadow-sm hover:bg-red-700 transition"
+        isProcessing={isUpdating}
+      />
     </div>
   );
 };

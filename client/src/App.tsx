@@ -13,9 +13,12 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import NewModule from "./pages/admin/NewModule";
 import EditModule from "./pages/admin/EditModule";
 import NewRecruitmentSeries from "./pages/admin/NewRecruitmentSeries";
+import EditRecruitmentSeries from "./pages/admin/EditRecruitmentSeries";
 import AddUser from "./pages/admin/AddUser";
 import UndergraduateUsers from "./pages/admin/UndergraduateUsers";
 import ModuleDetails from "./pages/admin/ModuleDetails";
+
+import ProfilePage from "./pages/ProfilePage";
 
 import ViewModuleDetails from "./pages/lecturer/ViewModuleDetails";
 import EditModuleDetails from "./pages/lecturer/EditModuleDetails";
@@ -63,6 +66,16 @@ function App() {
                 <Route path="/" element={<Outlet />}>
                   <Route index element={<HomePage />} />
 
+                  {/* Profile Route - Available to all authenticated users */}
+                  <Route
+                    path="profile"
+                    element={
+                      <ProtectedRoute roles={["admin", "undergraduate", "postgraduate", "lecturer", "hod", "cse office"]}>
+                        <ProfilePage />
+                      </ProtectedRoute>
+                    }
+                  />
+
                   {/* Admin Routes */}
                   <Route
                     path="admin-dashboard"
@@ -104,6 +117,15 @@ function App() {
                     element={
                       <ProtectedRoute roles="admin">
                         <NewRecruitmentSeries />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/recruitment-series/:seriesId/edit"
+                    element={
+                      <ProtectedRoute roles="admin">
+                        <EditRecruitmentSeries />
                       </ProtectedRoute>
                     }
                   />

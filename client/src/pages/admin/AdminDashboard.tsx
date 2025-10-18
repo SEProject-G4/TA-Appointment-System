@@ -21,7 +21,7 @@ interface RecruitmentSeriesData {
   postgradHourLimit: number;
   undergradMailingList: UserGroup[];
   postgradMailingList: UserGroup[];
-  status: "initialised" | "active" | "archived";
+  status: "initialised" | "active" | "archived" | "closed";
   moduleCount: number;
   undergraduateTAPositionsCount: number;
   postgraduateTAPositionsCount: number;
@@ -50,6 +50,9 @@ const AdminDashboard: React.FC = () => {
   );
   const publishedSeries = recruitmentSeriesList.filter(
     (series) => series.status === "active"
+  );
+  const closedSeries = recruitmentSeriesList.filter(
+    (series) => series.status === "closed"
   );
   const archivedSeries = recruitmentSeriesList.filter(
     (series) => series.status === "archived"
@@ -115,6 +118,27 @@ const AdminDashboard: React.FC = () => {
             </div>
           ) : (
             initialisedSeries.map((series) => (
+              <RSCard key={series._id} {...series} />
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Closed */}
+      <p className="mt-4 text-2xl font-semibold select-none font-raleway">
+        Closed Recruitment Rounds
+      </p>
+      <div className="flex bg-bg-card flex-col items-center rounded-sm p-2 w-full">
+        <div className="w-full space-y-2">
+          {closedSeries.length === 0 ? (
+            <div className="w-full flex flex-col items-center justify-center py-6">
+              <FaBoxOpen className="h-8 w-8 text-text-secondary mb-2" />
+              <p className="text-lg text-text-secondary font-semibold">
+                No closed Recruitment rounds at this moment.
+              </p>
+            </div>
+          ) : (
+            closedSeries.map((series) => (
               <RSCard key={series._id} {...series} />
             ))
           )}

@@ -14,6 +14,7 @@ interface ChangeDeadlineModalProps {
 interface DeadlineFormData {
   applicationDueDate: string;
   documentDueDate: string;
+  updateModuleDeadlines: boolean;
 }
 
 const ChangeDeadlineModal: React.FC<ChangeDeadlineModalProps> = ({
@@ -40,6 +41,7 @@ const ChangeDeadlineModal: React.FC<ChangeDeadlineModalProps> = ({
   const [formData, setFormData] = useState<DeadlineFormData>({
     applicationDueDate: formatDateForInput(currentApplicationDueDate),
     documentDueDate: formatDateForInput(currentDocumentDueDate),
+    updateModuleDeadlines: true,
   });
 
   const [inputErrors, setInputErrors] = useState<{ [key: string]: string }>({});
@@ -86,17 +88,21 @@ const ChangeDeadlineModal: React.FC<ChangeDeadlineModalProps> = ({
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    const newValue = type === "checkbox" ? checked : value;
+    setFormData((prev) => ({ ...prev, [name]: newValue }));
     
-    // Validate current field
-    validateField(name, value);
-    
-    // Re-validate the other date field to check cross-validation
-    if (name === "applicationDueDate" && formData.documentDueDate) {
-      validateField("documentDueDate", formData.documentDueDate);
-    } else if (name === "documentDueDate" && formData.applicationDueDate) {
-      validateField("applicationDueDate", formData.applicationDueDate);
+    // Only validate date fields
+    if (type !== "checkbox") {
+      // Validate current field
+      validateField(name, value);
+      
+      // Re-validate the other date field to check cross-validation
+      if (name === "applicationDueDate" && formData.documentDueDate) {
+        validateField("documentDueDate", formData.documentDueDate);
+      } else if (name === "documentDueDate" && formData.applicationDueDate) {
+        validateField("applicationDueDate", formData.applicationDueDate);
+      }
     }
   };
 
@@ -123,11 +129,13 @@ const ChangeDeadlineModal: React.FC<ChangeDeadlineModalProps> = ({
         {
           applicationDueDate: new Date(formData.applicationDueDate).toISOString(),
           documentDueDate: new Date(formData.documentDueDate).toISOString(),
+          updateModuleDeadlines: formData.updateModuleDeadlines,
         }
       );
 
       if (response.status === 200) {
-        showToast("Deadlines updated successfully", "success");
+        const message = response.data.message || "Deadlines updated successfully";
+        showToast(message, "success");
         onSuccess?.();
         closeModal();
       }
@@ -188,6 +196,26 @@ const ChangeDeadlineModal: React.FC<ChangeDeadlineModalProps> = ({
               {inputErrors.documentDueDate}
             </span>
           )}
+        </div>
+
+        {/* Update Module Deadlines Option */}
+        <div className="form-control">
+          <label className="cursor-pointer label justify-start gap-x-3">
+            <input
+              type="checkbox"
+              name="updateModuleDeadlines"
+              checked={formData.updateModuleDeadlines}
+              onChange={handleChange}
+              className="checkbox checkbox-primary"
+              disabled={isLoading}
+            />
+            <span className="label-text text-sm">
+              Change the recruitment round's all module recruitments' deadlines to these
+            </span>
+          </label>
+          <p className="text-text-secondary text-xs ml-6">
+            When checked, all modules in this recruitment series will have their deadlines updated to match the new deadlines.
+          </p>
         </div>
       </div>
 
