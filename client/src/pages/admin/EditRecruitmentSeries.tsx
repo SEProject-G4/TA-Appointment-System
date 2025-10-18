@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Combobox,
   ComboboxInput,
@@ -119,9 +119,12 @@ interface RecruitmentSeriesFormData {
   postgradHourLimit: number;
   undergradMailingList: UserGroup[];
   postgradMailingList: UserGroup[];
+  status: string;
+  updateModuleDeadlines: boolean;
 }
 
-function NewRecruitmentSeries() {
+function EditRecruitmentSeries() {
+  const { seriesId } = useParams<{ seriesId: string }>();
   const [formData, setFormData] = useState<RecruitmentSeriesFormData>({
     name: "",
     applicationDueDate: "",
@@ -130,8 +133,11 @@ function NewRecruitmentSeries() {
     postgradHourLimit: 18,
     undergradMailingList: [],
     postgradMailingList: [],
+    status: "",
+    updateModuleDeadlines: true,
   });
   const [inputErrors, setInputErrors] = useState<{ [key: string]: string }>({});
+  const [isLoading, setIsLoading] = useState(true);
 
   const [availableUndergradGroups, setAvailableUndergradGroups] = useState<
     UserGroup[]
@@ -139,6 +145,8 @@ function NewRecruitmentSeries() {
   const [availablePostgradGroups, setAvailablePostgradGroups] = useState<
     UserGroup[]
   >([]);
+  const [allUndergradGroups, setAllUndergradGroups] = useState<UserGroup[]>([]);
+  const [allPostgradGroups, setAllPostgradGroups] = useState<UserGroup[]>([]);
   const [usrsCount, setUsersCount] = useState<{ under: number; post: number }>({
     under: 0,
     post: 0,
@@ -265,11 +273,7 @@ function NewRecruitmentSeries() {
         "/user-management/groups/undergraduate"
       );
       if (response.status === 200) {
-        setFormData((prevData) => ({
-          ...prevData,
-          undergradMailingList: response.data,
-        }));
-        // console.log(response.data);
+        setAllUndergradGroups(response.data);
       } else {
         console.error("Failed to fetch undergraduate groups");
       }
@@ -284,11 +288,7 @@ function NewRecruitmentSeries() {
         "/user-management/groups/postgraduate"
       );
       if (response.status === 200) {
-        setFormData((prevData) => ({
-          ...prevData,
-          postgradMailingList: response.data,
-        }));
-        // console.log(response.data);
+        setAllPostgradGroups(response.data);
       } else {
         console.error("Failed to fetch postgraduate groups");
       }
@@ -297,32 +297,91 @@ function NewRecruitmentSeries() {
     }
   };
 
+  const fetchRecruitmentSeries = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.get(`/recruitment-series/`);
+      if (response.status === 200) {
+        const series = response.data.find((s: any) => s._id === seriesId);
+        if (series) {
+          // Convert dates to datetime-local format
+          const appDate = new Date(series.applicationDueDate);
+          const docDate = new Date(series.documentDueDate);
+          
+          setFormData({
+            name: series.name,
+            applicationDueDate: appDate.toISOString().slice(0, 16),
+            documentDueDate: docDate.toISOString().slice(0, 16),
+            undergradHourLimit: series.undergradHourLimit,
+            postgradHourLimit: series.postgradHourLimit,
+            undergradMailingList: series.undergradMailingList,
+            postgradMailingList: series.postgradMailingList,
+            status: series.status,
+            updateModuleDeadlines: true,
+          });
+
+          // Calculate user counts
+          const underCount = series.undergradMailingList.reduce((sum: number, group: UserGroup) => sum + group.userCount, 0);
+          const postCount = series.postgradMailingList.reduce((sum: number, group: UserGroup) => sum + group.userCount, 0);
+          setUsersCount({ under: underCount, post: postCount });
+        } else {
+          showToast("Recruitment series not found", "error");
+          navigate("/admin-dashboard");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching recruitment series:", error);
+      showToast("Error loading recruitment series", "error");
+      navigate("/admin-dashboard");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateAvailableGroups = () => {
+    // Filter out already selected groups from available options
+    const selectedUndergradIds = formData.undergradMailingList.map(g => g._id);
+    const selectedPostgradIds = formData.postgradMailingList.map(g => g._id);
+    
+    setAvailableUndergradGroups(
+      allUndergradGroups.filter(g => !selectedUndergradIds.includes(g._id))
+    );
+    setAvailablePostgradGroups(
+      allPostgradGroups.filter(g => !selectedPostgradIds.includes(g._id))
+    );
+  };
+
   const handleSubmit = async () => {
     if (!isFormValid()) {
       const RSData = {
-        ...formData,
+        name: formData.name,
         applicationDueDate: new Date(formData.applicationDueDate).toISOString(),
         documentDueDate: new Date(formData.documentDueDate).toISOString(),
+        undergradHourLimit: formData.undergradHourLimit,
+        postgradHourLimit: formData.postgradHourLimit,
+        undergradMailingList: formData.undergradMailingList.map(g => g._id),
+        postgradMailingList: formData.postgradMailingList.map(g => g._id),
+        updateModuleDeadlines: formData.updateModuleDeadlines,
       };
-      console.log("Sending form data", RSData);
+      console.log("Sending update data", RSData);
       try {
-        const response = await axiosInstance.post(
-          "/recruitment-series/create",
+        const response = await axiosInstance.put(
+          `/recruitment-series/${seriesId}`,
           RSData
         );
-        if (response.status === 201) {
-          // Handle successful creation
-          showToast("Recruitment series created successfully", "success");
+        if (response.status === 200) {
+          showToast("Recruitment series updated successfully", "success");
           navigate("/admin-dashboard");
         } else {
-          showToast("Failed to create recruitment series", "error");
-          console.error("Failed to create recruitment series");
+          showToast("Failed to update recruitment series", "error");
+          console.error("Failed to update recruitment series");
         }
-      } catch (error) {
-        showToast("Error creating recruitment series", "error");
-        console.error("Error creating recruitment series:", error);
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.error || "Error updating recruitment series";
+        showToast(errorMessage, "error");
+        console.error("Error updating recruitment series:", error);
       }
-    }else{
+    } else {
       showToast("Please fix errors in the form, before submitting", "error");
       Object.keys(formData).forEach((key) => validateField(key, (formData as any)[key]));
     }
@@ -331,13 +390,26 @@ function NewRecruitmentSeries() {
   useEffect(() => {
     fetchUndergradGroups();
     fetchPostgradGroups();
-  }, []);
+    fetchRecruitmentSeries();
+  }, [seriesId]);
+
+  useEffect(() => {
+    updateAvailableGroups();
+  }, [allUndergradGroups, allPostgradGroups, formData.undergradMailingList, formData.postgradMailingList]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-start p-4 min-h-screen bg-gradient-to-br from-primary-dark/10 to-primary-light/20">
       <div className="rounded-lg w-full max-w-4xl bg-bg-card shadow-xl p-8">
         <h2 className="text-3xl font-bold text-center mb-8 text-base-content select-none">
-          New Recruitment Series
+          Edit Recruitment Series
         </h2>
 
         <div className="flex flex-col gap-y-6">
@@ -405,6 +477,25 @@ function NewRecruitmentSeries() {
           )}
         </div>
 
+        {/* Update Module Deadlines Option */}
+        <div className="form-control mt-5">
+          <label className="cursor-pointer label justify-start gap-x-4 ml-5">
+            <input
+              type="checkbox"
+              name="updateModuleDeadlines"
+              checked={formData.updateModuleDeadlines}
+              onChange={handleChange}
+              className="checkbox checkbox-primary"
+            />
+            <span className="label-text">
+              Change the recruitment round's all module recruitments' deadlines to these
+            </span>
+          </label>
+          <p className="text-text-secondary text-xs ml-12 mt-1">
+            When checked, all modules in this recruitment series will have their deadlines updated to match the recruitment series deadlines.
+          </p>
+        </div>
+
         {/* Undergraduate TA hours limit/week */}
         <div className="form-control flex flex-col space-y-4">
           <label className="label mt-5">
@@ -421,7 +512,7 @@ function NewRecruitmentSeries() {
                 name="undergradHourLimit"
                 value={formData.undergradHourLimit}
                 onChange={handleChange}
-                className="pl-2 text-text-primary focus:outline-0 pr-2 border mr-2 border-0 border-r-2 border-r-text-secondary w-full"
+                className="pl-2 text-text-primary focus:outline-0 pr-2 mr-2 border-0 border-r-2 border-r-text-secondary w-full"
                 placeholder="Hours"
               />
               hours
@@ -448,7 +539,7 @@ function NewRecruitmentSeries() {
                 name="postgradHourLimit"
                 value={formData.postgradHourLimit}
                 onChange={handleChange}
-                className="pl-2 text-text-primary focus:outline-0 pr-2 border mr-2 border-0 border-r-2 border-r-text-secondary w-full"
+                className="pl-2 text-text-primary focus:outline-0 pr-2 mr-2 border-0 border-r-2 border-r-text-secondary w-full"
                 placeholder="Hours"
               />
               hours
@@ -519,7 +610,7 @@ function NewRecruitmentSeries() {
 
           <p className="px-2 py-1 text-text-secondary text-sm border-t-[1px] border-solid border-text-secondary/80">
             Total User Count:
-            <span className="font-semibold">{` ${usrsCount.under}`}</span>
+            <span className="font-semibold">{` ${usrsCount.post}`}</span>
           </p>
         </div>
         {inputErrors.undergradMailingList && (
@@ -585,7 +676,7 @@ function NewRecruitmentSeries() {
 
           <p className="px-2 py-1 text-text-secondary text-sm border-t-[1px] border-solid border-text-secondary/80">
             Total User Count:
-            <span className="font-semibold">{` ${usrsCount.under}`}</span>
+            <span className="font-semibold">{` ${usrsCount.post}`}</span>
           </p>
         </div>
         {inputErrors.postgradMailingList && (
@@ -593,6 +684,24 @@ function NewRecruitmentSeries() {
             {inputErrors.postgradMailingList}
           </span>
         )}
+
+        {/* Status Display */}
+        <div className="form-control mt-5">
+          <label className="label">
+            <span className="label-text">Current Status</span>
+          </label>
+          <div className="ml-8 py-2 px-4 bg-gray-100 rounded-md">
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              formData.status === 'initialised' ? 'bg-blue-100 text-blue-800' :
+              formData.status === 'active' ? 'bg-green-100 text-green-800' :
+              formData.status === 'closed' ? 'bg-yellow-100 text-yellow-800' :
+              formData.status === 'archived' ? 'bg-gray-100 text-gray-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>
+              {formData.status?.charAt(0).toUpperCase() + formData.status?.slice(1)}
+            </span>
+          </div>
+        </div>
 
         {/* Action Buttons */}
         <div className="mt-8 flex justify-end space-x-4">
@@ -609,7 +718,7 @@ function NewRecruitmentSeries() {
             }}
             className="rounded-md outline outline-2 outline-primary-light hover:bg-primary-light bg-primary py-2 px-4 text-text-inverted"
           >
-            Create Recruitment Round
+            Update Recruitment Series
           </button>
         </div>
       </div>
@@ -617,4 +726,4 @@ function NewRecruitmentSeries() {
   );
 }
 
-export default NewRecruitmentSeries;
+export default EditRecruitmentSeries;

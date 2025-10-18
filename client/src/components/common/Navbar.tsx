@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaCog, FaUser, FaSignOutAlt, FaBars, FaTimes } from "react-icons/fa";
+import { FaUser, FaSignOutAlt, FaBars, FaTimes } from "react-icons/fa";
 import CSELogo from "../../assets/images/cse-logo.png";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLocation, Link } from "react-router-dom";
@@ -44,7 +44,7 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
         { subMenu:false, to: "/admin-dashboard", label: "Admin Dashboard" },
         { subMenu:true, to: "/manage-users/add-user", label: "Manage Users",
           subNavs: [
-            { to: "/manage-users/overview", label: "Overview" },
+            // { to: "/manage-users/overview", label: "Overview" },
             { to: "/manage-users/undergraduates", label: "Undergraduates" },
             { to: "/manage-users/postgraduates", label: "Postgraduates" },
             { to: "/manage-users/add-user", label: "Add User" },
@@ -184,15 +184,6 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
                         >
                           <FaUser />
                           Profile
-                        </Link>
-                      </li>
-                      <li className="p-1 mt-2 font-semibold rounded hover:bg-primary/80 hover:text-text-inverted text-text-secondary">
-                        <Link
-                          to="/settings"
-                          className="flex flex-row items-center gap-2 px-2"
-                        >
-                          <FaCog />
-                          Settings
                         </Link>
                       </li>
                       <div className="px-2 my-2 h-[1px] w-full bg-text-secondary/20"></div>
@@ -337,14 +328,6 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
                     >
                       <FaUser className="mr-2" />
                       Profile
-                    </Link>
-                    <Link
-                      to="/settings"
-                      onClick={closeMobileMenu}
-                      className="flex items-center px-3 py-2 text-sm text-text-secondary hover:text-primary hover:bg-bg-page rounded-md transition duration-200"
-                    >
-                      <FaCog className="mr-2" />
-                      Settings
                     </Link>
                     <button
                       onClick={handleLogout}
