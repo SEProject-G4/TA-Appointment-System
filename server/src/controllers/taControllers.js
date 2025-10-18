@@ -29,14 +29,6 @@ const getAllRequests = async (req, res) => {
       );
     }
 
-    // Check if there are any active recruitment series
-    if (activeRecSeries.length === 0) {
-      return res.status(200).json({
-        updatedModules: [],
-        availableHoursPerWeek: userRole === "undergraduate" ? 6 : 10,
-      });
-    }
-
     const recSeriesIds = activeRecSeries.map((r) => r._id);
 
     const appliedModules = await AppliedModules.find(
@@ -232,11 +224,6 @@ const getAppliedModules = async (req, res) => {
       );
     }
 
-    // Check if there are any active recruitment series
-    if (activeRecSeries.length === 0) {
-      return res.status(200).json([]);
-    }
-
     // fetch AppliedModules with nested populate
     const appliedModulesDocs = await AppliedModules.find({
       userId,
@@ -301,11 +288,6 @@ const getAcceptedModules = async (req, res) => {
         { status: "active", postgradMailingList: { $in: [userGroupID] } },
         { _id: 1 }
       );
-    }
-
-    // Check if there are any active recruitment series
-    if (activeRecSeries.length === 0) {
-      return res.status(200).json({ acceptedApplications: [], docSubmissionStatus: false });
     }
 
     // Fetch only accepted applications inside AppliedModules
