@@ -609,7 +609,7 @@ function NewRecruitmentSeries() {
             }}
             className="rounded-md outline outline-2 outline-primary-light hover:bg-primary-light bg-primary py-2 px-4 text-text-inverted"
           >
-            Create Recruitment Series
+            Create Recruitment Round
           </button>
         </div>
       </div>
