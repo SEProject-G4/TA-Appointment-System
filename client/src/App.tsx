@@ -18,6 +18,8 @@ import AddUser from "./pages/admin/AddUser";
 import UndergraduateUsers from "./pages/admin/UndergraduateUsers";
 import ModuleDetails from "./pages/admin/ModuleDetails";
 
+import ProfilePage from "./pages/ProfilePage";
+
 import ViewModuleDetails from "./pages/lecturer/ViewModuleDetails";
 import EditModuleDetails from "./pages/lecturer/EditModuleDetails";
 import HandleTARequests from "./pages/lecturer/HandleTARequests";
@@ -63,6 +65,16 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<Outlet />}>
                   <Route index element={<HomePage />} />
+
+                  {/* Profile Route - Available to all authenticated users */}
+                  <Route
+                    path="profile"
+                    element={
+                      <ProtectedRoute roles={["admin", "undergraduate", "postgraduate", "lecturer", "hod", "cse office"]}>
+                        <ProfilePage />
+                      </ProtectedRoute>
+                    }
+                  />
 
                   {/* Admin Routes */}
                   <Route
