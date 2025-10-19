@@ -600,19 +600,16 @@ const notifyModules = async (req, res) => {
                     </div>
                 `;
 
-                // Add each coordinator email as a separate job for better tracking
-                emailAddresses.forEach(email => {
-                    emails.push({
-                        to: email,
-                        subject: subject,
-                        html: htmlContent,
-                        metadata: {
-                            moduleId: module._id,
-                            moduleCode: module.moduleCode,
-                            moduleName: module.moduleName,
-                            coordinatorEmail: email,
-                        }
-                    });
+                await emailService.sendEmail(emailAddresses, subject, htmlContent).then(async (result) => {
+                    if (result) {
+                        await ModuleDetails.updateOne(
+                            { _id: module._id },
+                            { $set: { moduleStatus: "pending changes" } }
+                        );
+                        console.log(`✅ Notification email sent for module ${module.moduleCode}`);
+                    } else {
+                        console.error(`❌ Failed to send notification email for module ${module.moduleCode}`);
+                    }
                 });
 
                 // Track modules that will be updated
@@ -623,53 +620,8 @@ const notifyModules = async (req, res) => {
             }
         }
 
-        console.log(`📧 Prepared ${emails.length} emails for processing`);
-        
-        if (emails.length === 0) {
-            return res.status(400).json({ 
-                error: "No valid emails could be prepared. Check module coordinators and email addresses.",
-                totalModulesFound: modules.length
-            });
-        }
-
-        // Send notification emails using chunk processing for better performance
-        console.log(`� Sending ${emails.length} notification emails to lecturers`);
-        const notificationResult = await emailService.sendNotificationEmails(emails);
-        
-        console.log(`✅ Notification email results: ${notificationResult.successful}/${notificationResult.total} emails sent successfully`);
-        console.log(`⏱️ Processing time: ${Math.round(notificationResult.duration / 1000)}s`);
-
-        if (notificationResult.successful === 0) {
-            return res.status(500).json({ 
-                error: "Failed to send notification emails"
-            });
-        }
-
-        // Update module statuses to "pending changes" immediately
-        await ModuleDetails.updateMany(
-            { _id: { $in: moduleUpdates } },
-            { $set: { moduleStatus: "pending changes" } }
-        );
-
-        console.log(`✅ Sent ${notificationResult.successful} notification emails for ${moduleUpdates.length} modules`);
-
         res.status(200).json({
             message: `Notification emails sent successfully`,
-            results: {
-                successful: notificationResult.successful,
-                failed: notificationResult.failed,
-                total: notificationResult.total,
-                duration: notificationResult.duration
-            },
-            summary: {
-                modulesProcessed: moduleUpdates.length,
-                emailsSent: notificationResult.successful,
-                emailsFailed: notificationResult.failed,
-            },
-            details: {
-                jobIds: jobResults,
-                totalJobs: jobResults.length,
-            }
         });
 
     } catch (error) {
@@ -753,20 +705,24 @@ const advertiseModules = async (req, res) => {
                     
                     <div style="background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
                         ${undergradModules.map(mod => `
-                            <div style="margin-bottom: 15px; padding: 10px; background-color: white; border-left: 4px solid #28a745; border-radius: 4px;">
-                                <strong>${mod.moduleCode} - ${mod.moduleName}</strong><br>
-                                <span style="color: #6c757d;">Semester: ${mod.semester}</span><br>
-                                ${mod.undergraduateCounts ? `<span style="color: #007bff;">Positions Available: ${mod.undergraduateCounts.required}</span><br>` : ''}
-                                ${mod.requiredTAHours ? `<span style="color: #fd7e14;">Hours per week: ${mod.requiredTAHours}</span>` : ''}
+                            <div style="margin-bottom: 15px; padding: 15px; background-color: white; border-left: 4px solid #28a745; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                <strong style="font-size: 16px; color: #28a745;">${mod.moduleCode} - ${mod.moduleName}</strong><br>
+                                <span style="color: #6c757d; font-size: 14px;">Semester: ${mod.semester}</span><br>
+                                ${mod.undergraduateCounts ? `<span style="color: #007bff; font-weight: 500;">Positions Available: ${mod.undergraduateCounts.required}</span><br>` : ''}
+                                ${mod.requiredTAHours ? `<span style="color: #fd7e14; font-weight: 500;">Hours per week: ${mod.requiredTAHours}</span><br>` : ''}
+                                <div style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border-radius: 4px;">
+                                    <strong style="color: #dc3545; font-size: 14px;">📅 Module Deadlines:</strong><br>
+                                    <span style="color: #dc3545; font-size: 13px;">Application Due: ${new Date(mod.applicationDueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span><br>
+                                    <span style="color: #dc3545; font-size: 13px;">Document Due: ${new Date(mod.documentDueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
 
                     <div style="background-color: #e7f3ff; padding: 15px; margin: 20px 0; border-radius: 5px;">
-                        <strong>Application Deadlines:</strong><br>
-                        Application Due: ${new Date(recruitmentSeries.applicationDueDate).toLocaleDateString()}<br>
-                        Document Due: ${new Date(recruitmentSeries.documentDueDate).toLocaleDateString()}<br>
-                        Hour Limit: ${recruitmentSeries.undergradHourLimit} hours per week
+                        <strong>General Information:</strong><br>
+                        Hour Limit: ${recruitmentSeries.undergradHourLimit} hours per week<br>
+                        <small style="color: #6c757d;">Note: Each module may have different application and document deadlines as shown above.</small>
                     </div>
 
                     <p>Don't miss this opportunity to gain valuable teaching experience and enhance your academic journey!</p>
@@ -786,23 +742,17 @@ const advertiseModules = async (req, res) => {
             `;
 
             // Add each undergraduate email to the batch
-            undergradEmails.forEach(email => {
-                emails.push({
-                    to: email,
-                    subject: undergradSubject,
-                    html: undergradHtmlContent,
-                    metadata: {
-                        userType: 'undergraduate',
-                        moduleCount: undergradModules.length,
-                        userEmail: email,
-                    }
-                });
-            });
 
-            emailGroups.push({
-                type: 'undergraduate',
-                recipientCount: undergradEmails.length,
-                moduleCount: undergradModules.length,
+            await emailService.sendEmail(undergradEmails, undergradSubject, undergradHtmlContent).then(async (result) => {
+                if (result) {
+                    console.log(`✅ Advertisement emails sent to undergraduates`);
+                    await ModuleDetails.updateMany(
+                        { _id: { $in: undergradModules.map(mod => mod._id) } },
+                        { $set: { moduleStatus: 'advertised' } }
+                    ).then(() => {
+                        console.log(`✅ Updated module statuses to 'advertised' for undergraduate modules`);
+                    });
+                }
             });
         }
 
@@ -819,20 +769,24 @@ const advertiseModules = async (req, res) => {
                     
                     <div style="background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
                         ${postgradModules.map(mod => `
-                            <div style="margin-bottom: 15px; padding: 10px; background-color: white; border-left: 4px solid #6f42c1; border-radius: 4px;">
-                                <strong>${mod.moduleCode} - ${mod.moduleName}</strong><br>
-                                <span style="color: #6c757d;">Semester: ${mod.semester}</span><br>
-                                ${mod.postgraduateCounts ? `<span style="color: #007bff;">Positions Available: ${mod.postgraduateCounts.required}</span><br>` : ''}
-                                ${mod.requiredTAHours ? `<span style="color: #fd7e14;">Hours per week: ${mod.requiredTAHours}</span>` : ''}
+                            <div style="margin-bottom: 15px; padding: 15px; background-color: white; border-left: 4px solid #6f42c1; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                <strong style="font-size: 16px; color: #6f42c1;">${mod.moduleCode} - ${mod.moduleName}</strong><br>
+                                <span style="color: #6c757d; font-size: 14px;">Semester: ${mod.semester}</span><br>
+                                ${mod.postgraduateCounts ? `<span style="color: #007bff; font-weight: 500;">Positions Available: ${mod.postgraduateCounts.required}</span><br>` : ''}
+                                ${mod.requiredTAHours ? `<span style="color: #fd7e14; font-weight: 500;">Hours per week: ${mod.requiredTAHours}</span><br>` : ''}
+                                <div style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border-radius: 4px;">
+                                    <strong style="color: #dc3545; font-size: 14px;">📅 Module Deadlines:</strong><br>
+                                    <span style="color: #dc3545; font-size: 13px;">Application Due: ${new Date(mod.applicationDueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span><br>
+                                    <span style="color: #dc3545; font-size: 13px;">Document Due: ${new Date(mod.documentDueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
 
                     <div style="background-color: #f3e7ff; padding: 15px; margin: 20px 0; border-radius: 5px;">
-                        <strong>Application Deadlines:</strong><br>
-                        Application Due: ${new Date(recruitmentSeries.applicationDueDate).toLocaleDateString()}<br>
-                        Document Due: ${new Date(recruitmentSeries.documentDueDate).toLocaleDateString()}<br>
-                        Hour Limit: ${recruitmentSeries.postgradHourLimit} hours per week
+                        <strong>General Information:</strong><br>
+                        Hour Limit: ${recruitmentSeries.postgradHourLimit} hours per week<br>
+                        <small style="color: #6c757d;">Note: Each module may have different application and document deadlines as shown above.</small>
                     </div>
 
                     <p>This is an excellent opportunity to contribute to the academic community while developing your teaching and mentoring skills.</p>
@@ -851,102 +805,18 @@ const advertiseModules = async (req, res) => {
                 </div>
             `;
 
-            // Add each postgraduate email to the batch
-            postgradEmails.forEach(email => {
-                emails.push({
-                    to: email,
-                    subject: postgradSubject,
-                    html: postgradHtmlContent,
-                    metadata: {
-                        userType: 'postgraduate',
-                        moduleCount: postgradModules.length,
-                        userEmail: email,
-                    }
-                });
-            });
-
-            emailGroups.push({
-                type: 'postgraduate',
-                recipientCount: postgradEmails.length,
-                moduleCount: postgradModules.length,
+            await emailService.sendEmail(postgradEmails, postgradSubject, postgradHtmlContent).then(async (result) => {
+                if (result) {
+                    console.log(`✅ Advertisement emails sent to postgraduates`);
+                    await ModuleDetails.updateMany(
+                        { _id: { $in: postgradModules.map(mod => mod._id) } },
+                        { $set: { moduleStatus: 'advertised' } }
+                    ).then(() => {
+                        console.log(`✅ Updated module statuses to 'advertised' for postgraduate modules`);
+                    });
+                }
             });
         }
-
-        if (emails.length === 0) {
-            return res.status(400).json({ 
-                error: "No valid emails could be prepared. Check student groups and email addresses.",
-                totalModulesFound: modules.length,
-                undergradModules: undergradModules.length,
-                postgradModules: postgradModules.length,
-                undergradStudents: undergradMailingList.length,
-                postgradStudents: postgradMailingList.length,
-            });
-        }
-
-        // Send separate jobs for undergraduate and postgraduate emails (different content)
-        const jobResults = [];
-        
-        // Send undergraduate emails using chunk processing
-        const undergradEmails = emails.filter(email => email.metadata.userType === 'undergraduate');
-        if (undergradEmails.length > 0) {
-            console.log(`📢 Sending ${undergradEmails.length} advertisement emails to undergraduates`);
-            const undergradJobResult = await emailService.sendAdvertisementEmails(undergradEmails);
-            jobResults.push({
-                type: 'undergraduate',
-                success: undergradJobResult.successful > 0,
-                count: undergradJobResult.successful,
-                total: undergradJobResult.total,
-                duration: undergradJobResult.duration
-            });
-        }
-
-        // Send postgraduate emails using chunk processing
-        const postgradEmails = emails.filter(email => email.metadata.userType === 'postgraduate');
-        if (postgradEmails.length > 0) {
-            console.log(`📢 Sending ${postgradEmails.length} advertisement emails to postgraduates`);
-            const postgradJobResult = await emailService.sendAdvertisementEmails(postgradEmails);
-            jobResults.push({
-                type: 'postgraduate',
-                success: postgradJobResult.successful > 0,
-                count: postgradJobResult.successful,
-                total: postgradJobResult.total,
-                duration: postgradJobResult.duration
-            });
-        }
-
-        if (jobResults.length === 0) {
-            return res.status(500).json({ 
-                error: "Failed to send advertisement emails"
-            });
-        }
-
-        // Update module statuses to "advertised" immediately
-        const moduleIds = modules.map(mod => mod._id);
-        await ModuleDetails.updateMany(
-            { _id: { $in: moduleIds } },
-            { $set: { moduleStatus: 'advertised' } }
-        );
-
-        console.log(`✅ Queued ${emails.length} advertisement emails for ${modules.length} modules`);
-
-        const totalSent = jobResults.reduce((sum, result) => sum + result.count, 0);
-        const totalEmails = jobResults.reduce((sum, result) => sum + result.total, 0);
-
-        res.status(200).json({
-            message: `Advertisement emails sent successfully`,
-            results: jobResults,
-            summary: {
-                modulesProcessed: modules.length,
-                emailsSent: totalSent,
-                emailsTotal: totalEmails,
-                undergradModules: undergradModules.length,
-                postgradModules: postgradModules.length,
-            },
-            details: {
-                emailGroups: emailGroups,
-                processingResults: jobResults,
-            }
-        });
 
     } catch (error) {
         console.error("Error in advertiseModules function:", error);
