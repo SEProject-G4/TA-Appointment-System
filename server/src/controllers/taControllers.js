@@ -49,7 +49,7 @@ const getAllRequests = async (req, res) => {
       am.appliedModules.map((app) => app.moduleId)
     );
 
-    const hoursFilter = appliedModules?.[0]?.availableHoursPerWeek
+    const hoursFilter = appliedModules?.[0]?.availableHoursPerWeek !== undefined
       ? { requiredTAHours: { $lte: appliedModules[0].availableHoursPerWeek } }
       : {};
 
