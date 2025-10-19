@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaPlus, FaMinus } from "react-icons/fa";
-import { MdClose } from "react-icons/md";
+import { MdClose, MdOutlineErrorOutline } from "react-icons/md";
 import AutoSelect, { type Option } from "../../components/common/AutoSelect";
+// import { HiOutlineLink } from "react-icons/hi";
 
 import { useToast } from "../../contexts/ToastContext";
 import axiosInstance from "../../api/axiosConfig";
@@ -128,7 +129,7 @@ const EditModule: React.FC = () => {
         requirements: formData.specialNotes,
       };
       console.log("Posting payload:", payload);
-      await axiosInstance.post(
+      const response = await axiosInstance.post(
         "/recruitment-series/" + state?.moduleData._id + "/add-module",
         payload
       );
