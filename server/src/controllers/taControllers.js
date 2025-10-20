@@ -20,14 +20,28 @@ const getAllRequests = async (req, res) => {
     if (userRole === "undergraduate") {
       activeRecSeries = await RecruitmentSeries.find(
         { status: "active", undergradMailingList: { $in: [userGroupID] } },
-        { _id: 1 }
+        { _id: 1, undergradHourLimit: 1 }
       );
     } else if (userRole === "postgraduate") {
       activeRecSeries = await RecruitmentSeries.find(
         { status: "active", postgradMailingList: { $in: [userGroupID] } },
-        { _id: 1 }
+        { _id: 1, postgradHourLimit: 1 }
       );
     }
+
+    // Check if there are any active recruitment series
+    if (activeRecSeries.length === 0) {
+      return res.status(200).json({
+        updatedModules: [],
+        availableHoursPerWeek: 0,
+      });
+    }
+
+    // Get hour limit from the fetched recruitment series document
+    const recruitmentRound = activeRecSeries[0];
+    const hourLimit = userRole === "undergraduate" 
+      ? recruitmentRound.undergradHourLimit 
+      : recruitmentRound.postgradHourLimit;
 
     const recSeriesIds = activeRecSeries.map((r) => r._id);
 
@@ -82,7 +96,7 @@ const getAllRequests = async (req, res) => {
       updatedModules,
       availableHoursPerWeek: appliedModules[0]?.availableHoursPerWeek !== undefined
         ? appliedModules[0].availableHoursPerWeek
-        : (userRole === "undergraduate" ? 6 : 10),
+        : hourLimit,
     });
   } catch (error) {
     res
@@ -100,6 +114,16 @@ const applyForTA = async (req, res) => {
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
+    
+    // Fetch recruitment series to get hour limit
+    const recruitmentRound = await RecruitmentSeries.findById(recSeriesId).session(session);
+    if (!recruitmentRound) {
+      throw new Error("Recruitment series not found");
+    }
+    const hourLimit = userRole === "undergraduate" 
+      ? recruitmentRound.undergradHourLimit 
+      : recruitmentRound.postgradHourLimit;
+    
     // check if the user has already applied for this module
     const existingApplication = await TaApplication.findOne({
       userId,
@@ -178,8 +202,7 @@ const applyForTA = async (req, res) => {
         userId,
         recSeriesId,
         appliedModules: [taApplication._id],
-        availableHoursPerWeek:
-          userRole === "undergraduate" ? 6 - taHours : 18- taHours,
+        availableHoursPerWeek: hourLimit - taHours,
       });
       await appliedModules.save({ session });
     }
