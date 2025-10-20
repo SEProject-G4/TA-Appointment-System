@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-import { FaChevronRight, FaRegCalendarAlt, FaBoxOpen } from "react-icons/fa";
+import { FaChevronRight, FaRegCalendarAlt, FaBoxOpen, FaCopy, FaArchive, FaTrash } from "react-icons/fa";
 import { MdMoreVert } from "react-icons/md";
 import { LuCirclePlus, LuMail } from "react-icons/lu";
 import { FiClock } from "react-icons/fi";
@@ -33,7 +33,7 @@ interface RecruitmentSeriesCardProps {
   postgradHourLimit: number;
   undergradMailingList: UserGroup[];
   postgradMailingList: UserGroup[];
-  status: "initialised" | "active" | "archived";
+  status: "initialised" | "active" | "closed" | "archived";
   moduleCount: number;
   undergraduateTAPositionsCount: number;
   postgraduateTAPositionsCount: number;
@@ -91,6 +91,8 @@ const getClassForStatus = (status: string) => {
       return "bg-green-100 text-green-800";
     case "active":
       return "bg-green-100 text-green-800";
+    case "closed":
+      return "bg-orange-100 text-orange-800";
     case "archived":
       return "bg-text-secondary/80 text-text-primary";
     default:
@@ -122,6 +124,7 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
 
   const { openModal, closeModal } = useModal();
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const changesSubmittedModules = moduleDetails.filter(mod => mod.moduleStatus === 'changes submitted');
   const initialisedModules = moduleDetails.filter(mod => mod.moduleStatus === 'initialised');
@@ -266,6 +269,137 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
     ,{ showCloseButton: false });
   };
 
+  const handleCloseRecruitmentRound = () => {
+    openModal(
+      <div className="flex flex-col items-center py-4 px-6">
+        <h2 className="text-lg font-semibold mb-4">Close Recruitment Round</h2>
+        <p className="text-warning font-semibold mb-2">This action will close all recruitments under this recruitment round.</p>
+        <p className="mb-2">All modules in this recruitment series will be marked as 'closed' and the recruitment round status will change to 'closed'.</p>
+        <p>Are you sure you want to close this recruitment round?</p>
+        <div className="flex gap-x-4 mt-4">
+          <button
+            className="rounded-md outline outline-1 outline-orange-600 hover:bg-orange-600 text-orange-600 hover:text-text-inverted px-5 py-2 font-semibold"
+            onClick={async () => {
+              try {
+                const response = await axiosInstance.put(`/recruitment-series/${_id}/close`);
+                if(response.status === 200) {
+                  showToast("Recruitment round closed successfully.", "success");
+                  closeModal();
+                  refreshModuleDetails(); // Refresh to show updated status
+                }
+              } catch (error: any) {
+                console.error("Error closing recruitment round:", error);
+                const errorMessage = error.response?.data?.error || "Failed to close recruitment round";
+                showToast(errorMessage, "error");
+              }
+            }}
+          >
+            Close Recruitment Round
+          </button>
+          <button className="rounded-md outline outline-1 outline-text-secondary hover:bg-primary/20 text-text-primary px-5 py-2 font-semibold" onClick={() => closeModal()}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    ,{ showCloseButton: false });
+  };
+
+  const handleArchiveRecruitmentRound = () => {
+    openModal(
+      <div className="flex flex-col items-center py-4 px-6">
+        <h2 className="text-lg font-semibold mb-4">Archive Recruitment Round</h2>
+        <p className="mb-2">This action will archive this recruitment round. Archived recruitment rounds can only be copied or deleted.</p>
+        <p>Are you sure you want to archive this recruitment round?</p>
+        <div className="flex gap-x-4 mt-4">
+          <button
+            className="rounded-md outline outline-1 outline-gray-600 hover:bg-gray-600 text-gray-600 hover:text-text-inverted px-5 py-2 font-semibold"
+            onClick={async () => {
+              try {
+                const response = await axiosInstance.put(`/recruitment-series/${_id}/archive`);
+                if(response.status === 200) {
+                  showToast("Recruitment round archived successfully.", "success");
+                  closeModal();
+                  refreshModuleDetails(); // Refresh to show updated status
+                }
+              } catch (error: any) {
+                console.error("Error archiving recruitment round:", error);
+                const errorMessage = error.response?.data?.error || "Failed to archive recruitment round";
+                showToast(errorMessage, "error");
+              }
+            }}
+          >
+            Archive Recruitment Round
+          </button>
+          <button className="rounded-md outline outline-1 outline-text-secondary hover:bg-primary/20 text-text-primary px-5 py-2 font-semibold" onClick={() => closeModal()}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    ,{ showCloseButton: false });
+  };
+
+  // Dynamic dropdown menu items based on status
+  const getDropdownItems = () => {
+    const baseItems = [
+      {
+        label: "Make a copy",
+        onClick: handleCopyRS,
+        show: true
+      }
+    ];
+
+    switch (status) {
+      case "initialised":
+      case "active":
+        return [
+          {
+            label: "Change deadlines",
+            onClick: handleChangeDeadlines,
+            show: true
+          },
+          {
+            label: "Change hour limits", 
+            onClick: handleChangeHourLimits,
+            show: true
+          },
+          {
+            label: "Edit",
+            onClick: () => {navigate(`/recruitment-series/${_id}/edit`)},
+            show: true
+          },
+          ...baseItems,
+          {
+            label: "Close recruitment round",
+            onClick: handleCloseRecruitmentRound,
+            show: true
+          }
+        ];
+      
+      case "closed":
+        return [
+          ...baseItems,
+          {
+            label: "Archive recruitment round",
+            onClick: handleArchiveRecruitmentRound,
+            show: true
+          }
+        ];
+      
+      case "archived":
+        return [
+          ...baseItems,
+          {
+            label: "Delete recruitment round",
+            onClick: handleDeleteRS,
+            show: true
+          }
+        ];
+      
+      default:
+        return baseItems;
+    }
+  };
+
   const handleChangeDeadlines = () => {
     openModal(
       <ChangeDeadlineModal
@@ -364,31 +498,17 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
               tabIndex={0}
               className="menu outline outline-text-secondary/20 outline-1 gap-y-1 mt-1 z-[10] p-2 shadow dropdown-content bg-bg-card rounded-box w-52 flex"
             >
-              <li 
-                className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
-                onClick={handleChangeDeadlines}
-              >
-                Change deadlines
-              </li>
-              <li 
-                className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
-                onClick={handleChangeHourLimits}
-              >
-                Change hour limits
-              </li>
-              <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
-                Edit
-              </li>
-              <li
-                className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
-                onClick={handleCopyRS}
-              >
-                Make a copy
-              </li>
-              <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
-              onClick={handleDeleteRS}>
-                Delete
-              </li>
+              {getDropdownItems().map((item, index) => (
+                item.show && (
+                  <li 
+                    key={index}
+                    className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
+                    onClick={item.onClick}
+                  >
+                    {item.label}
+                  </li>
+                )
+              ))}
             </ul>
           </div>
         )}
@@ -526,20 +646,62 @@ const RecruitmentSeriesCard: React.FC<RecruitmentSeriesCardProps> = ({
                 </button>
               )}
 
-              {/* Add new module button */}
-              <Link
-                to={"/recruitment-series/" + _id + "/add-module"}
-                state={{
-                  id: _id,
-                  name: name,
-                  appDueDate: applicationDueDate,
-                  docDueDate: documentDueDate,
-                }}
-                className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-primary-light to-primary-dark rounded-md p-2 px-5"
-              >
-                <LuCirclePlus className="h-5 w-5 mr-2" />
-                Add Module
-              </Link>
+              {/* Add new module button - only for initialised and active */}
+              {(status === "initialised" || status === "active") && (
+                <Link
+                  to={"/recruitment-series/" + _id + "/add-module"}
+                  state={{
+                    id: _id,
+                    name: name,
+                    appDueDate: applicationDueDate,
+                    docDueDate: documentDueDate,
+                  }}
+                  className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-primary-light to-primary-dark rounded-md p-2 px-5"
+                >
+                  <LuCirclePlus className="h-5 w-5 mr-2" />
+                  Add Module
+                </Link>
+              )}
+
+              {/* Actions for closed status */}
+              {status === "closed" && (
+                <>
+                  <button
+                    onClick={handleCopyRS}
+                    className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 rounded-md p-2 px-4 transition-all duration-200"
+                  >
+                    <FaCopy className="h-4 w-4 mr-2" />
+                    Make a Copy
+                  </button>
+                  <button
+                    onClick={handleArchiveRecruitmentRound}
+                    className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800 rounded-md p-2 px-4 transition-all duration-200"
+                  >
+                    <FaArchive className="h-4 w-4 mr-2" />
+                    Archive
+                  </button>
+                </>
+              )}
+
+              {/* Actions for archived status */}
+              {status === "archived" && (
+                <>
+                  <button
+                    onClick={handleCopyRS}
+                    className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 rounded-md p-2 px-4 transition-all duration-200"
+                  >
+                    <FaCopy className="h-4 w-4 mr-2" />
+                    Make a Copy
+                  </button>
+                  <button
+                    onClick={handleDeleteRS}
+                    className="flex flex-row items-center text-text-inverted hover:drop-shadow-lg font-raleway font-semibold bg-gradient-to-tr from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 rounded-md p-2 px-4 transition-all duration-200"
+                  >
+                    <FaTrash className="h-4 w-4 mr-2" />
+                    Delete
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

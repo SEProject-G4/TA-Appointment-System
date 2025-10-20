@@ -51,12 +51,6 @@ exports.submitDocuments = async (req, res) => {
       position,
     });
 
-    // Update the isDocSubmitted flag in AppliedModules
-    await AppliedModules.updateOne(
-      { userId },
-      { $set: { isDocSubmitted: true, Documents: newDoc._id } }
-    );
-
     if (uploadErrors.length > 0) {
       return res.status(207).json({
         message: "Documents uploaded with some failures",
