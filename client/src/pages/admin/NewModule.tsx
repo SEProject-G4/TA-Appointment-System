@@ -100,7 +100,7 @@ const NewModule: React.FC = () => {
     try {
       if (!state || !state.id) {
         showToast(
-          "Recruitment Series ID is missing. Please go to the previous page and come again",
+          "Recruitment Round ID is missing. Please go to the previous page and come again",
           "error"
         );
         return;
@@ -123,7 +123,7 @@ const NewModule: React.FC = () => {
         payload
       );
       showToast(
-        "Module added successfully to the recruitment series!",
+        "Module added successfully to the recruitment Round!",
         "success"
       );
       setFormData({
@@ -140,6 +140,7 @@ const NewModule: React.FC = () => {
         openForUndergrads: false,
         openForPostgrads: false,
       });
+      fetchLecturers();
     } catch (error) {
       console.error("Error creating module:", error);
       showToast("Failed to create module.", "error");
@@ -365,7 +366,7 @@ const NewModule: React.FC = () => {
       <div className="text-xl flex-col text-center w-full h-[80vh] flex items-center justify-center text-text-secondary">
         <MdOutlineErrorOutline className="inline-block size-60" />
         <p>
-          Recruitment Series is not found. Please go back to the dashboard and
+          Recruitment Round is not found. Please go back to the dashboard and
           try again.
         </p>
       </div>

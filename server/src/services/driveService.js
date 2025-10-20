@@ -3,7 +3,7 @@ const { google } = require("googleapis");
 const fs = require("fs");
 const path = require("path");
 
-const SERVICE_ACCOUNT_FILE = path.join(__dirname, "../../service-account-key.json");
+const SERVICE_ACCOUNT_FILE = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
 
 // Configure for Shared Drive or regular folder
 const USE_SHARED_DRIVE = process.env.USE_SHARED_DRIVE === 'true';

@@ -1,9 +1,46 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { FaUser, FaEnvelope, FaIdBadge, FaGraduationCap } from "react-icons/fa";
+import { getUserProfile } from "../api/authApi";
+import type { UserProfile } from "../api/authApi";
+import { FaUser, FaEnvelope, FaIdBadge, FaGraduationCap, FaCalendarAlt, FaUsers, FaClock, FaSpinner } from "react-icons/fa";
 
 const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        const profile = await getUserProfile();
+        setProfileData(profile);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching profile data:', err);
+        setError('Failed to load profile data');
+        // Fallback to context user data
+      } finally {
+        setLoading(false);
+        return;
+      }
+    };
+
+    fetchProfileData();
+  }, []);
+
+  const user = profileData;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <FaSpinner className="animate-spin text-4xl text-primary mb-4 mx-auto" />
+          <h2 className="text-2xl font-bold text-text-primary mb-4">Loading Profile...</h2>
+          <p className="text-text-secondary">Please wait while we fetch your profile data.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -19,7 +56,7 @@ const ProfilePage: React.FC = () => {
   const ProfileField: React.FC<{
     icon: React.ReactNode;
     label: string;
-    value: string | undefined;
+    value: string | number | undefined;
     isMultiline?: boolean;
   }> = ({ icon, label, value, isMultiline = false }) => (
     <div className="bg-bg-card rounded-lg p-4 shadow-sm border border-border-default">
@@ -43,9 +80,71 @@ const ProfilePage: React.FC = () => {
     </div>
   );
 
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "Not available";
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return "Invalid date";
+    }
+  };
+
+  const renderRoleSpecificFields = () => {
+    switch (user.role) {
+      case 'lecturer':
+      case 'hod':
+        return (
+          <>
+            {user.displayName && (
+              <ProfileField
+                icon={<FaUser />}
+                label="Display Name"
+                value={user.displayName}
+              />
+            )}
+          </>
+        );
+      
+      case 'undergraduate':
+      case 'postgraduate':
+        return (
+          <>
+            {user.indexNumber && (
+              <ProfileField
+                icon={<FaIdBadge />}
+                label="Index Number"
+                value={user.indexNumber}
+              />
+            )}
+          </>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-dark/10 to-primary-light/20 p-4">
       <div className="max-w-4xl mx-auto">
+        {error && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+              <div>
+                <h4 className="font-medium text-yellow-900 mb-1">Profile Data Warning</h4>
+                <p className="text-sm text-yellow-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header Section */}
         <div className="bg-bg-card rounded-lg shadow-xl p-8 mb-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
@@ -68,13 +167,24 @@ const ProfilePage: React.FC = () => {
             {/* Basic Info */}
             <div className="flex-1 text-center md:text-left">
               <h1 className="text-3xl font-bold text-text-primary mb-2">
-                {user.name}
+                {/* Show displayName for faculty, name for others */}
+                {(user.role === 'lecturer' || user.role === 'hod') && user.displayName 
+                  ? user.displayName 
+                  : user.name}
               </h1>
               <p className="text-xl text-text-secondary mb-1">{user.email}</p>
               <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary">
                 <FaGraduationCap className="mr-2" />
-                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                {user.role === 'hod' ? 'Head of Department' : 
+                 user.role === 'cse-office' ? 'CSE Office Staff' :
+                 user.role.charAt(0).toUpperCase() + user.role.slice(1)}
               </div>
+              {user.createdAt && (
+                <p className="text-sm text-text-secondary mt-2">
+                  <FaCalendarAlt className="inline mr-1" />
+                  User since {formatDate(user.createdAt)}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -106,24 +216,33 @@ const ProfilePage: React.FC = () => {
               />
 
               <ProfileField
-                icon={<FaIdBadge />}
-                label="User ID"
-                value={user.id}
-              />
-            </div>
-
-            {/* Academic Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-text-primary mb-4 border-b border-border-default pb-2">
-                Academic Information
-              </h3>
-
-              <ProfileField
                 icon={<FaGraduationCap />}
                 label="Role"
-                value={user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                value={user.role === 'hod' ? 'Head of Department' : 
+                       user.role === 'cse-office' ? 'CSE Office Staff' :
+                       user.role.charAt(0).toUpperCase() + user.role.slice(1)}
               />
 
+              {user.userGroup && (
+                <ProfileField
+                  icon={<FaUsers />}
+                  label="User Group"
+                  value={user.userGroup.name}
+                />
+              )}
+            </div>
+
+            {/* Role-specific Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-text-primary mb-4 border-b border-border-default pb-2">
+                {user.role === 'lecturer' || user.role === 'hod' ? 'Faculty Information' : 
+                 user.role === 'undergraduate' || user.role === 'postgraduate' ? 'Student Information' :
+                 'Additional Information'}
+              </h3>
+
+              {renderRoleSpecificFields()}
+
+              {/* Role Description */}
               <div className="bg-bg-card rounded-lg p-4 shadow-sm border border-border-default">
                 <div className="flex items-start gap-3">
                   <div className="text-primary mt-1">
@@ -147,7 +266,40 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Account Information */}
+          {/* Account Timeline */}
+          <div className="mt-8 space-y-4">
+            <h3 className="text-lg font-semibold text-text-primary mb-4 border-b border-border-default pb-2">
+              Account Timeline
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {user.createdAt && (
+                <ProfileField
+                  icon={<FaCalendarAlt />}
+                  label="Account Created"
+                  value={formatDate(user.createdAt)}
+                />
+              )}
+
+              {user.lastLoginAt && (
+                <ProfileField
+                  icon={<FaClock />}
+                  label="Last Login"
+                  value={formatDate(user.lastLoginAt)}
+                />
+              )}
+
+              {user.lastActivityAt && (
+                <ProfileField
+                  icon={<FaClock />}
+                  label="Last Activity"
+                  value={formatDate(user.lastActivityAt)}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Account Status */}
           <div className="mt-8 space-y-4">
             <h3 className="text-lg font-semibold text-text-primary mb-4 border-b border-border-default pb-2">
               Account Status
@@ -160,6 +312,7 @@ const ProfilePage: React.FC = () => {
                   <h4 className="font-medium text-green-900 mb-1">Account Active</h4>
                   <p className="text-sm text-green-700">
                     Your account is active and in good standing.
+                    {user.firstLogin === false && " You have completed the initial setup."}
                   </p>
                 </div>
               </div>

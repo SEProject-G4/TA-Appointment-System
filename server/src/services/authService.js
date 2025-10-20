@@ -142,6 +142,40 @@ const getUserSessionInfo = async (userId) => {
   }
 };
 
+// Get detailed user profile with all fields
+const getDetailedUserProfile = async (userId) => {
+  try {
+    const user = await User.findById(userId)
+      .populate('userGroup', 'name description')
+      .lean();
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Return all user data including timestamps
+    return {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profilePicture: user.profilePicture,
+      displayName: user.displayName,
+      indexNumber: user.indexNumber,
+      googleId: user.googleId,
+      userGroup: user.userGroup,
+      firstLogin: user.firstLogin,
+      createdAt: user.createdAt,
+      lastLoginAt: user.lastLoginAt,
+      lastActivityAt: user.lastActivityAt,
+      updatedAt: user.updatedAt
+    };
+  } catch (error) {
+    console.error("Error getting detailed user profile:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   handleFirstLogin,
   findUserById,
@@ -150,4 +184,5 @@ module.exports = {
   findUsersByIds,
   updateLastActivity,
   getUserSessionInfo,
+  getDetailedUserProfile,
 };

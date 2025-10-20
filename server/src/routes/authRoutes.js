@@ -4,6 +4,7 @@ const authController = require('../controllers/authController');
 
 router.post('/google-verify', authController.googleVerify);
 router.get('/current-user', authController.getCurrentUser);
+router.get('/profile', authController.getUserProfile);
 router.post('/logout', authController.logout);
 
 module.exports = router;

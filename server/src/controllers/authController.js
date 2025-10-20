@@ -186,6 +186,40 @@ const getCurrentUser = async (req, res) => {
     }
 };
 
+const getUserProfile = async (req, res) => {
+    console.log('👤 getUserProfile called:', {
+        hasSession: !!req.session,
+        sessionId: req.session?.id,
+        userId: req.session?.userId,
+        cookies: req.headers.cookie ? 'present' : 'missing',
+        origin: req.headers.origin
+    });
+
+    if (!req.session?.userId) {
+        console.log('❌ No session or userId in getUserProfile');
+        return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    try {
+        const userProfile = await authService.getDetailedUserProfile(req.session.userId);
+        console.log('✅ Detailed user profile retrieved:', userProfile.email);
+        
+        return res.status(200).json(userProfile);
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        
+        // If user not found, destroy the invalid session
+        if (error.message === 'User not found') {
+            req.session.destroy((err) => {
+                if (err) console.error('Session destroy error:', err);
+            });
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 const logout = (req, res) => {
     const userId = req.session?.userId;
     const sessionId = req.sessionID;
@@ -248,6 +282,7 @@ const revokeSession = async (req, res) => {
 module.exports = {
     googleVerify,
     getCurrentUser,
+    getUserProfile,
     logout,
     getAllSessions,
     revokeSession

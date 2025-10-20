@@ -9,6 +9,22 @@ export interface User {
     profilePicture: string;
 }
 
+export interface UserProfile extends User {
+  displayName?: string; // For lecturers and HOD
+    indexNumber?: string; // For students (undergraduate/postgraduate)
+    googleId?: string;
+    userGroup?: {
+        _id: string;
+        name: string;
+        description?: string;
+    };
+    firstLogin?: boolean;
+    createdAt?: string;
+    lastLoginAt?: string;
+    lastActivityAt?: string;
+    updatedAt?: string;
+}
+
 export const verifyGoogleToken = async (id_token: string): Promise<User> => {
   try{
     const response = await axiosInstance.post<User>('/auth/google-verify', { id_token });
@@ -29,6 +45,20 @@ export const getCurrentUser = async (): Promise<User | null> => {
       return null;
     }
     console.error('Error fetching current user:', error);
+    throw error;
+  }
+};
+
+export const getUserProfile = async (): Promise<UserProfile | null> => {
+  try {
+    const response = await axiosInstance.get<User>('/auth/profile');
+    return response.data;
+  } catch (error) {
+    // A 401 response from the backend means the user is not authenticated.
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      return null;
+    }
+    console.error('Error fetching user profile:', error);
     throw error;
   }
 };

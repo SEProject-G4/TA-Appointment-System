@@ -4,6 +4,7 @@ const RecruitmentRound = require("../models/RecruitmentRound");
 const TAApplication = require("../models/TaApplication");
 const AppliedModule = require("../models/AppliedModules");
 const { sendEmail } = require("../services/emailService");
+const config = require("../config");
 
 const changeModuleStatus = async (req, res) => {
   try {
@@ -245,7 +246,7 @@ const notifyModule = async (req, res) => {
 
         await sendEmail(emailAddresses, subject, htmlContent);
         console.log(`✅ Notifications sent to ${emailAddresses.length} coordinators for ${module.moduleCode}`);
-        await ModuleDetails.findByIdAndUpdate(moduleId, { $set: { status: "pending changes" } });
+        await ModuleDetails.findByIdAndUpdate(moduleId, { $set: { moduleStatus: "pending changes" } });
 
         res.status(200).json({ message: "Module notifications sent successfully" });
     } catch (error) {

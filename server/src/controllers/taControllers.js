@@ -55,9 +55,10 @@ const getAllRequests = async (req, res) => {
       am.appliedModules.map((app) => app.moduleId)
     );
 
-    const hoursFilter = appliedModules?.[0]?.availableHoursPerWeek !== undefined
+    // filter to remove that has more taHours than user has
+    const hoursFilter = appliedModules?.[0]?.availableHoursPerWeek!== undefined 
       ? { requiredTAHours: { $lte: appliedModules[0].availableHoursPerWeek } }
-      : {};
+      : userRole === "undergraduate"? { requiredTAHours: { $lte: 6 } } : { requiredTAHours: { $lte: 18 } };
 
     const modules = await ModuleDetails.find({
       recruitmentSeriesId: { $in: recSeriesIds },
@@ -65,8 +66,9 @@ const getAllRequests = async (req, res) => {
       _id: { $nin: appliedModulesIds },
       ...hoursFilter,
       ...(userRole === "undergraduate"
-        ? { openForUndergraduates: true }
-        : { openForPostgraduates: true }),
+        ? { openForUndergraduates: true, "undergraduateCounts.remaining": { $gt: 0 } }
+        : { openForPostgraduates: true, "postgraduateCounts.remaining": { $gt: 0 } }
+      ),
     });
     //fetch the available modules that have been advertised by admin.
     // and required ta hours should be less than or equal to available hours per week of the user
