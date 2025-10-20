@@ -487,6 +487,20 @@ const acceptApplication = async (req, res) => {
     application.status = 'accepted';
     await Promise.all(updatePromises);
 
+    // Update module status to 'getting-documents' if at least one TA is accepted
+    const moduleAfterUpdate = await ModuleDetails.findById(applicationModuleId);
+    const hasAcceptedTAs = (
+      (moduleAfterUpdate.undergraduateCounts?.accepted || 0) > 0 ||
+      (moduleAfterUpdate.postgraduateCounts?.accepted || 0) > 0
+    );
+    
+    if (hasAcceptedTAs && moduleAfterUpdate.moduleStatus !== 'getting-documents') {
+      await ModuleDetails.findByIdAndUpdate(applicationModuleId, {
+        $set: { moduleStatus: 'getting-documents' }
+      });
+      console.log(`Module ${module.moduleCode} status updated to 'getting-documents'`);
+    }
+
     // Send email notification asynchronously (don't block the response)
     setImmediate(async () => {
       try {
