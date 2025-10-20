@@ -20,26 +20,30 @@ const transporter = nodemailer.createTransport({
 
 /**
  * Send a single email directly
- * @param {string} to - Recipient email address
+ * @param {string|string[]} to - Recipient email address or array of addresses
  * @param {string} subject - Email subject
  * @param {string} html - Email HTML content
+ * @param {string} from - Sender name (optional)
  * @returns {Promise<boolean>} Success status
  */
-const sendEmail = async (to, from="TA Appointment System - CSE",   subject, html) => {
+const sendEmail = async (to, subject, html, from = "TA Appointment System - CSE") => {
     try {
+        // Handle both single email and array of emails
+        const recipients = Array.isArray(to) ? to.join(', ') : to;
+        
         const mailOptions = {
             from: `${from} <${config.GMAIL_USER}>`,
-            to,
+            to: recipients,
             subject,
-            html,
+            html, // This ensures HTML content is rendered
         };
 
         const result = await transporter.sendMail(mailOptions);
-        console.log(`✅ Email sent to ${to}: ${result.messageId}`);
+        console.log(`✅ Email sent to ${Array.isArray(to) ? to.length + ' recipients' : to}: ${result.messageId}`);
         return true;
 
     } catch (error) {
-        console.error(`❌ Failed to send email to ${to}:`, error.message);
+        console.error(`❌ Failed to send email to ${Array.isArray(to) ? to.length + ' recipients' : to}:`, error.message);
         return false;
     }
 };

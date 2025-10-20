@@ -344,10 +344,11 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     // Implementation for notifying coordinators
     try{
       await axiosInstance.put(`/modules/${moduleData._id}/notify`);
-      showToast("Coordinators notified successfully", "success");
+      showToast(`Coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName} are notified successfully`, "success");
+      await fetchModuleDetails(moduleData._id);
     } catch (error) {
       console.error("Error notifying coordinators:", error);
-      showToast("Failed to notify coordinators", "error");
+      showToast(`Failed to notify coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName}`, "error");
     }
   };
 
@@ -359,11 +360,11 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     // Implementation for advertising a module
     try {
       await axiosInstance.put(`/modules/${moduleData._id}/advertise`);
-      showToast("Module advertised successfully", "success");
+      showToast(`${moduleData.moduleCode} - ${moduleData.moduleName} advertised successfully`, "success");
       await fetchModuleDetails(moduleData._id);
     } catch (error) {
       console.error("Error advertising module:", error);
-      showToast("Failed to advertise module", "error");
+      showToast(`Failed to advertise module ${moduleData.moduleCode} - ${moduleData.moduleName}`, "error");
     }
   };
 
