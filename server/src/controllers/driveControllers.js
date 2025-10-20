@@ -1,5 +1,8 @@
 // src/controllers/driveController.js
-const { createOrGetFolderForTA, uploadFileToDrive } = require("../services/driveService");
+const {
+  createOrGetFolderForTA,
+  uploadFileToDrive,
+} = require("../services/driveService");
 const Document = require("../models/documentModel");
 const AppliedModules = require("../models/AppliedModules");
 
@@ -8,7 +11,15 @@ const AppliedModules = require("../models/AppliedModules");
  */
 exports.submitDocuments = async (req, res) => {
   try {
-    const { userId, bankAccountName, address, nicNumber, accountNumber, studentType, position } = req.body;
+    const {
+      userId,
+      bankAccountName,
+      address,
+      nicNumber,
+      accountNumber,
+      studentType,
+      position,
+    } = req.body;
 
     if (!userId || !bankAccountName || !nicNumber || !accountNumber) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -58,6 +69,11 @@ exports.submitDocuments = async (req, res) => {
         failedUploads: uploadErrors,
       });
     }
+    // Update the isDocSubmitted flag in AppliedModules
+    await AppliedModules.updateOne(
+      { userId },
+      { $set: { isDocSubmitted: true, Documents: newDoc._id } }
+    );
 
     res.status(201).json({
       message: "Documents uploaded successfully",
