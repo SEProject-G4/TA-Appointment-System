@@ -293,7 +293,6 @@ const handleRequests = async (req, res) => {
     const coordinatorModulesAll = await ModuleDetails.find({
       coordinators: coordinatorId
     }).select('_id moduleCode moduleName semester requiredUndergraduateTACount requiredPostgraduateTACount recruitmentSeriesId');
-    console.log('edit modules -> matched', coordinatorModulesAll.length, 'modules for', coordinatorId);
 
     // No recruitment series status filtering; consider all modules for the coordinator
     const coordinatorModules = coordinatorModulesAll;
