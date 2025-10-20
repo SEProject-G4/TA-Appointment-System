@@ -6,7 +6,6 @@ import HandleTaRequestsCard from '../../components/lecturer/HandleTaRequestsCard
 import { ChevronDown, RefreshCw } from 'lucide-react'
 import { useToast } from '../../contexts/ToastContext'
 
-// removed unused TAApplication interface
 
 interface ModuleGroup {
   moduleCode: string;
