@@ -811,8 +811,13 @@ const advertiseModules = async (req, res) => {
                     await ModuleDetails.updateMany(
                         { _id: { $in: postgradModules.map(mod => mod._id) } },
                         { $set: { moduleStatus: 'advertised' } }
-                    ).then(() => {
+                    ).then(async () => {
                         console.log(`✅ Updated module statuses to 'advertised' for postgraduate modules`);
+                        if(recruitmentSeries.status !== 'active') {
+                            // If the recruitment series is not active, we can archive it
+                            recruitmentSeries.status = 'active';
+                            await recruitmentSeries.save();
+                        }
                     });
                 }
             });
