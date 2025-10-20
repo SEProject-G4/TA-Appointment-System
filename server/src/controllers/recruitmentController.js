@@ -582,7 +582,7 @@ const notifyModules = async (req, res) => {
                 const htmlContent = `
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                         <h2>TA Request Required</h2>
-                        <p>Dear ${coordinator.displayName},</p>
+                        <p>Dear Module Coordinator,</p>
                         <p>This is a reminder to submit your TA requirements for the following module:</p>
                         <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-left: 4px solid #007bff;">
                             <strong>Module:</strong> ${module.moduleCode} - ${module.moduleName}<br>
