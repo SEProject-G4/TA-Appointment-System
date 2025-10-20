@@ -4,6 +4,7 @@ import { FaUserGraduate } from 'react-icons/fa'
 import { ConfirmDialog } from '../../components/common/ConfirmDialog'
 import HandleTaRequestsCard from '../../components/lecturer/HandleTaRequestsCard'
 import { ChevronDown, RefreshCw } from 'lucide-react'
+import { useToast } from '../../contexts/ToastContext'
 
 // removed unused TAApplication interface
 
@@ -20,6 +21,8 @@ interface ModuleGroup {
 
 
 const HandleTARequests = () => {
+  const { showToast } = useToast();
+  
   const [modules, setModules] = useState<ModuleGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,15 +108,17 @@ const HandleTARequests = () => {
       
       if (type === 'accept') {
         await axiosInstance.patch(`/lecturer/applications/${applicationId}/accept`);
+        showToast(`Successfully accepted ${studentName}'s TA application!`, 'success');
       } else {
         await axiosInstance.patch(`/lecturer/applications/${applicationId}/reject`);
+        showToast(`${studentName}'s TA application has been rejected.`, 'info');
       }
       
       setShowConfirmModal(false);
       setPendingAction(null);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Unknown error occurred';
-      alert(`Failed to ${type} ${studentName}: ${errorMessage}`);
+      showToast(`Failed to ${type} ${studentName}: ${errorMessage}`, 'error');
       // Revert optimistic update on error
       await fetchTAApplications();
       setShowConfirmModal(false);
