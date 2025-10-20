@@ -76,11 +76,9 @@ const advertiseModule = async (req, res) => {
 
     const recruitmentSeriesId = module.recruitmentSeriesId;
     if (!recruitmentSeriesId) {
-      return res
-        .status(400)
-        .json({
-          error: "Module is not associated with any recruitment series",
-        });
+      return res.status(400).json({
+        error: "Module is not associated with any recruitment series",
+      });
     }
     const recruitmentSeries = await RecruitmentRound.findById(
       recruitmentSeriesId
@@ -101,7 +99,6 @@ const advertiseModule = async (req, res) => {
     const undergradEmails = undergraduateUsers.map((user) => user.email);
     const postgradEmails = postgraduateUsers.map((user) => user.email);
 
-  
     const subject = `New TA Opportunities Available: ${module.moduleCode} - ${module.moduleName}`;
     const undergradHtmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -111,14 +108,38 @@ const advertiseModule = async (req, res) => {
             
             <div style="background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
                 <div style="margin-bottom: 15px; padding: 15px; background-color: white; border-left: 4px solid #6f42c1; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <strong style="font-size: 16px; color: #6f42c1;">${module.moduleCode} - ${module.moduleName}</strong><br>
-                    <span style="color: #6c757d; font-size: 14px;">Semester: ${module.semester}</span><br>
-                    ${module.postgraduateCounts ? `<span style="color: #007bff; font-weight: 500;">Positions Available: ${module.postgraduateCounts.required}</span><br>` : ''}
-                    ${module.requiredTAHours ? `<span style="color: #fd7e14; font-weight: 500;">Hours per week: ${module.requiredTAHours}</span><br>` : ''}
+                    <strong style="font-size: 16px; color: #6f42c1;">${
+                      module.moduleCode
+                    } - ${module.moduleName}</strong><br>
+                    <span style="color: #6c757d; font-size: 14px;">Semester: ${
+                      module.semester
+                    }</span><br>
+                    ${
+                      module.postgraduateCounts
+                        ? `<span style="color: #007bff; font-weight: 500;">Positions Available: ${module.postgraduateCounts.required}</span><br>`
+                        : ""
+                    }
+                    ${
+                      module.requiredTAHours
+                        ? `<span style="color: #fd7e14; font-weight: 500;">Hours per week: ${module.requiredTAHours}</span><br>`
+                        : ""
+                    }
                     <div style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border-radius: 4px;">
                         <strong style="color: #dc3545; font-size: 14px;">📅 Module Deadlines:</strong><br>
-                        <span style="color: #dc3545; font-size: 13px;">Application Due: ${new Date(module.applicationDueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span><br>
-                        <span style="color: #dc3545; font-size: 13px;">Document Due: ${new Date(module.documentDueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        <span style="color: #dc3545; font-size: 13px;">Application Due: ${new Date(
+                          module.applicationDueDate
+                        ).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}</span><br>
+                        <span style="color: #dc3545; font-size: 13px;">Document Due: ${new Date(
+                          module.documentDueDate
+                        ).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}</span>
                     </div>
                 </div>
             </div>
@@ -147,14 +168,38 @@ const advertiseModule = async (req, res) => {
 
             <div style="background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
                 <div style="margin-bottom: 15px; padding: 15px; background-color: white; border-left: 4px solid #6f42c1; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <strong style="font-size: 16px; color: #6f42c1;">${module.moduleCode} - ${module.moduleName}</strong><br>
-                    <span style="color: #6c757d; font-size: 14px;">Semester: ${module.semester}</span><br>
-                    ${module.postgraduateCounts ? `<span style="color: #007bff; font-weight: 500;">Positions Available: ${module.postgraduateCounts.required}</span><br>` : ''}
-                    ${module.requiredTAHours ? `<span style="color: #fd7e14; font-weight: 500;">Hours per week: ${module.requiredTAHours}</span><br>` : ''}
+                    <strong style="font-size: 16px; color: #6f42c1;">${
+                      module.moduleCode
+                    } - ${module.moduleName}</strong><br>
+                    <span style="color: #6c757d; font-size: 14px;">Semester: ${
+                      module.semester
+                    }</span><br>
+                    ${
+                      module.postgraduateCounts
+                        ? `<span style="color: #007bff; font-weight: 500;">Positions Available: ${module.postgraduateCounts.required}</span><br>`
+                        : ""
+                    }
+                    ${
+                      module.requiredTAHours
+                        ? `<span style="color: #fd7e14; font-weight: 500;">Hours per week: ${module.requiredTAHours}</span><br>`
+                        : ""
+                    }
                     <div style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border-radius: 4px;">
                         <strong style="color: #dc3545; font-size: 14px;">📅 Module Deadlines:</strong><br>
-                        <span style="color: #dc3545; font-size: 13px;">Application Due: ${new Date(module.applicationDueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span><br>
-                        <span style="color: #dc3545; font-size: 13px;">Document Due: ${new Date(module.documentDueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        <span style="color: #dc3545; font-size: 13px;">Application Due: ${new Date(
+                          module.applicationDueDate
+                        ).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}</span><br>
+                        <span style="color: #dc3545; font-size: 13px;">Document Due: ${new Date(
+                          module.documentDueDate
+                        ).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}</span>
                     </div>
                 </div>
             </div>
@@ -178,10 +223,19 @@ const advertiseModule = async (req, res) => {
     // Send emails to both groups
     await sendEmail(undergradEmails, subject, undergradHtmlContent);
     await sendEmail(postgradEmails, subject, postgradHtmlContent);
-    
+
     // Update module status to 'advertised'
-    module.moduleStatus = 'advertised';
-    await module.save();
+    module.moduleStatus = "advertised";
+    await module.save().then(async () => {
+      console.log(
+        `✅ Updated module statuses to 'advertised' for postgraduate modules`
+      );
+      if (recruitmentSeries.status !== "active") {
+        // If the recruitment series is not active, we can archive it
+        recruitmentSeries.status = "active";
+        await recruitmentSeries.save();
+      }
+    });
     res.status(200).json({ message: "Module advertised successfully" });
   } catch (error) {
     console.error("Error advertising module:", error);
@@ -190,40 +244,48 @@ const advertiseModule = async (req, res) => {
 };
 
 const notifyModule = async (req, res) => {
-    try {
-        const { moduleId } = req.params;
+  try {
+    const { moduleId } = req.params;
 
-        if (!moduleId) {
-            return res.status(400).json({ error: "Module ID is required" });
-        }
+    if (!moduleId) {
+      return res.status(400).json({ error: "Module ID is required" });
+    }
 
-        // Find the module by ID
-        const module = await ModuleDetails.findById(moduleId);
-        if (!module) {
-            return res.status(404).json({ error: "Module not found" });
-        }
+    // Find the module by ID
+    const module = await ModuleDetails.findById(moduleId);
+    if (!module) {
+      return res.status(404).json({ error: "Module not found" });
+    }
 
-        if (!module.coordinators || module.coordinators.length === 0) {
-            console.warn(`Module ${module.moduleCode} has no coordinators assigned - skipping`);
-        }
+    if (!module.coordinators || module.coordinators.length === 0) {
+      console.warn(
+        `Module ${module.moduleCode} has no coordinators assigned - skipping`
+      );
+    }
 
-        console.log(`👥 Fetching ${module.coordinators.length} coordinators for ${module.moduleCode}`);
-        // Fetch coordinators for this module
-        const coordinators = await User.find({ 
-            _id: { $in: module.coordinators },
-            email: { $exists: true, $ne: null, $ne: '' }
-        }).lean();
-        
-        console.log(`✅ Found ${coordinators.length} coordinators with valid emails for ${module.moduleCode}`);
+    console.log(
+      `👥 Fetching ${module.coordinators.length} coordinators for ${module.moduleCode}`
+    );
+    // Fetch coordinators for this module
+    const coordinators = await User.find({
+      _id: { $in: module.coordinators },
+      email: { $exists: true, $ne: null, $ne: "" },
+    }).lean();
 
-        if (coordinators.length === 0) {
-            console.warn(`Module ${module.moduleCode} has no coordinators with valid email addresses - skipping`);
-            return res.status(200).json({ message: "No coordinators to notify" });
-        }
+    console.log(
+      `✅ Found ${coordinators.length} coordinators with valid emails for ${module.moduleCode}`
+    );
 
-        const emailAddresses = coordinators.map(coordinator => coordinator.email);
-        const subject = `Please enter your TA requests for ${module.moduleCode} - ${module.moduleName} in semester ${module.semester}`;
-        const htmlContent = `
+    if (coordinators.length === 0) {
+      console.warn(
+        `Module ${module.moduleCode} has no coordinators with valid email addresses - skipping`
+      );
+      return res.status(200).json({ message: "No coordinators to notify" });
+    }
+
+    const emailAddresses = coordinators.map((coordinator) => coordinator.email);
+    const subject = `Please enter your TA requests for ${module.moduleCode} - ${module.moduleName} in semester ${module.semester}`;
+    const htmlContent = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2>TA Request Required</h2>
                 <p>Dear Module Coordinator,</p>
@@ -244,15 +306,19 @@ const notifyModule = async (req, res) => {
             </div>
         `;
 
-        await sendEmail(emailAddresses, subject, htmlContent);
-        console.log(`✅ Notifications sent to ${emailAddresses.length} coordinators for ${module.moduleCode}`);
-        await ModuleDetails.findByIdAndUpdate(moduleId, { $set: { moduleStatus: "pending changes" } });
+    await sendEmail(emailAddresses, subject, htmlContent);
+    console.log(
+      `✅ Notifications sent to ${emailAddresses.length} coordinators for ${module.moduleCode}`
+    );
+    await ModuleDetails.findByIdAndUpdate(moduleId, {
+      $set: { moduleStatus: "pending changes" },
+    });
 
-        res.status(200).json({ message: "Module notifications sent successfully" });
-    } catch (error) {
-        console.error("Error notifying module:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
+    res.status(200).json({ message: "Module notifications sent successfully" });
+  } catch (error) {
+    console.error("Error notifying module:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 const updateModule = async (req, res) => {

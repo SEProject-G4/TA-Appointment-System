@@ -582,7 +582,7 @@ const notifyModules = async (req, res) => {
                 const htmlContent = `
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                         <h2>TA Request Required</h2>
-                        <p>Dear ${coordinator.displayName},</p>
+                        <p>Dear Module Coordinator,</p>
                         <p>This is a reminder to submit your TA requirements for the following module:</p>
                         <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-left: 4px solid #007bff;">
                             <strong>Module:</strong> ${module.moduleCode} - ${module.moduleName}<br>
@@ -811,8 +811,13 @@ const advertiseModules = async (req, res) => {
                     await ModuleDetails.updateMany(
                         { _id: { $in: postgradModules.map(mod => mod._id) } },
                         { $set: { moduleStatus: 'advertised' } }
-                    ).then(() => {
+                    ).then(async () => {
                         console.log(`✅ Updated module statuses to 'advertised' for postgraduate modules`);
+                        if(recruitmentSeries.status !== 'active') {
+                            // If the recruitment series is not active, we can archive it
+                            recruitmentSeries.status = 'active';
+                            await recruitmentSeries.save();
+                        }
                     });
                 }
             });
