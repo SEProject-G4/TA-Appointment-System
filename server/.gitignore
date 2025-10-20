@@ -8,3 +8,6 @@ yarn-debug.log*
 *.tgz
 .DS_Store 
 build/
+
+uploads/
+service-account-key.json
