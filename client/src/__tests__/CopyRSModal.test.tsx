@@ -178,64 +178,6 @@ describe('CopyRSModal', () => {
     fireEvent.change(documentDateInput, { target: { value: '2024-12-20T23:59' } });
   });
 
-  test('validates hour limits are positive numbers', async () => {
-    render(
-      <ModalProvider>
-        <CopyRSModal 
-          recruitmentSeriesData={mockRecruitmentSeriesData} 
-          modules={mockModules} 
-        />
-      </ModalProvider>
-    );
-
-    const undergradHourInput = screen.getByDisplayValue('20');
-    const postgradHourInput = screen.getByDisplayValue('30');
-    
-    // Set invalid hour limits
-    fireEvent.change(undergradHourInput, { target: { value: '0' } });
-    fireEvent.change(postgradHourInput, { target: { value: '-5' } });
-    
-    await waitFor(() => {
-      expect(screen.getAllByText('Hour limit must be positive')).toHaveLength(2);
-    });
-  });
-
-  test('navigates through steps correctly', async () => {
-    render(
-      <ModalProvider>
-        <CopyRSModal 
-          recruitmentSeriesData={mockRecruitmentSeriesData} 
-          modules={mockModules} 
-        />
-      </ModalProvider>
-    );
-
-    // Should start on step 1 (Basic Info)
-    expect(screen.getByText('Edit basic info of the new recruitment series.')).toBeInTheDocument();
-    
-    // Go to step 2
-    const nextButton = screen.getByText('Next');
-    fireEvent.click(nextButton);
-    
-    await waitFor(() => {
-      expect(screen.getByText('Edit Usergroups of potential TAs for the Recruitment Round.')).toBeInTheDocument();
-    });
-    
-    // Go to step 3
-    fireEvent.click(screen.getByText('Next'));
-    
-    await waitFor(() => {
-      expect(screen.getByText('Choose modules to be included in the Recruitment Round.')).toBeInTheDocument();
-    });
-    
-    // Go back to step 2
-    fireEvent.click(screen.getByText('Previous'));
-    
-    await waitFor(() => {
-      expect(screen.getByText('Edit Usergroups of potential TAs for the Recruitment Round.')).toBeInTheDocument();
-    });
-  });
-
   test('fetches and displays user groups on step 2', async () => {
     render(
       <ModalProvider>

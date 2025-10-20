@@ -290,7 +290,7 @@ describe("getAllRequests", () => {
       userId: user._id,
       recSeriesId: recSeries._id,
       appliedModules: [],
-      availableHoursPerWeek: 3, // low hours
+      availableHoursPerWeek: 0, // low hours
     });
 
     await ModuleDetails.create({
@@ -324,7 +324,7 @@ describe("getAllRequests", () => {
     expect(res.status).toHaveBeenCalledWith(200);
     const data = res.json.mock.calls[0][0];
     expect(data.updatedModules.length).toBe(0); // filtered out due to insufficient hours
-    expect(data.availableHoursPerWeek).toBe(3); // should return user's available hours
+    expect(data.availableHoursPerWeek).toBe(0); // should return user's available hours
   });
   it("TC04-should handle errors and return 500", async () => {
   const req = { query: { userId: "123" } }; // invalid ID

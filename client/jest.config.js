@@ -40,7 +40,7 @@ export default {
   },
   moduleNameMapper: {
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
-    "\\.(jpg|jpeg|png|gif|svg)$": "jest-transform-stub",
+    "\\.(jpg|jpeg|png|gif|svg)$": "<rootDir>/src/__mocks__/fileMock.js",
   },
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
   testMatch: ["**/__tests__/**/*.test.(ts|tsx)"],

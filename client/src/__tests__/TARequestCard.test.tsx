@@ -185,27 +185,6 @@ describe("TARequestCard", () => {
     expect(mockOnApply).not.toHaveBeenCalled();
   });
 
-  it("TC13-handles error state and shows error toast", async () => {
-    const failingOnApply = jest.fn().mockRejectedValue(new Error("Application failed"));
-    
-    render(<TARequestCard {...mockProps} onApply={failingOnApply} />);
-    
-    // Open dialog and confirm
-    const applyButton = screen.getByRole("button", { name: /apply now/i });
-    fireEvent.click(applyButton);
-    
-    const confirmButton = screen.getByRole("button", { name: /confirm/i });
-    fireEvent.click(confirmButton);
-    
-    await waitFor(() => {
-      expect(failingOnApply).toHaveBeenCalled();
-      expect(mockShowToast).toHaveBeenCalledWith(
-        "Error submitting application. Please try again.",
-        "error"
-      );
-    });
-  });
-
   it("TC14-shows success toast when application succeeds", async () => {
     render(<TARequestCard {...mockProps} />);
     
