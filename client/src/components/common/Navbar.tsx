@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaUser, FaSignOutAlt, FaBars, FaTimes } from "react-icons/fa";
+import { FaUser, FaSignOutAlt, FaBars, FaTimes, FaExchangeAlt, FaUserTie, FaGraduationCap, FaUserShield, FaCog, FaUserGraduate } from "react-icons/fa";
 import CSELogo from "../../assets/images/cse-logo.png";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLocation, Link } from "react-router-dom";
@@ -10,10 +10,11 @@ interface NavbarProps {
   ref: React.Ref<HTMLDivElement>;
 }
 
-const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
-  const { user, loading, logout, isLoggingOut } = useAuth(); // Destructure the new state
+const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((_, ref) => {
+  const { user, loading, logout, isLoggingOut, switchUserRole } = useAuth(); // Destructure the new state
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isRoleSwitching, setIsRoleSwitching] = useState(false);
 
   if (isLoggingOut) {
     return null;
@@ -30,6 +31,52 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return <FaUserShield className="text-sm" />;
+      case 'undergraduate':
+        return <FaGraduationCap className="text-sm" />;
+      case 'postgraduate':
+        return <FaUserGraduate className="text-sm" />;
+      case 'lecturer':
+        return <FaUserTie className="text-sm" />;
+      case 'hod':
+        return <FaUserShield className="text-sm" />;
+      case 'cse-office':
+        return <FaCog className="text-sm" />;
+      default:
+        return <FaUser className="text-sm" />;
+    }
+  };
+
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'hod':
+        return 'Head of Department';
+      case 'cse-office':
+        return 'CSE Office Staff';
+      default:
+        return role.charAt(0).toUpperCase() + role.slice(1);
+    }
+  };
+
+  const handleRoleSwitch = async (newRole: string) => {
+    if (newRole === user?.role) return; // Don't switch to same role
+    
+    setIsRoleSwitching(true);
+    try {
+      await switchUserRole(newRole);
+      setIsMobileMenuOpen(false);
+      console.log('✅ Role switched to:', newRole);
+    } catch (error) {
+      console.error('❌ Role switch failed:', error);
+      // You could show an error message here
+    } finally {
+      setIsRoleSwitching(false);
+    }
   };
   
   const isLoginPage = location.pathname === '/login';
@@ -174,8 +221,35 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
                         {user.email}
                       </li>
                       <li className="px-2 text-xs font-semibold text-primary">
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        {getRoleDisplayName(user.role)}
                       </li>
+                      
+                      {/* Role switching dropdown */}
+                      {user.availableRoles && user.availableRoles.length > 1 && (
+                        <>
+                          <div className="px-2 my-2 h-[1px] w-full bg-text-secondary/20"></div>
+                          <li className="px-2 py-1 text-xs font-semibold text-text-secondary">
+                            Switch Role:
+                          </li>
+                          {user.availableRoles
+                            .filter(roleData => roleData.role !== user.role)
+                            .map((roleData) => (
+                              <li 
+                                key={roleData.userId}
+                                onClick={() => handleRoleSwitch(roleData.role)}
+                                className="p-1 font-semibold rounded hover:bg-primary/80 hover:text-text-inverted text-text-secondary cursor-pointer"
+                              >
+                                <div className="flex flex-row items-center gap-2 px-2">
+                                  {getRoleIcon(roleData.role)}
+                                  <span className="text-xs">
+                                    {isRoleSwitching ? 'Switching...' : getRoleDisplayName(roleData.role)}
+                                  </span>
+                                </div>
+                              </li>
+                            ))}
+                        </>
+                      )}
+                      
                       <div className="px-2 my-2 h-[1px] w-full bg-text-secondary/20"></div>
                       <li className="p-1 font-semibold rounded hover:bg-primary/80 hover:text-text-inverted text-text-secondary">
                         <Link
@@ -316,11 +390,37 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((props, ref) => {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm text-text-primary truncate">{user.name}</p>
                       <p className="text-xs text-text-secondary truncate">{user.email}</p>
-                      <p className="text-xs font-semibold text-primary">{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</p>
+                      <p className="text-xs font-semibold text-primary">{getRoleDisplayName(user.role)}</p>
                     </div>
                   </div>
                   
                   <div className="space-y-1">
+                    {/* Role switching for mobile */}
+                    {user.availableRoles && user.availableRoles.length > 1 && (
+                      <>
+                        <div className="px-3 py-2 text-xs font-semibold text-text-secondary">
+                          Switch Role:
+                        </div>
+                        {user.availableRoles
+                          .filter(roleData => roleData.role !== user.role)
+                          .map((roleData) => (
+                            <button
+                              key={roleData.userId}
+                              onClick={() => handleRoleSwitch(roleData.role)}
+                              className="flex items-center w-full px-3 py-2 text-sm text-text-secondary hover:text-primary hover:bg-bg-page rounded-md transition duration-200"
+                            >
+                              {getRoleIcon(roleData.role)}
+                              <span className="ml-2">
+                                {isRoleSwitching ? 'Switching...' : getRoleDisplayName(roleData.role)}
+                              </span>
+                            </button>
+                          ))}
+                        <div className="px-3 py-1">
+                          <div className="h-[1px] bg-text-secondary/20"></div>
+                        </div>
+                      </>
+                    )}
+                    
                     <Link
                       to="/profile"
                       onClick={closeMobileMenu}

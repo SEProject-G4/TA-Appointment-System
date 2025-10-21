@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { useAuth } from "../contexts/AuthContext";
+import RoleSelector from "../components/RoleSelector";
 import LoginBgImage from "../assets/images/sumanadasa.jpg";
 
 declare global {
@@ -37,7 +38,7 @@ const AlertModal = ({ message, onClose }: AlertModalProps) => {
 const LoginPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading, loginWithGIS } = useAuth();
+  const { user, loading, loginWithGIS, requiresRoleSelection } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [isGisScriptLoaded, setIsGisScriptLoaded] = useState(false);
@@ -230,6 +231,11 @@ const LoginPage: React.FC = () => {
         Loading...
       </div>
     );
+  }
+
+  // Show role selector if role selection is required
+  if (requiresRoleSelection) {
+    return <RoleSelector />;
   }
 
 
