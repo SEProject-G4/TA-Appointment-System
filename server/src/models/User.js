@@ -10,8 +10,8 @@ const userSchema = new mongoose.Schema({
   },
   googleId: {
     type: String,
-    unique: true,
     sparse: true,
+    // Remove unique constraint - same person can have multiple roles
   },
   name: {
     type: String,
@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true,
+    // Remove unique constraint - we'll use compound unique index instead
   },
   profilePicture: {
     type: String,
@@ -62,5 +62,9 @@ const userSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+// Create compound unique index for email + role combination
+// This ensures one user per role per email address
+userSchema.index({ email: 1, role: 1 }, { unique: true });
 
 module.exports = mongoose.model("User", userSchema);

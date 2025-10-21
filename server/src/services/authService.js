@@ -70,12 +70,12 @@ const findUserByIdOptimized = async (id, fields = null) => {
 
 const findUserByEmail = async (email) => {
   try {
-    // Add index on email field for better performance
-    const user = await User.findOne({ email }).lean();
-    if (!user) {
+    // Find all users with this email (multiple roles possible)
+    const users = await User.find({ email }).lean();
+    if (!users || users.length === 0) {
       throw new Error("User not found");
     }
-    return user;
+    return users; // Return array of users
   } catch (error) {
     console.error("Error finding user by email:", error);
     throw error;
@@ -176,6 +176,50 @@ const getDetailedUserProfile = async (userId) => {
   }
 };
 
+// Find user by email and role combination
+const findUserByEmailAndRole = async (email, role) => {
+  try {
+    const user = await User.findOne({ email, role }).lean();
+    if (!user) {
+      throw new Error("User not found for this email and role combination");
+    }
+    return user;
+  } catch (error) {
+    console.error("Error finding user by email and role:", error);
+    throw error;
+  }
+};
+
+// Get all available roles for an email
+const getAvailableRolesForEmail = async (email) => {
+  try {
+    const users = await User.find({ email })
+      .select('_id role name displayName indexNumber')
+      .lean();
+    
+    return users.map(user => ({
+      userId: user._id,
+      role: user.role,
+      displayName: user.displayName || user.name,
+      indexNumber: user.indexNumber
+    }));
+  } catch (error) {
+    console.error("Error getting available roles for email:", error);
+    throw error;
+  }
+};
+
+// Switch user session to different role
+const switchUserRole = async (email, newRole) => {
+  try {
+    const user = await findUserByEmailAndRole(email, newRole);
+    return await getUserSessionInfo(user._id);
+  } catch (error) {
+    console.error("Error switching user role:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   handleFirstLogin,
   findUserById,
@@ -185,4 +229,7 @@ module.exports = {
   updateLastActivity,
   getUserSessionInfo,
   getDetailedUserProfile,
+  findUserByEmailAndRole,
+  getAvailableRolesForEmail,
+  switchUserRole,
 };
