@@ -5,7 +5,6 @@ import { FaBoxOpen } from "react-icons/fa";
 
 import axiosInstance from "../../api/axiosConfig";
 import Loader from "../../components/common/Loader";
-import { useToast } from "../../contexts/ToastContext";
 
 interface UserGroup {
   _id: string;
@@ -56,7 +55,8 @@ const UndergraduateUsers: React.FC = () => {
           isLoading ? "items-center" : "items-start"
         } justify-start bg-bg-page text-text-primary px-20 py-5 gap-y-3`}
       >
-        <h1 className="text-3xl font-bold mb-4 w-full">Undergraduate Users</h1>
+        <h1 className="text-3xl font-bold w-full mb-0">Undergraduate Users</h1>
+        <p className="text-text-secondary mb-4 -mt-3">Manage undergraduate user groups and their members.</p>
         {isLoading ? (
           <Loader className="my-6 w-full" />
         ) : (

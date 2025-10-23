@@ -4,7 +4,7 @@ import { FaChevronRight, FaBoxOpen } from "react-icons/fa";
 import { MdMoreVert } from "react-icons/md";
 import { Checkbox } from "@headlessui/react";
 import { BiEdit } from "react-icons/bi";
-import { AiOutlineDelete } from "react-icons/ai";
+import { AiOutlineDelete, AiOutlineEdit } from "react-icons/ai";
 
 import axiosInstance from "../../api/axiosConfig";
 import Loader from "../common/Loader";
@@ -344,12 +344,12 @@ const UserRow: React.FC<UserRowProps> = ({
       <td>{dateAdded}</td>
       <td className="p-0">
         <div className="flex flex-1 gap-x-5 items-center justify-center">
-          <BiEdit
-            className="p-1.5 bg-primary text-text-inverted rounded-md inline-block h-8 w-8 cursor-pointer hover:bg-primary-light font-semibold transition"
+          <AiOutlineEdit
+            className="p-1 hover:bg-primary hover:text-text-inverted hover:outline-primary text-primary rounded-md inline-block h-7 w-7 cursor-pointer outline outline-1 outline-primary/50 font-semibold transition"
             onClick={() => handleEditUser(_id, name, email, indexNumber)}
           />
           <AiOutlineDelete
-            className="p-1.5 bg-warning text-text-inverted rounded-md inline-block h-8 w-8 cursor-pointer hover:bg-warning/90 font-semibold transition"
+            className="p-1 hover:bg-warning hover:text-text-inverted hover:outline-warning text-warning rounded-md inline-block h-7 w-7 cursor-pointer outline outline-1 outline-warning/50 font-semibold transition"
             onClick={() => handleDeleteUser(_id, name, email, indexNumber)}
           />
         </div>
@@ -773,7 +773,7 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
               </p>
               <div className="flex flex-1 justify-end gap-x-4">
                 <button
-                  className="py-2 px-3 hover:bg-warning outline outline-2 font-semibold disabled:hover:text-warning disabled:hover:bg-transparent outline-warning text-warning hover:text-text-inverted rounded-md disabled:opacity-50"
+                  className="py-2 px-3 hover:bg-warning/10 outline outline-2 font-semibold disabled:hover:text-warning disabled:hover:bg-transparent outline-warning text-warning rounded-md disabled:opacity-50"
                   onClick={() => {
                     handleDeleteSelectedUsers();
                   }}
@@ -782,7 +782,7 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
                   Delete Selected Users
                 </button>
                 <button
-                  className="py-2 px-3 hover:bg-text-secondary outline outline-2 font-semibold outline-text-secondary text-text-secondary hover:text-text-inverted rounded-md "
+                  className="py-2 px-3 hover:bg-text-secondary/20 outline outline-2 font-semibold outline-text-secondary text-text-primary rounded-md "
                   onClick={() => {
                     handleRenameUserGroup(id);
                   }}
@@ -800,7 +800,7 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
                 </button>
 
                 <button
-                  className="py-2 px-3 font-semibold bg-primary text-text-inverted rounded-md"
+                  className="py-2 px-3 font-semibold hover:bg-primary-dark hover:text-text-inverted text-primary rounded-md outline outline-1 outline-primary"
                   onClick={() => {
                     // Handle add user(s) to this group
                     handleAddUsers(id);
