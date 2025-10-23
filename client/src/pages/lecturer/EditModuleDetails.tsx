@@ -4,6 +4,7 @@ import Modal from "../../components/common/Modal";
 import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 import EditModuleDetailsCard from "../../components/lecturer/EditModuleDetailsCard";
 import { ChevronDown, RefreshCw } from "lucide-react";
+import { useToast } from "../../contexts/ToastContext";
 
 interface ModuleEditData {
   moduleCode: string;
@@ -19,6 +20,8 @@ interface ModuleEditData {
 }
 
 const EditModuleDetails: React.FC = () => {
+  const { showToast } = useToast();
+  
   type ModuleFromApi = {
     _id: string;
     moduleCode: string;
@@ -227,18 +230,19 @@ const EditModuleDetails: React.FC = () => {
             // Exit editing mode after successful submit
       setEditing((prev) => ({ ...prev, [pendingModuleId]: false }));
 
+      // Show success toast
+      showToast("Module details updated successfully!", "success");
+
       setShowConfirmModal(false);
       setPendingModuleId(null);
     } catch (error: any) {
       console.error("Failed to update module:", error);
       
-      // Display error message to user with styled modal
-      if (error.response?.data?.error) {
-        setErrorMessage(error.response.data.error);
-      } else {
-        setErrorMessage("Failed to update module. Please try again.");
-      }
+      // Display error message to user with styled modal and toast
+      const errorMsg = error.response?.data?.error || "Failed to update module. Please try again.";
+      setErrorMessage(errorMsg);
       setShowErrorModal(true);
+      showToast(errorMsg, "error");
     } finally {
       setUpdating((prev) => ({ ...prev, [pendingModuleId]: false }));
       setShowConfirmModal(false);

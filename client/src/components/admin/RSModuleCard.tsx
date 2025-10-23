@@ -340,9 +340,15 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     navigate(`/edit-module/${moduleData._id}`, { state: { moduleData } });
   };
 
-  const notifyCoordinators = (moduleData: ModuleDetails) => {
+  const notifyCoordinators = async (moduleData: ModuleDetails) => {
     // Implementation for notifying coordinators
-    updateModuleStatus(moduleData._id, "pending changes");
+    try{
+      await axiosInstance.put(`/modules/${moduleData._id}/notify`);
+      showToast("Coordinators notified successfully", "success");
+    } catch (error) {
+      console.error("Error notifying coordinators:", error);
+      showToast("Failed to notify coordinators", "error");
+    }
   };
 
   const handleDeleteModule = (moduleData: ModuleDetails) => {
