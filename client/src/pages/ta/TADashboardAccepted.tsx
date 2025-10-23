@@ -60,8 +60,7 @@ const latestDocumentDueDate = modules.length > 0
       try {
         setLoading(true);
         const response = await axiosInstance.get(
-          "/ta/accepted-modules",
-          { params: { userId } }
+          "/ta/accepted-modules"
         );
         setApplications(response.data.acceptedApplications);
         setIsDocSubmitted(response.data.docSubmissionStatus);

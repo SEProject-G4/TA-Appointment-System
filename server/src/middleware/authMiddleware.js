@@ -17,6 +17,15 @@ const sessionUserCache = new NodeCache({
 });
 
 exports.protected = async (req, res, next) => {
+    // console.log('Auth middleware debug:', {
+    //     sessionExists: !!req.session,
+    //     sessionId: req.sessionID,
+    //     userId: req.session?.userId,
+    //     cookies: req.headers.cookie ? 'present' : 'missing',
+    //     origin: req.headers.origin,
+    //     userAgent: req.headers['user-agent']?.substring(0, 50)
+    // });
+    
     if (!req.session?.userId) {
         console.log('❌ Authentication failed - no session');
         return res.status(401).json({ error: 'Not authorized, no session' });

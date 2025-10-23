@@ -70,7 +70,16 @@ function App() {
                   <Route
                     path="profile"
                     element={
-                      <ProtectedRoute roles={["admin", "undergraduate", "postgraduate", "lecturer", "hod", "cse office"]}>
+                      <ProtectedRoute
+                        roles={[
+                          "admin",
+                          "undergraduate",
+                          "postgraduate",
+                          "lecturer",
+                          "hod",
+                          "cse office",
+                        ]}
+                      >
                         <ProfilePage />
                       </ProtectedRoute>
                     }
@@ -152,25 +161,25 @@ function App() {
                   <Route
                     path="ta-dashboard"
                     element={
-                    //  <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
+                      <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
                         <TADashboard />
-                    //  </ProtectedRoute>
+                      </ProtectedRoute>
                     }
                   />
                   <Route
                     path="ta-applied"
                     element={
-                      // <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
+                      <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
                         <TADashboardApplied />
-                      // </ProtectedRoute>
+                      </ProtectedRoute>
                     }
                   />
                   <Route
                     path="ta-accepted"
                     element={
-                      // <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
+                      <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
                         <TADashboardAccepted />
-                      // </ProtectedRoute>
+                      </ProtectedRoute>
                     }
                   />
 
