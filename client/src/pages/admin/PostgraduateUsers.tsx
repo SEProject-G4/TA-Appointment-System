@@ -5,7 +5,6 @@ import { FaBoxOpen } from "react-icons/fa";
 
 import axiosInstance from "../../api/axiosConfig";
 import Loader from "../../components/common/Loader";
-import { useToast } from "../../contexts/ToastContext";
 
 interface UserGroup {
   _id: string;
@@ -13,23 +12,20 @@ interface UserGroup {
   userCount: number;
 }
 
-const UndergraduateUsers: React.FC = () => {
+const PostgraduateUsers: React.FC = () => {
   const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [refreshFlag, setRefreshFlag] = useState<boolean>(false);
 
   const refreshPage = () => {
     setRefreshFlag(true);
-    // setTimeout(() => {
-    //   setRefreshFlag(false);
-    // }, 1000);
   };
 
   const fetchUserGroups = async () => {
     setIsLoading(true);
     try {
       const res = await axiosInstance.get(
-        "/user-management/groups/undergraduate"
+        "/user-management/groups/postgraduate"
       );
       setUserGroups(res.data);
     } catch (error) {
@@ -56,8 +52,8 @@ const UndergraduateUsers: React.FC = () => {
           isLoading ? "items-center" : "items-start"
         } justify-start bg-bg-page text-text-primary px-20 py-5 gap-y-3`}
       >
-        <h1 className="text-3xl font-bold w-full">Undergraduate Users</h1>
-        <p className="text-text-secondary mb-4 -mt-3 w-full">Manage undergraduate users and their groups.</p>
+        <h1 className="text-3xl font-bold w-full">Postgraduate Users</h1>
+        <p className="text-text-secondary mb-4 -mt-3 w-full">Manage postgraduate users and their groups.</p>
         {isLoading ? (
           <Loader className="my-6 w-full" />
         ) : (
@@ -66,13 +62,13 @@ const UndergraduateUsers: React.FC = () => {
               <div className="w-full flex flex-col items-center justify-center py-6">
                 <FaBoxOpen className="h-8 w-8 text-text-secondary mb-2" />
                 <p className="text-lg text-text-secondary font-semibold">
-                  No undergraduate groups to show.
+                  No postgraduate groups to show.
                 </p>
               </div>
             ) : (
               userGroups.map((group) => (
                 <UsersGroupCard
-                userType="undergraduate"
+                  userType="postgraduate"
                   key={group._id}
                   id={group._id}
                   groupName={group.name}
@@ -88,4 +84,4 @@ const UndergraduateUsers: React.FC = () => {
   );
 };
 
-export default UndergraduateUsers;
+export default PostgraduateUsers;
