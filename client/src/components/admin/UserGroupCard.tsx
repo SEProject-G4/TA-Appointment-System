@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaChevronRight, FaBoxOpen } from "react-icons/fa";
 import { MdMoreVert } from "react-icons/md";
 import { Checkbox } from "@headlessui/react";
-import { BiEdit } from "react-icons/bi";
+
 import { AiOutlineDelete, AiOutlineEdit } from "react-icons/ai";
 
 import axiosInstance from "../../api/axiosConfig";
@@ -11,25 +11,45 @@ import Loader from "../common/Loader";
 import { useToast } from "../../contexts/ToastContext";
 import { useModal } from "../../contexts/ModalProvider";
 
-interface UndergraduateUser {
+interface User {
   _id: string;
-  indexNumber: string;
+  displayName?: string;
   name: string;
   email: string;
   profilePicUrl: string;
   dateAdded: string;
+indexNumber?: string;
 }
 
-interface UserRowProps extends UndergraduateUser {
-  role: string;
+type UserTypes =
+  | "undergraduate"
+  | "postgraduate"
+  | "lecturer"
+  | "hod"
+  | "admin"
+  | "cse-office";
+
+interface UserRowProps extends User {
+  role: UserTypes;
   setSelectedUsers: React.Dispatch<React.SetStateAction<string[]>>;
   selectedAll: boolean;
   setSelectedAll: React.Dispatch<React.SetStateAction<boolean>>;
   refreshCard: () => void;
 }
 
+interface BasicUserInfo {
+    id: string;
+    name: string;
+    email: string;
+    displayName?: string;
+    indexNumber?: string;
+}
+
 const validateField = (name: string, value: string): string => {
   switch (name) {
+    case "displayName":
+      if (!value) return "Display Name is required.";
+      return "";
     case "indexNumber":
       if (!value) return "Index Number is required.";
       if (value.length > 10) return "Index Number cannot exceed 10 characters.";
@@ -49,11 +69,17 @@ const validateField = (name: string, value: string): string => {
 
 const updateUserDetails = async (
   id: string,
-  formData: { indexNumber: string; name: string; email: string }
+  type: UserTypes,
+  formData: {
+    indexNumber?: string;
+    name: string;
+    email: string;
+    displayName?: string;
+  }
 ) => {
   const payload = {
     ...formData,
-    role: "undergraduate",
+    role: type,
   };
   try {
     const response = await axiosInstance.put(
@@ -68,28 +94,33 @@ const updateUserDetails = async (
 };
 
 const EditUserModal: React.FC<{
+  userType: UserTypes;
   userData: {
     _id: string;
-    indexNumber: string;
+    indexNumber?: string;
     name: string;
     email: string;
+    displayName?: string;
   };
   refreshCard: () => void;
-}> = ({ userData, refreshCard }) => {
+}> = ({ userType, userData, refreshCard }) => {
   const [formData, setFormData] = useState<{
-    indexNumber: string;
+    indexNumber?: string;
     name: string;
     email: string;
+    displayName?: string;
   }>({
-    indexNumber: userData.indexNumber,
+    indexNumber: userType === "undergraduate" || userType === "postgraduate" ? userData.indexNumber : undefined,
     name: userData.name,
     email: userData.email,
+    displayName: userType === "lecturer" ? userData.displayName : undefined,
   });
 
   const [inputErrors, setInputErrors] = useState<{
     indexNumber?: string;
     email?: string;
     name?: string;
+    displayName?: string;
   }>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,34 +135,97 @@ const EditUserModal: React.FC<{
     }));
   };
 
-  const { showToast } = useToast();
+const { showToast } = useToast();
   const { closeModal } = useModal();
-  // Modal implementation here
+
+  const handleSubmit = () => {
+    let allInputsValid: boolean = false;
+    let payload: {
+      indexNumber?: string;
+      name: string;
+      email: string;
+      displayName?: string;
+    } = {
+      name: formData.name,
+      email: formData.email,
+    };
+    if (userType === "lecturer") {
+      allInputsValid =
+        !inputErrors.displayName && !inputErrors.email && !inputErrors.name;
+      payload.displayName = formData.displayName;
+    } else if (userType === "undergraduate" || userType === "postgraduate") {
+      allInputsValid =
+        !inputErrors.indexNumber &&
+        !inputErrors.email &&
+        !inputErrors.name &&
+        !inputErrors.displayName;
+      payload.indexNumber = formData.indexNumber;
+    } else {
+      allInputsValid = !inputErrors.email && !inputErrors.name;
+    }
+
+    if (allInputsValid) {
+      updateUserDetails(userData._id,userType, payload)
+        .then(() => {
+          showToast("User details updated successfully", "success");
+          closeModal();
+          refreshCard();
+        })
+        .catch(() => {
+          showToast("Failed to update user details", "error");
+        });
+    } else {
+      showToast("Please fix the input errors before saving.", "error");
+    }
+  };
 
   return (
     <>
       <h2 className="text-xl font-bold mb-4">Edit User Details</h2>
       <div className="flex flex-col space-y-6">
         {/* Index Number */}
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Index Number</span>
-          </label>
-          <input
-            type="text"
-            name="indexNumber"
-            placeholder="e.g. 220001A"
-            value={formData.indexNumber}
-            onChange={handleChange}
-            maxLength={10}
-            className="ml-8 new-module-input"
-          />
-          {inputErrors.indexNumber && (
-            <span className="text-warning text-sm ml-16 py-1 block">
-              {inputErrors.indexNumber}
-            </span>
-          )}
-        </div>
+        {(userType === "undergraduate" || userType === "postgraduate") && (
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Index Number</span>
+            </label>
+            <input
+              type="text"
+              name="indexNumber"
+              placeholder="e.g. 220001A"
+              value={formData.indexNumber}
+              onChange={handleChange}
+              maxLength={10}
+              className="ml-8 new-module-input"
+            />
+            {inputErrors.indexNumber && (
+              <span className="text-warning text-sm ml-16 py-1 block">
+                {inputErrors.indexNumber}
+              </span>
+            )}
+          </div>
+        )}
+
+        {userType === "lecturer" && (
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Display Name</span>
+            </label>
+            <input
+              type="text"
+              name="displayName"
+              placeholder="e.g. John Doe"
+              value={formData.displayName}
+              onChange={handleChange}
+              className="ml-8 new-module-input"
+            />
+            {inputErrors.displayName && (
+              <span className="text-warning text-sm ml-16 py-1 block">
+                {inputErrors.displayName}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Email */}
         <div className="form-control">
@@ -184,23 +278,7 @@ const EditUserModal: React.FC<{
           type="button"
           className="px-4 py-2 bg-primary text-text-inverted rounded-md"
           onClick={() => {
-            if (
-              !inputErrors.indexNumber &&
-              !inputErrors.email &&
-              !inputErrors.name
-            ) {
-              updateUserDetails(userData._id, formData)
-                .then(() => {
-                  showToast("User details updated successfully", "success");
-                  closeModal();
-                  refreshCard();
-                })
-                .catch(() => {
-                  showToast("Failed to update user details", "error");
-                });
-            } else {
-              showToast("Please fix the input errors before saving.", "error");
-            }
+            handleSubmit();
           }}
         >
           Save Changes
@@ -217,6 +295,7 @@ const UserRow: React.FC<UserRowProps> = ({
   role,
   dateAdded,
   indexNumber,
+  displayName,
   profilePicUrl,
   setSelectedUsers,
   selectedAll,
@@ -251,17 +330,14 @@ const UserRow: React.FC<UserRowProps> = ({
   };
 
   const handleDeleteUser = (
-    _id: string,
-    name: string,
-    email: string,
-    indexNumber: string
+    {id, name, email, indexNumber, displayName}: BasicUserInfo
   ) => {
     openModal(
       <div className="flex flex-col items-center">
         <h2 className="text-lg font-semibold mb-4">Confirm Deletion</h2>
         <p>Are you sure you want to delete this user?</p>
         <p className="text-sm text-gray-500">
-          {name} ({email}) - {indexNumber}
+          {`${name} (${email}) ${indexNumber ? `- ${indexNumber}` : displayName ? `- ${displayName}` : ""}`}
         </p>
         <div className="flex gap-x-4 mt-4">
           <button
@@ -273,7 +349,7 @@ const UserRow: React.FC<UserRowProps> = ({
           <button
             className="px-4 py-2 bg-red-600 text-white rounded-md"
             onClick={() => {
-              deleteUser(_id);
+              deleteUser(id);
               closeModal();
             }}
           >
@@ -285,14 +361,17 @@ const UserRow: React.FC<UserRowProps> = ({
     );
   };
 
+
+
   const handleEditUser = (
-    id: string,
-    name: string,
-    email: string,
-    indexNumber: string
+    userData: BasicUserInfo
   ) => {
     openModal(
-      <EditUserModal userData={{ _id: id, name, email, indexNumber }} refreshCard={refreshCard} />,
+      <EditUserModal
+        userType={role}
+        userData={{_id: userData.id, ...userData}}
+        refreshCard={refreshCard}
+      />,
       { showCloseButton: true }
     );
   };
@@ -336,7 +415,8 @@ const UserRow: React.FC<UserRowProps> = ({
           className="h-10 w-10 rounded-full"
         />
       </td>
-      <td>{indexNumber}</td>
+      {(role === 'undergraduate' || role === "postgraduate") && (<td>{indexNumber}</td>)}
+      {role === 'lecturer' && (<td>{displayName}</td>)}
       <td>
         <a href={`mailto:${email}`}>{email}</a>
       </td>
@@ -346,11 +426,11 @@ const UserRow: React.FC<UserRowProps> = ({
         <div className="flex flex-1 gap-x-5 items-center justify-center">
           <AiOutlineEdit
             className="p-1 hover:bg-primary hover:text-text-inverted hover:outline-primary text-primary rounded-md inline-block h-7 w-7 cursor-pointer outline outline-1 outline-primary/50 font-semibold transition"
-            onClick={() => handleEditUser(_id, name, email, indexNumber)}
+            onClick={() => handleEditUser({id: _id, name, email, indexNumber, displayName})}
           />
           <AiOutlineDelete
             className="p-1 hover:bg-warning hover:text-text-inverted hover:outline-warning text-warning rounded-md inline-block h-7 w-7 cursor-pointer outline outline-1 outline-warning/50 font-semibold transition"
-            onClick={() => handleDeleteUser(_id, name, email, indexNumber)}
+            onClick={() => handleDeleteUser({id: _id, name, email, indexNumber, displayName})}
           />
         </div>
       </td>
@@ -360,12 +440,11 @@ const UserRow: React.FC<UserRowProps> = ({
 
 interface UsersGroupCardProps {
   id: string;
+    userType: UserTypes;
   groupName: string;
   userCount: number;
   refreshPage: () => void;
 }
-
-
 
 const RenameUserGroupModal: React.FC<{
   groupId: string;
@@ -375,7 +454,7 @@ const RenameUserGroupModal: React.FC<{
   const [newName, setNewName] = useState<string>(currentName);
   const [inputError, setInputError] = useState<string>("");
 
-    const renameUserGroup = async (groupId: string, newName: string) => {
+  const renameUserGroup = async (groupId: string, newName: string) => {
     try {
       await axiosInstance.put(`/user-management/groups/${groupId}`, {
         newName,
@@ -393,59 +472,60 @@ const RenameUserGroupModal: React.FC<{
 
   return (
     <div className="flex flex-col items-center">
-        <h2 className="text-lg font-semibold mb-4">Rename User Group</h2>
-        <div className="flex flex-col space-y-6">
-          {/* New User Group Name */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">New User Group Name</span>
-            </label>
-            <input
-              type="text"
-              name="newName"
-              placeholder="e.g. Intake 2022"
-              value={newName}
-              onChange={(e) => {
-                setNewName(e.target.value);
-                if (e.target.value.length == 0) {
-                  setInputError("Group name can't be empty");
-                } else {
-                  setInputError("");
-                }
-              }}
-              className="ml-8 new-module-input"
-            />
-            {inputError && (
-              <span className="text-warning text-sm ml-16 py-1 block">
-                {inputError}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex gap-x-4 mt-4 w-full justify-end">
-          <button
-            className="px-4 py-2 bg-gray-300 text-black rounded-md"
-            onClick={closeModal}
-          >
-            Cancel
-          </button>
-          <button
-            className="px-4 py-2 bg-primary text-white rounded-md"
-            onClick={() => {
-              renameUserGroup(groupId, newName);
-              closeModal();
+      <h2 className="text-lg font-semibold mb-4">Rename User Group</h2>
+      <div className="flex flex-col space-y-6">
+        {/* New User Group Name */}
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">New User Group Name</span>
+          </label>
+          <input
+            type="text"
+            name="newName"
+            placeholder="e.g. Intake 2022"
+            value={newName}
+            onChange={(e) => {
+              setNewName(e.target.value);
+              if (e.target.value.length == 0) {
+                setInputError("Group name can't be empty");
+              } else {
+                setInputError("");
+              }
             }}
-          >
-            Rename
-          </button>
+            className="ml-8 new-module-input"
+          />
+          {inputError && (
+            <span className="text-warning text-sm ml-16 py-1 block">
+              {inputError}
+            </span>
+          )}
         </div>
       </div>
+
+      <div className="flex gap-x-4 mt-4 w-full justify-end">
+        <button
+          className="px-4 py-2 bg-gray-300 text-black rounded-md"
+          onClick={closeModal}
+        >
+          Cancel
+        </button>
+        <button
+          className="px-4 py-2 bg-primary text-white rounded-md"
+          onClick={() => {
+            renameUserGroup(groupId, newName);
+            closeModal();
+          }}
+        >
+          Rename
+        </button>
+      </div>
+    </div>
   );
 };
 
 const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
   id,
+  userType,
   userCount,
   groupName,
   refreshPage,
@@ -454,11 +534,9 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
   const [selectedAll, setSelectedAll] = useState<boolean>(false);
   const [cardRefreshFlag, setCardRefreshFlag] = useState<boolean>(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [users, setUsers] = useState<UndergraduateUser[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasFetched, setHasFetched] = useState<boolean>(false);
-  const [newName, setNewName] = useState<string>(groupName);
-  const [inputError, setInputError] = useState<string>("");
 
   const { openModal, closeModal } = useModal();
   const { showToast } = useToast();
@@ -502,8 +580,6 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
       showToast("Failed to delete selected users", "error");
     }
   };
-
-
 
   const handleHeaderCheckboxChange = (checked: boolean) => {
     setSelectedUsers([]);
@@ -599,15 +675,20 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
   };
 
   const handleRenameUserGroup = (groupId: string) => {
-    setInputError("");
     openModal(
-      <RenameUserGroupModal groupId={groupId} currentName={groupName} refreshPage={refreshPage} />,
+      <RenameUserGroupModal
+        groupId={groupId}
+        currentName={groupName}
+        refreshPage={refreshPage}
+      />,
       { showCloseButton: true }
     );
   };
 
   const handleAddUsers = (groupId: string) => {
-    navigate(`/manage-users/add-user`, { state: { groupId, role: "undergraduate" } });
+    navigate(`/manage-users/add-user`, {
+      state: { groupId, role: "undergraduate" },
+    });
   };
 
   useEffect(() => {
@@ -642,7 +723,11 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
             </p>
             <div className="flex flex-1 justify-end">
               <div className="dropdown dropdown-end">
-                <MdMoreVert tabIndex={0} role="button" className="rounded-full cursor-pointer hover:bg-accent-light/20 font-semibold h-6 w-6 p-0.5" />
+                <MdMoreVert
+                  tabIndex={0}
+                  role="button"
+                  className="rounded-full cursor-pointer hover:bg-accent-light/20 font-semibold h-6 w-6 p-0.5"
+                />
                 <ul
                   tabIndex={0}
                   className="menu mt-3 z-[1] p-2 shadow dropdown-content bg-bg-card rounded-box w-64"
@@ -658,14 +743,15 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
                   <li className="rounded p-1 hover:bg-primary/80 hover:text-text-inverted text-text-secondary font-semibold">
                     <button
                       className="w-full text-left"
-                      onClick={() => handleDeleteUserGroup(id, groupName, userCount)}
+                      onClick={() =>
+                        handleDeleteUserGroup(id, groupName, userCount)
+                      }
                     >
                       Delete Whole User Group
                     </button>
                   </li>
                 </ul>
               </div>
-
             </div>
           </div>
 
@@ -727,7 +813,8 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
                       </Checkbox>
                     </th>
                     <th className="w-10">Profile Picture</th>
-                    <th className="w-24">Index Number</th>
+                    {(userType === 'undergraduate' || userType === 'postgraduate') && <th className="w-24">Index Number</th>}
+                    {userType === 'lecturer' && <th className="">Display Name</th>}
                     <th>Email</th>
                     <th>Name</th>
                     <th className="w-32 text-wrap text-center">
@@ -752,7 +839,8 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
                         })
                         .replace(/(\w{3}) (\d{4})/, "$1, $2")}
                       profilePicUrl={user.profilePicUrl}
-                      role="undergraduate"
+                      role={userType}
+                      displayName={user.displayName}
                       setSelectedUsers={setSelectedUsers}
                       selectedAll={selectedAll}
                       setSelectedAll={setSelectedAll}

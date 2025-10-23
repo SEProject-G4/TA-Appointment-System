@@ -4,6 +4,7 @@ const userGroupController = require('../controllers/userGroupController');
 
 // Route to add new users to a group
 router.post('/users', userGroupController.createNewUsers);
+router.get('/groups/admin-office-hod-users', userGroupController.getAdminOfficeHoDUserGroups);
 router.get('/groups/:groupType', userGroupController.getUserGroupsByType);
 router.post('/groups', userGroupController.createNewUserGroup);
 router.get('/groups/:groupId/users', userGroupController.getUsersFromGroup);
