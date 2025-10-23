@@ -9,9 +9,22 @@ const AppliedModules = require("../models/AppliedModules");
 // fetching all the available modules that have been advertised by admin for the active recruitment series-------------------------------
 // and that the user has not already applied for. and satisfies the available ta hours condition
 const getAllRequests = async (req, res) => {
-  const userId = req.query.userId; //fetch userID from query parameters
+  // const userId = req.query.userId; //fetch userID from query parameters
 
   try {
+    // console.log('getAllRequests called:', {
+    //   hasUser: !!req.user,
+    //   userId: req.user?._id,
+    //   userRole: req.user?.role
+    // });
+    
+    if (!req.user || !req.user._id) {
+      console.log('getAllRequests: User not found in request');
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: User not logged in" });
+    }
+    const userId = req.user._id;
     const user = await User.findById(userId); //fetch user object details using userID
     const userGroupID = user.userGroup;
     const userRole = user.role; //based on the user role undergrad or postgrad, we can fetch their modules
@@ -56,9 +69,12 @@ const getAllRequests = async (req, res) => {
     );
 
     // filter to remove that has more taHours than user has
-    const hoursFilter = appliedModules?.[0]?.availableHoursPerWeek!== undefined 
-      ? { requiredTAHours: { $lte: appliedModules[0].availableHoursPerWeek } }
-      : userRole === "undergraduate"? { requiredTAHours: { $lte: 6 } } : { requiredTAHours: { $lte: 18 } };
+    const hoursFilter =
+      appliedModules?.[0]?.availableHoursPerWeek !== undefined
+        ? { requiredTAHours: { $lte: appliedModules[0].availableHoursPerWeek } }
+        : userRole === "undergraduate"
+        ? { requiredTAHours: { $lte: 6 } }
+        : { requiredTAHours: { $lte: 18 } };
 
     const modules = await ModuleDetails.find({
       recruitmentSeriesId: { $in: recSeriesIds },
@@ -66,9 +82,14 @@ const getAllRequests = async (req, res) => {
       _id: { $nin: appliedModulesIds },
       ...hoursFilter,
       ...(userRole === "undergraduate"
-        ? { openForUndergraduates: true, "undergraduateCounts.remaining": { $gt: 0 } }
-        : { openForPostgraduates: true, "postgraduateCounts.remaining": { $gt: 0 } }
-      ),
+        ? {
+            openForUndergraduates: true,
+            "undergraduateCounts.remaining": { $gt: 0 },
+          }
+        : {
+            openForPostgraduates: true,
+            "postgraduateCounts.remaining": { $gt: 0 },
+          }),
     });
     //fetch the available modules that have been advertised by admin.
     // and required ta hours should be less than or equal to available hours per week of the user
@@ -92,12 +113,14 @@ const getAllRequests = async (req, res) => {
       };
     });
 
-    res.status(200).json({
+    const responseData = {
       updatedModules,
       availableHoursPerWeek: appliedModules[0]?.availableHoursPerWeek !== undefined
         ? appliedModules[0].availableHoursPerWeek
-        : hourLimit,
-    });
+        : hourLimit
+    };
+    
+    res.status(200).json(responseData);
   } catch (error) {
     res
       .status(500)
@@ -108,11 +131,24 @@ const getAllRequests = async (req, res) => {
 
 // Applying for a TA position-----------------------------------------------------------------------------------------------------------
 const applyForTA = async (req, res) => {
-  const { userId, userRole, moduleId, recSeriesId, taHours } = req.body;
-  // console.log(userId, userRole, moduleId, recSeriesId, taHours);
+  const { userRole, moduleId, recSeriesId, taHours } = req.body;
+  
+  // console.log('applyForTA called with data:', {
+  //   userRole,
+  //   moduleId,
+  //   recSeriesId,
+  //   taHours,
+  //   userId: req.user?._id
+  // });
 
   const session = await mongoose.startSession();
   try {
+    if (!req.user || !req.user._id) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: User not logged in" });
+    }
+    const userId = req.user._id;
     session.startTransaction();
     
     // Fetch recruitment series to get hour limit
@@ -147,15 +183,14 @@ const applyForTA = async (req, res) => {
         {
           _id: moduleId,
           $expr: {
-            $gt: [
-              "$undergraduateCounts.remaining",
-              0
-            ],
+            $gt: ["$undergraduateCounts.remaining", 0],
           },
         },
         {
-          $inc: { "undergraduateCounts.applied": 1 ,
-          "undergraduateCounts.remaining":-1 },
+          $inc: {
+            "undergraduateCounts.applied": 1,
+            "undergraduateCounts.remaining": -1,
+          },
         },
         { new: true, session, runValidators: true }
       );
@@ -164,15 +199,14 @@ const applyForTA = async (req, res) => {
         {
           _id: moduleId,
           $expr: {
-            $gt: [
-              "$postgraduateCounts.remaining",
-              0
-            ],
-          }, 
-        }, 
+            $gt: ["$postgraduateCounts.remaining", 0],
+          },
+        },
         {
-          $inc: { "postgraduateCounts.applied": 1 ,
-           "postgraduateCounts.remaining": -1 },
+          $inc: {
+            "postgraduateCounts.applied": 1,
+            "postgraduateCounts.remaining": -1,
+          },
         },
         { new: true, session, runValidators: true }
       );
@@ -229,9 +263,15 @@ const applyForTA = async (req, res) => {
 
 // get applied modules for a user---------------------------------------------------------------------------------------------------------
 const getAppliedModules = async (req, res) => {
-  const userId = req.query.userId;
+  // const userId = req.query.userId;
 
   try {
+    if (!req.user || !req.user._id) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: User not logged in" });
+    }
+    const userId = req.user._id;
     const user = await User.findById(userId);
     const userGroupID = user.userGroup;
     const userRole = user.role;
@@ -292,9 +332,15 @@ const getAppliedModules = async (req, res) => {
 };
 
 const getAcceptedModules = async (req, res) => {
-  const userId = req.query.userId;
+  // const userId = req.query.userId;
 
   try {
+    if (!req.user || !req.user._id) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: User not logged in" });
+    }
+    const userId = req.user._id;
     // Find the user's active recruitment series (like before)
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -332,11 +378,11 @@ const getAcceptedModules = async (req, res) => {
         },
       },
     });
-    
+
     // Correctly fetch the document submission status
-    const appliedModulesDoc = await AppliedModules.findOne({ 
-      userId, 
-      recSeriesId: activeRecSeries[0]._id 
+    const appliedModulesDoc = await AppliedModules.findOne({
+      userId,
+      recSeriesId: activeRecSeries[0]._id,
     });
     const docSubmissionStatus = appliedModulesDoc?.isDocSubmitted || false;
 

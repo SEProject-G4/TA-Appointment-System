@@ -6,15 +6,15 @@ const { getAllRequests, applyForTA,getAppliedModules, getAcceptedModules } = req
 
 const User = require('../models/User');
 
-// router.get('/requests',protected, authorize(['undergraduate', 'postgraduate']), getAllRequests);
-// router.post('/apply', protected, authorize(['undergraduate', 'postgraduate']), applyForTA);
-// router.get('/applied-modules', protected, authorize(['undergraduate', 'postgraduate']), getAppliedModules);
-// router.get('/accepted-modules', protected, authorize(['undergraduate', 'postgraduate']), getAcceptedModules);
+router.get('/requests',authMiddleware.protected, authMiddleware.authorize(['undergraduate', 'postgraduate']), getAllRequests);
+router.post('/apply', authMiddleware.protected, authMiddleware.authorize(['undergraduate', 'postgraduate']), applyForTA);
+router.get('/applied-modules', authMiddleware.protected, authMiddleware.authorize(['undergraduate', 'postgraduate']), getAppliedModules);
+router.get('/accepted-modules', authMiddleware.protected, authMiddleware.authorize(['undergraduate', 'postgraduate']), getAcceptedModules);
 
-router.get('/requests', getAllRequests);
-router.post('/apply',  applyForTA);
-router.get('/applied-modules', getAppliedModules);
-router.get('/accepted-modules',  getAcceptedModules);
+// router.get('/requests', getAllRequests);
+// router.post('/apply',  applyForTA);
+// router.get('/applied-modules', getAppliedModules);
+// router.get('/accepted-modules',  getAcceptedModules);
 
 module.exports = router;
 

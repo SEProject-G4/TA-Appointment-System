@@ -28,7 +28,6 @@ function TADashboard() {
   const [availableHoursPerWeek, setAvailableHoursPerWeek] = useState<number>(0);
 
   const applyForTA = async (
-    userId: string,
     userRole: string,
     moduleId: string,
     recSeriesId: string,
@@ -36,7 +35,6 @@ function TADashboard() {
   ) => {
     try {
       const response = await axiosInstance.post("/ta/apply", {
-        userId,
         userRole,
         moduleId,
         recSeriesId,
@@ -102,12 +100,7 @@ function TADashboard() {
     const fetchModules = async () => {
       try {
         const response = await axiosInstance.get(
-          "/ta/requests",
-          {
-            params: {
-              userId,
-            },
-          }
+          "/ta/requests"
         );
         setModules(response.data.updatedModules);
         setAvailableHoursPerWeek(response.data.availableHoursPerWeek);
@@ -267,7 +260,6 @@ function TADashboard() {
                 viewMode={viewMode}
                 onApply={() =>
                   applyForTA(
-                    user?.id || "",
                     user?.role || "",
                     module._id,
                     module.recruitmentSeriesId,
