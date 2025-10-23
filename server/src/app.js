@@ -32,9 +32,9 @@ app.use(session({
     ttl: 24 * 60 * 60 // 24 hours
   }),
   cookie: {
-    secure: true, 
+    secure: process.env.NODE_ENV === 'production', // Only secure in production (HTTPS)
     httpOnly: true,
-    sameSite: 'none', 
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // lax for development
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
     path: '/',
     domain: undefined // Don't set domain to allow cross-origin

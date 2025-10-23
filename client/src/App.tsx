@@ -16,6 +16,9 @@ import NewRecruitmentSeries from "./pages/admin/NewRecruitmentSeries";
 import EditRecruitmentSeries from "./pages/admin/EditRecruitmentSeries";
 import AddUser from "./pages/admin/AddUser";
 import UndergraduateUsers from "./pages/admin/UndergraduateUsers";
+import PostgraduateUsers from "./pages/admin/PostgraduateUsers";
+import LecturerUsers from "./pages/admin/LecturerUsers";
+import AdminUsers from "./pages/admin/AdminUsers";
 import ModuleDetails from "./pages/admin/ModuleDetails";
 
 import ProfilePage from "./pages/ProfilePage";
@@ -99,6 +102,30 @@ function App() {
                     element={
                       <ProtectedRoute roles="admin">
                         <UndergraduateUsers />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="manage-users/postgraduates"
+                    element={
+                      <ProtectedRoute roles="admin">
+                        <PostgraduateUsers />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="manage-users/lecturers"
+                    element={
+                      <ProtectedRoute roles="admin">
+                        <LecturerUsers />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="manage-users/admin-office-hod"
+                    element={
+                      <ProtectedRoute roles="admin">
+                        <AdminUsers />
                       </ProtectedRoute>
                     }
                   />

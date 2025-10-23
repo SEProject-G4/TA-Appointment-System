@@ -57,12 +57,29 @@ const googleVerify = async (req, res) => {
             }
         }
 
-        // Find user
-        let user = await authService.findUserByEmail(userEmail);
-        if (!user) {
+        // Find users with this email (can be multiple with different roles)
+        const users = await authService.findUserByEmail(userEmail);
+        if (!users || users.length === 0) {
             logSecurityEvent('AUTH_USER_NOT_FOUND', { email: userEmail }, req);
             return res.status(404).json({ error: 'User not found in system' });
         }
+
+        // If multiple roles exist, return available roles for selection
+        if (users.length > 1) {
+            const availableRoles = await authService.getAvailableRolesForEmail(userEmail);
+            logSecurityEvent('AUTH_MULTIPLE_ROLES_FOUND', { 
+                email: userEmail,
+                roleCount: users.length 
+            }, req);
+            return res.status(200).json({ 
+                requiresRoleSelection: true,
+                availableRoles,
+                email: userEmail 
+            });
+        }
+
+        // Single role - proceed with login
+        const user = users[0];
 
         // Handle first login
         if (user.firstLogin) {
@@ -108,7 +125,8 @@ const googleVerify = async (req, res) => {
             .replace(/=+$/, '');
         
         const signedSessionId = `s%3A${req.sessionID}.${signature}`;
-        const sessionCookie = `connect.sid=${signedSessionId}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=86400`;
+        const isProduction = process.env.NODE_ENV === 'production';
+        const sessionCookie = `connect.sid=${signedSessionId}; Path=/; HttpOnly${isProduction ? '; Secure' : ''}; SameSite=${isProduction ? 'None' : 'Lax'}; Max-Age=86400`;
         res.setHeader('Set-Cookie', sessionCookie);
         console.log('🔧 Force setting signed session cookie:', sessionCookie);
         
@@ -163,12 +181,16 @@ const getCurrentUser = async (req, res) => {
         const userProfile = await authService.getUserSessionInfo(req.session.userId);
         console.log('✅ User profile retrieved:', userProfile.email);
         
-        // Add session info
+        // Get available roles for role switching
+        const availableRoles = await authService.getAvailableRolesForEmail(userProfile.email || req.session.email);
+        
+        // Add session info and available roles
         userProfile.sessionInfo = {
             loginAt: req.session.loginAt,
             lastActivity: req.session.lastActivity,
             requestCount: req.session.requestCount || 0
         };
+        userProfile.availableRoles = availableRoles;
 
         return res.status(200).json(userProfile);
     } catch (error) {
@@ -203,6 +225,10 @@ const getUserProfile = async (req, res) => {
     try {
         const userProfile = await authService.getDetailedUserProfile(req.session.userId);
         console.log('✅ Detailed user profile retrieved:', userProfile.email);
+        
+        // Get available roles for role switching
+        const availableRoles = await authService.getAvailableRolesForEmail(userProfile.email || req.session.email);
+        userProfile.availableRoles = availableRoles;
         
         return res.status(200).json(userProfile);
     } catch (error) {
@@ -279,10 +305,202 @@ const revokeSession = async (req, res) => {
     res.json({ message: 'Session revocation not implemented yet' });
 };
 
+const selectRole = async (req, res) => {
+    const { id_token, selectedRole } = req.body;
+    
+    if (!id_token || !selectedRole) {
+        logSecurityEvent('AUTH_MISSING_ROLE_SELECTION', {}, req);
+        return res.status(400).json({ error: 'ID token and selected role are required' });
+    }
+
+    try {
+        // Verify Google token again
+        const ticket = await client.verifyIdToken({
+            idToken: id_token,
+            audience: config.GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+        if (!payload || !payload.email) {
+            logSecurityEvent('AUTH_INVALID_TOKEN', { tokenPayload: !!payload }, req);
+            return res.status(400).json({ error: 'Invalid ID token' });
+        }
+
+        const userEmail = payload.email;
+        
+        // Domain validation (if enabled)
+        if (config.ENFORCE_EMAIL_DOMAIN) {
+            const allowedDomain = config.ALLOWED_EMAIL_DOMAIN || 'cse.mrt.ac.lk';
+            if (!userEmail.endsWith(`@${allowedDomain}`)) {
+                logSecurityEvent('AUTH_UNAUTHORIZED_DOMAIN', { 
+                    email: userEmail,
+                    domain: allowedDomain 
+                }, req);
+                return res.status(403).json({ error: 'Unauthorized email domain' });
+            }
+        }
+
+        // Find user with specific role
+        const user = await authService.findUserByEmailAndRole(userEmail, selectedRole);
+        
+        // Handle first login
+        if (user.firstLogin) {
+            await authService.handleFirstLogin(user, payload);
+            // Invalidate cache since user data changed
+            invalidateUserCache(user._id);
+        }
+
+        // Create session
+        req.session.userId = user._id;
+        req.session.role = user.role;
+        req.session.email = user.email;
+        req.session.loginAt = new Date();
+        req.session.loginMethod = 'google';
+        
+        console.log('🔐 Role-specific session created:', {
+            sessionId: req.sessionID,
+            userId: user._id,
+            role: user.role,
+            email: user.email
+        });
+        
+        // Force session save and add session cookie handling
+        req.session.save((err) => {
+            if (err) {
+                console.error('❌ Session save error:', err);
+            } else {
+                console.log('✅ Session saved successfully');
+                console.log('🍪 Session details:', {
+                    id: req.sessionID,
+                    userId: req.session.userId,
+                    cookie: req.session.cookie
+                });
+            }
+        });
+        
+        // FORCE session cookie to be sent to browser (same as main auth)
+        const signature = require('crypto')
+            .createHmac('sha256', config.SESSION_SECRET)
+            .update(req.sessionID)
+            .digest('base64')
+            .replace(/=+$/, '');
+        
+        const signedSessionId = `s%3A${req.sessionID}.${signature}`;
+        const isProduction = process.env.NODE_ENV === 'production';
+        const sessionCookie = `connect.sid=${signedSessionId}; Path=/; HttpOnly${isProduction ? '; Secure' : ''}; SameSite=${isProduction ? 'None' : 'Lax'}; Max-Age=86400`;
+        res.setHeader('Set-Cookie', sessionCookie);
+        console.log('🔧 Force setting signed session cookie for role selection:', sessionCookie);
+        
+        // Update last activity
+        authService.updateLastActivity(user._id);
+
+        logSecurityEvent('AUTH_ROLE_SELECTED', { 
+            userId: user._id,
+            email: userEmail,
+            role: user.role 
+        }, req);
+
+        // Get available roles for role switching
+        const availableRoles = await authService.getAvailableRolesForEmail(userEmail);
+        
+        // Return user profile with available roles
+        const userProfile = await authService.getUserSessionInfo(user._id);
+        userProfile.availableRoles = availableRoles;
+        
+        console.log('📤 Sending role selection response with headers:', {
+            setCookie: res.getHeaders()['set-cookie'],
+            sessionId: req.sessionID,
+            userId: user._id,
+            role: user.role
+        });
+        
+        return res.status(200).json(userProfile);
+
+    } catch (error) {
+        logSecurityEvent('AUTH_ROLE_SELECTION_ERROR', { 
+            error: error.message,
+            type: error.name 
+        }, req);
+        
+        console.error('Role selection failed:', error);
+        return res.status(401).json({ error: 'Role selection failed' });
+    }
+};
+
+const switchRole = async (req, res) => {
+    console.log('🔄 switchRole called:', {
+        hasSession: !!req.session,
+        sessionId: req.session?.id,
+        currentUserId: req.session?.userId,
+        currentRole: req.session?.role,
+        email: req.session?.email
+    });
+
+    if (!req.session?.userId || !req.session?.email) {
+        console.log('❌ No session or email in switchRole');
+        return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const { newRole } = req.body;
+    
+    if (!newRole) {
+        return res.status(400).json({ error: 'New role is required' });
+    }
+
+    try {
+        // Switch to the new role
+        const newUserProfile = await authService.switchUserRole(req.session.email, newRole);
+        
+        // Update session with new user data
+        req.session.userId = newUserProfile.id;
+        req.session.role = newRole;
+        req.session.lastActivity = new Date();
+        
+        // Save session
+        req.session.save((err) => {
+            if (err) {
+                console.error('❌ Session save error during role switch:', err);
+            } else {
+                console.log('✅ Session updated with new role');
+            }
+        });
+
+        // Get available roles for continued switching
+        const availableRoles = await authService.getAvailableRolesForEmail(req.session.email);
+        newUserProfile.availableRoles = availableRoles;
+
+        logSecurityEvent('AUTH_ROLE_SWITCHED', { 
+            oldUserId: req.session.userId,
+            newUserId: newUserProfile.id,
+            newRole: newRole,
+            email: req.session.email
+        }, req);
+        
+        console.log('✅ Role switched successfully:', {
+            newUserId: newUserProfile.id,
+            newRole: newRole
+        });
+        
+        return res.status(200).json(newUserProfile);
+    } catch (error) {
+        console.error('Error switching role:', error);
+        
+        logSecurityEvent('AUTH_ROLE_SWITCH_ERROR', { 
+            error: error.message,
+            requestedRole: newRole,
+            email: req.session.email
+        }, req);
+        
+        return res.status(500).json({ error: 'Role switch failed' });
+    }
+};
+
 module.exports = {
     googleVerify,
     getCurrentUser,
     getUserProfile,
+    selectRole,
+    switchRole,
     logout,
     getAllSessions,
     revokeSession

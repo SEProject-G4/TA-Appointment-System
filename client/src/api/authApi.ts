@@ -7,6 +7,20 @@ export interface User {
     email: string;
     role: 'undergraduate' | 'postgraduate' | 'hod' | 'cse-office' | 'lecturer' | 'admin';
     profilePicture: string;
+    availableRoles?: AvailableRole[];
+}
+
+export interface AvailableRole {
+    userId: string;
+    role: string;
+    displayName: string;
+    indexNumber?: string;
+}
+
+export interface RoleSelectionResponse {
+    requiresRoleSelection: boolean;
+    availableRoles: AvailableRole[];
+    email: string;
 }
 
 export interface UserProfile extends User {
@@ -25,12 +39,32 @@ export interface UserProfile extends User {
     updatedAt?: string;
 }
 
-export const verifyGoogleToken = async (id_token: string): Promise<User> => {
+export const verifyGoogleToken = async (id_token: string): Promise<User | RoleSelectionResponse> => {
   try{
-    const response = await axiosInstance.post<User>('/auth/google-verify', { id_token });
+    const response = await axiosInstance.post<User | RoleSelectionResponse>('/auth/google-verify', { id_token });
     return response.data;
   }catch(error) {
     console.error('Error verifying Google token:', error);
+    throw error;
+  }
+};
+
+export const selectRole = async (id_token: string, selectedRole: string): Promise<User> => {
+  try{
+    const response = await axiosInstance.post<User>('/auth/select-role', { id_token, selectedRole });
+    return response.data;
+  }catch(error) {
+    console.error('Error selecting role:', error);
+    throw error;
+  }
+};
+
+export const switchRole = async (newRole: string): Promise<User> => {
+  try{
+    const response = await axiosInstance.post<User>('/auth/switch-role', { newRole });
+    return response.data;
+  }catch(error) {
+    console.error('Error switching role:', error);
     throw error;
   }
 };
