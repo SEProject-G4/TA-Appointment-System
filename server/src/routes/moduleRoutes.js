@@ -8,5 +8,6 @@ router.get('/:moduleId', authMiddleware.protected, authMiddleware.authorize(['ad
 router.put('/:moduleId/advertise', authMiddleware.protected, authMiddleware.authorize(['admin']), moduleController.advertiseModule);
 router.put('/:moduleId/notify', authMiddleware.protected, authMiddleware.authorize(['admin']), moduleController.notifyModule);
 router.put('/:moduleId', authMiddleware.protected, authMiddleware.authorize(['admin']), moduleController.updateModule);
+router.post('/:moduleId/add-applicants', authMiddleware.protected, authMiddleware.authorize(['admin']), moduleController.addApplicants);
 
 module.exports = router;

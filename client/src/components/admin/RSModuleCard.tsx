@@ -88,6 +88,8 @@ const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
   const [availableStudents, setAvailableStudents] = useState<Option[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<Option[]>([]);
 
+  const { showToast } = useToast();
+
   const [taType, setTaType] = useState<"undergraduate" | "postgraduate" | null>(
     !moduleData.openForPostgraduates
       ? "undergraduate"
@@ -240,9 +242,22 @@ const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
             <button
               className="px-4 py-2 bg-primary text-text-inverted rounded-md hover:bg-primary-light transition disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={selectedStudents.length === 0}
-              onClick={() => {
+              onClick={async () => {
                 // Handle adding selected applicants
                 console.log("Adding selected students:", selectedStudents);
+                const userIds = selectedStudents.map((s) => s.id);
+                try {
+                  const response = await axiosInstance.post(
+                    `/modules/${moduleData._id}/add-applicants`,
+                    { role: taType, userIds }
+                  );
+                  console.log("Add applicants response:", response.data); 
+                  showToast(response.data.message, "success");
+                } catch (error) {
+                  console.error("Error adding selected students:", error);
+                  showToast("Failed to add selected students", "error");
+                }
+
                 closeModal();
               }}
             >
@@ -342,13 +357,19 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
 
   const notifyCoordinators = async (moduleData: ModuleDetails) => {
     // Implementation for notifying coordinators
-    try{
+    try {
       await axiosInstance.put(`/modules/${moduleData._id}/notify`);
-      showToast(`Coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName} are notified successfully`, "success");
+      showToast(
+        `Coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName} are notified successfully`,
+        "success"
+      );
       await fetchModuleDetails(moduleData._id);
     } catch (error) {
       console.error("Error notifying coordinators:", error);
-      showToast(`Failed to notify coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName}`, "error");
+      showToast(
+        `Failed to notify coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName}`,
+        "error"
+      );
     }
   };
 
@@ -360,11 +381,17 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     // Implementation for advertising a module
     try {
       await axiosInstance.put(`/modules/${moduleData._id}/advertise`);
-      showToast(`${moduleData.moduleCode} - ${moduleData.moduleName} advertised successfully`, "success");
+      showToast(
+        `${moduleData.moduleCode} - ${moduleData.moduleName} advertised successfully`,
+        "success"
+      );
       await fetchModuleDetails(moduleData._id);
     } catch (error) {
       console.error("Error advertising module:", error);
-      showToast(`Failed to advertise module ${moduleData.moduleCode} - ${moduleData.moduleName}`, "error");
+      showToast(
+        `Failed to advertise module ${moduleData.moduleCode} - ${moduleData.moduleName}`,
+        "error"
+      );
     }
   };
 
@@ -732,36 +759,36 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
                   {data.requiredTAHours}hours/week
                 </p>
               </div>
-                {data.postgraduateCounts ? (
-                  <CircularProgress
-                    percentage={
-                      data.postgraduateCounts
-                        ? ((data.postgraduateCounts.required -
-                            data.postgraduateCounts.remaining) /
-                            data.postgraduateCounts.required) *
-                          100
-                        : 0
-                    }
-                    size="small"
-                    color={"blue"}
-                  >
-                    <p className="text-sm font-semibold">
-                      <span className="text-text-primary text-2xl">
-                        {data.postgraduateCounts.required -
-                          data.postgraduateCounts.remaining}
-                      </span>
-                      <span className="text-text-secondary">
-                        /{data.postgraduateCounts.required}
-                      </span>
-                    </p>
-                  </CircularProgress>
-                ) : (
-                  <CircularProgress
-                    percentage={0}
-                    size="small"
-                    color={"blue"}
-                  ></CircularProgress>
-                )}
+              {data.postgraduateCounts ? (
+                <CircularProgress
+                  percentage={
+                    data.postgraduateCounts
+                      ? ((data.postgraduateCounts.required -
+                          data.postgraduateCounts.remaining) /
+                          data.postgraduateCounts.required) *
+                        100
+                      : 0
+                  }
+                  size="small"
+                  color={"blue"}
+                >
+                  <p className="text-sm font-semibold">
+                    <span className="text-text-primary text-2xl">
+                      {data.postgraduateCounts.required -
+                        data.postgraduateCounts.remaining}
+                    </span>
+                    <span className="text-text-secondary">
+                      /{data.postgraduateCounts.required}
+                    </span>
+                  </p>
+                </CircularProgress>
+              ) : (
+                <CircularProgress
+                  percentage={0}
+                  size="small"
+                  color={"blue"}
+                ></CircularProgress>
+              )}
             </>
           )}
         </div>

@@ -5,6 +5,8 @@ const TAApplication = require("../models/TaApplication");
 const AppliedModule = require("../models/AppliedModules");
 const { sendEmail } = require("../services/emailService");
 const config = require("../config");
+const { default: mongoose } = require("mongoose");
+const e = require("express");
 
 const changeModuleStatus = async (req, res) => {
   try {
@@ -588,10 +590,211 @@ const updateModule = async (req, res) => {
   }
 };
 
+const addApplicants = async (req, res) => {
+  //TODO: Lock the module during this operation to prevent race conditions
+  //TODO: Send the email for corresponding tas
+
+  const { moduleId } = req.params;
+  const { role, userIds } = req.body;
+
+  if (role !== "undergraduate" && role !== "postgraduate") {
+    return res.status(400).json({ error: "Invalid role specified" });
+  }
+
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return res.status(400).json({ error: "No user IDs provided" });
+  }
+
+  const module = await ModuleDetails.findById(moduleId);
+
+  if (!module) {
+    return res.status(404).json({ error: "Module not found" });
+  }
+
+  let availableCount = 0;
+  if (role === "undergraduate") {
+    if (!module.openForUndergraduates) {
+      return res
+        .status(400)
+        .json({ error: "Module is not open for undergraduate applicants" });
+    } else {
+      availableCount =
+        module.undergraduateCounts?.required -
+          module.undergraduateCounts?.accepted || 0;
+    }
+  } else if (role === "postgraduate") {
+    if (!module.openForPostgraduates) {
+      return res
+        .status(400)
+        .json({ error: "Module is not open for postgraduate applicants" });
+    } else {
+      availableCount =
+        module.postgraduateCounts?.required -
+          module.postgraduateCounts?.accepted || 0;
+    }
+  }
+
+  if (availableCount === 0) {
+    return res
+      .status(400)
+      .json({
+        error:
+          "No available positions for this role. All positions are filled with approved applicants.",
+      });
+  }
+
+  if (userIds.length > availableCount) {
+    return res
+      .status(400)
+      .json({
+        error: `Number of applicants exceeds available positions. Only ${availableCount} positions are available.`,
+      });
+  }
+
+  const recSeriesId = module.recruitmentSeriesId;
+
+  if (!recSeriesId) {
+    return res.status(400).json({
+      error: "Module is not associated with any recruitment series",
+    });
+  }
+
+  const recruitmentSeries = await RecruitmentRound.findById(recSeriesId);
+
+  if (!recruitmentSeries) {
+    return res.status(404).json({ error: "Recruitment series not found" });
+  }
+
+  const availableHours =
+    role === "undergraduate"
+      ? recruitmentSeries.undergradHourLimit
+      : recruitmentSeries.postgradHourLimit;
+  const neededHours = module.requiredTAHours || 0;
+  const results = new Map();
+
+  for (const userId of userIds) {
+    const user = await User.findById(userId);
+    if (!user) {
+      results.set(userId, { name: "Unknown", status: "failed", reason: "User not found" });
+      continue;
+    }
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
+      const appliedModule = await AppliedModule.findOne({
+        userId,
+        recSeriesId,
+      });
+
+      if (appliedModule) {
+        const existingApplication = await TAApplication.findOne({
+          userId,
+          moduleId,
+        });
+        if (existingApplication) {
+          if (existingApplication.status === "accepted") {
+            results.set(userId, {
+              name: user.name,
+              status: "success",
+              reason: "User already has an accepted application",
+            });
+          } else {
+            existingApplication.status = "accepted";
+            await existingApplication.save({ session });
+            results.set(userId, {
+              name: user.name,
+              status: "success",
+              reason: "Existing application updated to accepted",
+            });
+          }
+        } else if (appliedModule.availableHoursPerWeek >= neededHours) {
+          const taApplication = new TAApplication({
+            userId,
+            moduleId,
+            status: "accepted",
+          });
+          await taApplication.save({ session });
+
+          appliedModule.availableHoursPerWeek -= neededHours;
+          appliedModule.appliedModules.push(taApplication._id);
+          await appliedModule.save({ session });
+          if (role === "undergraduate") {
+            module.undergraduateCounts.applied += 1;
+            module.undergraduateCounts.accepted += 1;
+            module.undergraduateCounts.remaining -= 1;
+          } else if (role === "postgraduate") {
+            module.postgraduateCounts.applied += 1;
+            module.postgraduateCounts.accepted += 1;
+            module.postgraduateCounts.remaining -= 1;
+          }
+          await module.save({ session });
+          results.set(userId, { name: user.name, status: "success" });
+        } else {
+          results.set(userId, {
+            name: user.name,
+            status: "failed",
+            reason: "Insufficient available hours",
+          });
+          await session.abortTransaction();
+          session.endSession();
+          continue;
+        }
+        await session.commitTransaction();
+        session.endSession();
+      } else {
+        const taApplication = new TAApplication({
+          userId,
+          moduleId,
+          status: "accepted",
+        });
+        await taApplication.save({ session });
+
+        const newAppliedModule = new AppliedModule({
+          userId,
+          recSeriesId,
+          availableHoursPerWeek:
+            role === "undergraduate"
+              ? recruitmentSeries.undergradHourLimit - neededHours
+              : recruitmentSeries.postgradHourLimit - neededHours,
+          appliedModules: [taApplication._id],
+        });
+        await newAppliedModule.save({ session });
+
+        if (role === "undergraduate") {
+          module.undergraduateCounts.applied += 1;
+          module.undergraduateCounts.accepted += 1;
+          module.undergraduateCounts.remaining -= 1;
+        } else if (role === "postgraduate") {
+          module.postgraduateCounts.applied += 1;
+          module.postgraduateCounts.accepted += 1;
+          module.postgraduateCounts.remaining -= 1;
+        }
+        await module.save({ session });
+        results.set(userId, { name: user.name, status: "success" });
+        // commit the transaction for this successful path and end the session
+        await session.commitTransaction();
+        session.endSession();
+      }
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      results.set(userId, { name: user.name, status: "failed", reason: error.message });
+    }
+  }
+
+  res
+    .status(200)
+    .json({
+      results: Array.from(results.values()),
+      message: `Processed ${userIds.length} applicants.`,
+    });
+};
+
 module.exports = {
   getModuleDetailsById,
   changeModuleStatus,
   advertiseModule,
   notifyModule,
   updateModule,
+  addApplicants,
 };
