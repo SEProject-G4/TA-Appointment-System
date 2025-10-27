@@ -671,110 +671,108 @@ const addApplicants = async (req, res) => {
       : recruitmentSeries.postgradHourLimit;
   const neededHours = module.requiredTAHours || 0;
   const results = new Map();
+  // Batch-load users, appliedModules and existing TA applications to reduce round-trips
+  const usersList = await User.find({ _id: { $in: userIds } }).lean();
+  const userMap = new Map(usersList.map((u) => [String(u._id), u]));
+
+  const appliedModulesList = await AppliedModule.find({
+    userId: { $in: userIds },
+    recSeriesId,
+  }).lean();
+  const appliedMap = new Map(appliedModulesList.map((a) => [String(a.userId), a]));
+
+  const existingAppsList = await TAApplication.find({
+    userId: { $in: userIds },
+    moduleId,
+  }).lean();
+  const existingAppMap = new Map(existingAppsList.map((a) => [String(a.userId), a]));
 
   for (const userId of userIds) {
-    const user = await User.findById(userId);
+    const user = userMap.get(String(userId));
     if (!user) {
       results.set(userId, { name: "Unknown", status: "failed", reason: "User not found" });
       continue;
     }
+
     const session = await mongoose.startSession();
     try {
       session.startTransaction();
-      const appliedModule = await AppliedModule.findOne({
-        userId,
-        recSeriesId,
-      });
 
+      const appliedModule = appliedMap.get(String(userId));
+      const existingApplication = existingAppMap.get(String(userId));
+
+      // Check AppliedModule first as requested
       if (appliedModule) {
-        const existingApplication = await TAApplication.findOne({
-          userId,
-          moduleId,
-        });
+        // If there's already an application for this user & module
         if (existingApplication) {
           if (existingApplication.status === "accepted") {
-            results.set(userId, {
-              name: user.name,
-              status: "success",
-              reason: "User already has an accepted application",
-            });
+            results.set(userId, { name: user.name, status: "success", reason: "User already has an accepted application for this position" });
           } else {
-            existingApplication.status = "accepted";
-            await existingApplication.save({ session });
-            results.set(userId, {
-              name: user.name,
-              status: "success",
-              reason: "Existing application updated to accepted",
-            });
+            // Update application to accepted
+            await TAApplication.updateOne({ _id: existingApplication._id }, { $set: { status: "accepted" } }, { session });
+            results.set(userId, { name: user.name, status: "success", reason: "Existing application updated to accepted" });
+            if (role === "undergraduate") {
+              await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "undergraduateCounts.reviewed": 1, "undergraduateCounts.accepted": 1 } }, { session });
+            } else {
+              await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "postgraduateCounts.reviewed": 1, "postgraduateCounts.accepted": 1 } }, { session });
+            }
           }
-        } else if (appliedModule.availableHoursPerWeek >= neededHours) {
-          const taApplication = new TAApplication({
-            userId,
-            moduleId,
-            status: "accepted",
-          });
-          await taApplication.save({ session });
-
-          appliedModule.availableHoursPerWeek -= neededHours;
-          appliedModule.appliedModules.push(taApplication._id);
-          await appliedModule.save({ session });
-          if (role === "undergraduate") {
-            module.undergraduateCounts.applied += 1;
-            module.undergraduateCounts.accepted += 1;
-            module.undergraduateCounts.remaining -= 1;
-          } else if (role === "postgraduate") {
-            module.postgraduateCounts.applied += 1;
-            module.postgraduateCounts.accepted += 1;
-            module.postgraduateCounts.remaining -= 1;
-          }
-          await module.save({ session });
-          results.set(userId, { name: user.name, status: "success" });
-        } else {
-          results.set(userId, {
-            name: user.name,
-            status: "failed",
-            reason: "Insufficient available hours",
-          });
-          await session.abortTransaction();
+          await session.commitTransaction();
           session.endSession();
           continue;
         }
-        await session.commitTransaction();
-        session.endSession();
-      } else {
-        const taApplication = new TAApplication({
-          userId,
-          moduleId,
-          status: "accepted",
-        });
-        await taApplication.save({ session });
 
-        const newAppliedModule = new AppliedModule({
-          userId,
-          recSeriesId,
-          availableHoursPerWeek:
-            role === "undergraduate"
-              ? recruitmentSeries.undergradHourLimit - neededHours
-              : recruitmentSeries.postgradHourLimit - neededHours,
-          appliedModules: [taApplication._id],
-        });
-        await newAppliedModule.save({ session });
+        if (appliedModule.availableHoursPerWeek >= neededHours) {
+          // AppliedModule exists but no application: create one and attach
+          const taApplication = new TAApplication({ userId, moduleId, status: "accepted" });
+          await taApplication.save({ session });
+
+          const updatedApplied = await AppliedModule.findOneAndUpdate(
+            { _id: appliedModule._id },
+            { $inc: { availableHoursPerWeek: -neededHours }, $push: { appliedModules: taApplication._id } },
+            { session, new: true }
+          );
+
+        if (!updatedApplied) {
+          
+        }
 
         if (role === "undergraduate") {
-          module.undergraduateCounts.applied += 1;
-          module.undergraduateCounts.accepted += 1;
-          module.undergraduateCounts.remaining -= 1;
-        } else if (role === "postgraduate") {
-          module.postgraduateCounts.applied += 1;
-          module.postgraduateCounts.accepted += 1;
-          module.postgraduateCounts.remaining -= 1;
+          await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "undergraduateCounts.applied": 1, "undergraduateCounts.reviewed": 1, "undergraduateCounts.accepted": 1, "undergraduateCounts.remaining": -1 } }, { session });
+        } else {
+          await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "postgraduateCounts.applied": 1, "postgraduateCounts.reviewed": 1, "postgraduateCounts.accepted": 1, "postgraduateCounts.remaining": -1 } }, { session });
         }
-        await module.save({ session });
+
         results.set(userId, { name: user.name, status: "success" });
-        // commit the transaction for this successful path and end the session
         await session.commitTransaction();
         session.endSession();
+        continue;
+      }else{
+        await session.abortTransaction();
+        session.endSession();
+        results.set(userId, { name: user.name, status: "failed", reason: "Insufficient available hours" });
+        continue;
       }
+    }
+
+      // No AppliedModule exists: create AppliedModule first, then create application and attach
+      const initialAvailable = role === "undergraduate" ? recruitmentSeries.undergradHourLimit : recruitmentSeries.postgradHourLimit;
+      
+      const taApplication = new TAApplication({ userId, moduleId, status: "accepted" });
+      await taApplication.save({ session });
+
+      const newAppliedModule = new AppliedModule({ userId, recSeriesId, availableHoursPerWeek: initialAvailable - neededHours, appliedModules: [taApplication._id] });
+      await newAppliedModule.save({ session });
+
+      if (role === "undergraduate") {
+        await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "undergraduateCounts.applied": 1, "undergraduateCounts.accepted": 1, "undergraduateCounts.remaining": -1 } }, { session });
+      } else {
+        await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "postgraduateCounts.applied": 1, "postgraduateCounts.accepted": 1, "postgraduateCounts.remaining": -1 } }, { session });
+      }
+
+      results.set(userId, { name: user.name, status: "success" });
+      await session.commitTransaction();
+      session.endSession();
     } catch (error) {
       await session.abortTransaction();
       session.endSession();

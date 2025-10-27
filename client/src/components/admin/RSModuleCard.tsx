@@ -15,6 +15,7 @@ import axiosInstance from "../../api/axiosConfig";
 // import { toast } from "react-hot-toast";
 import { useToast } from "../../contexts/ToastContext";
 import { useModal } from "../../contexts/ModalProvider";
+import Loader from "../common/Loader";
 
 interface ModuleDetails {
   _id: string;
@@ -100,6 +101,9 @@ const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
 
   const { closeModal } = useModal();
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiResults, setApiResults] = useState<Array<any> | null>(null);
+
   const fetchEligibleStudents = async (
     type: "undergraduate" | "postgraduate"
   ) => {
@@ -177,7 +181,7 @@ const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
           </div>
         </div>
       )}
-      {taType && (
+      {taType && !apiResults && !isSubmitting && (
         <div className="flex flex-col">
           <div className="flex flex-row items-center space-x-8 mb-5 mt-8">
             <label className="label">
@@ -236,32 +240,82 @@ const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
             <button
               className="px-4 py-2 text-text-secondary border border-text-secondary/20 rounded-md hover:bg-text-secondary/10 transition"
               onClick={closeModal}
+              disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               className="px-4 py-2 bg-primary text-text-inverted rounded-md hover:bg-primary-light transition disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={selectedStudents.length === 0}
+              disabled={selectedStudents.length === 0 || isSubmitting}
               onClick={async () => {
                 // Handle adding selected applicants
-                console.log("Adding selected students:", selectedStudents);
                 const userIds = selectedStudents.map((s) => s.id);
+                setIsSubmitting(true);
+                setApiResults(null);
                 try {
                   const response = await axiosInstance.post(
                     `/modules/${moduleData._id}/add-applicants`,
                     { role: taType, userIds }
                   );
-                  console.log("Add applicants response:", response.data); 
-                  showToast(response.data.message, "success");
-                } catch (error) {
+                  // show results in modal
+                  setApiResults(response.data.results || []);
+                  showToast(response.data.message || "Applicants processed", "success");
+                } catch (error: any) {
                   console.error("Error adding selected students:", error);
                   showToast("Failed to add selected students", "error");
+                  const reason = error?.response?.data?.error || error?.message || "Request failed";
+                  setApiResults([{ name: "", status: "failed", reason }]);
+                } finally {
+                  setIsSubmitting(false);
                 }
-
-                closeModal();
               }}
             >
               Add Selected Applicants ({selectedStudents.length})
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Show loader while submitting */}
+      {isSubmitting && (
+        <div className="w-full py-8 flex flex-col items-center">
+          <Loader className="my-6 w-full" />
+          <p className="text-sm text-text-secondary mt-4 font-semibold">Processing...</p>
+        </div>
+      )}
+      {/* Show results after submission */}
+      {apiResults && (
+        <div className="mt-4 w-full">
+          <h3 className="text-sm font-semibold mb-2">Results summary</h3>
+          <p className="text-sm text-text-secondary mb-2">
+            {apiResults.filter((r) => r.status === "success").length} succeeded, {apiResults.filter((r) => r.status !== "success").length} failed
+          </p>
+          <div className="max-h-48 overflow-y-auto">
+            <ul className="space-y-2">
+              {apiResults.map((r: any, idx: number) => (
+                <li key={idx} className="p-2 bg-bg-page rounded-md">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-sm">{r.name || "Unknown"}</p>
+                      {r.reason && (
+                        <p className="text-xs text-text-secondary">{r.reason}</p>
+                      )}
+                    </div>
+                    <div>
+                      <span className={`text-xs font-semibold ${r.status === "success" ? "text-green-600" : "text-red-600"}`}>
+                        {r.status}
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex justify-end mt-4">
+            <button
+              className="px-4 py-2 bg-primary text-text-inverted rounded-md hover:bg-primary-light"
+              onClick={closeModal}
+            >
+              Done
             </button>
           </div>
         </div>
@@ -471,7 +525,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
             label: "Add Applicants",
             action: (moduleData: ModuleDetails) => {
               openModal(<AddApplicantsModal moduleData={moduleData} />, {
-                showCloseButton: true,
+                showCloseButton: false,
               });
             },
             className:
