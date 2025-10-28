@@ -2,6 +2,7 @@ import { useState, useEffect} from "react";
 import { useLocation } from "react-router-dom";
 
 import BasicModuleInfoTab from "../../components/admin/BasicModuleInfoTab";
+import ApplicationsTab from "../../components/admin/ApplicationsTab";
 
 import axiosInstance from "../../api/axiosConfig";
 import { useToast } from "../../contexts/ToastContext";
@@ -77,16 +78,20 @@ const getClassForStatus = (status: string) => {
 const ModuleDetails = () => {
 
     const [moduleDetails, setModuleDetails] = useState<ModuleDetails | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const location = useLocation();
 
-  const { moduleData } = location.state || {};
+  const { moduleData, selectedTab } = location.state || {};
 
   useEffect(() => {
     if (moduleData) {
       setModuleDetails(moduleData);
     }
-  }, [moduleData]);
+    if (selectedTab !== undefined) {
+      setSelectedIndex(selectedTab);
+    }
+  }, [moduleData, selectedTab]);
 
 
   return (
@@ -98,25 +103,17 @@ const ModuleDetails = () => {
               {moduleDetails.moduleStatus.charAt(0).toUpperCase() + moduleDetails.moduleStatus.slice(1)}
             </span>
           </p>
-          <TabGroup className={"w-full bg-bg-card p-4 rounded-md"}>
+          <TabGroup selectedIndex={selectedIndex} onChange={setSelectedIndex} className={"w-full bg-bg-card p-4 rounded-md"}>
             <TabList className="flex border-b border-text-secondary">
               <Tab className="data-[selected]:border-b-2 data-[selected]:border-primary data-[selected]:text-primary py-2 px-4 cursor-pointer outline-none">Basic Info</Tab>
               <Tab className="data-[selected]:border-b-2 data-[selected]:border-primary data-[selected]:text-primary py-2 px-4 cursor-pointer outline-none">Applications</Tab>
-              <Tab className="data-[selected]:border-b-2 data-[selected]:border-primary data-[selected]:text-primary py-2 px-4 cursor-pointer outline-none">Document Submissions</Tab>
-              <Tab className="data-[selected]:border-b-2 data-[selected]:border-primary data-[selected]:text-primary py-2 px-4 cursor-pointer outline-none">Appointments</Tab>
             </TabList>
             <TabPanels>
               <TabPanel className="mt-4">
                 <BasicModuleInfoTab moduleData={moduleDetails} />
               </TabPanel>
               <TabPanel className="mt-4">
-                <p className="text-text-primary">Applications Content</p>
-              </TabPanel>
-              <TabPanel className="mt-4">
-                <p className="text-text-primary">Document Submissions Content</p>
-              </TabPanel>
-              <TabPanel className="mt-4">
-                <p className="text-text-primary">Appointments Content</p>
+                <ApplicationsTab moduleData={moduleDetails} />
               </TabPanel>
             </TabPanels>
           </TabGroup>
