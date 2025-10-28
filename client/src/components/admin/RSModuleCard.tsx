@@ -83,7 +83,7 @@ const getClassForStatus = (status: string) => {
   }
 };
 
-const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
+export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
   moduleData,
 }) => {
   const [availableStudents, setAvailableStudents] = useState<Option[]>([]);
@@ -451,6 +451,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
 
   const handleViewApplications = (moduleData: ModuleDetails) => {
     // Implementation for viewing applications
+    navigate(`/module-details/${moduleData._id}`, { state: { moduleData, selectedTab: 1 } });
   };
 
   const handleSendforApproval = async (moduleData: ModuleDetails) => {

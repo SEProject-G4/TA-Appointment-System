@@ -6,6 +6,7 @@ import { useToast } from "../../contexts/ToastContext";
 import { AiOutlineDelete } from "react-icons/ai";
 
 import Loader from "../common/Loader";
+import { AddApplicantsModal } from "./RSModuleCard";
 import CommonAvatar from "../../assets/images/common_avatar.jpg";
 
 interface Application {
@@ -23,6 +24,47 @@ interface Application {
   createdAt: string;
 }
 
+interface ModuleDetails {
+  _id: string;
+  recruitmentSeriesId: string;
+  moduleCode: string;
+  moduleName: string;
+  semester: number;
+  moduleStatus: string;
+  coordinators: {
+    id: string;
+    displayName: string;
+    email: string;
+    profilePicture: string;
+  }[];
+  applicationDueDate: Date;
+  documentDueDate: Date;
+  requiredTAHours: number;
+  openForUndergraduates: boolean;
+  openForPostgraduates: boolean;
+
+  undergraduateCounts: {
+    required: number;
+    remaining: number;
+    applied: number;
+    reviewed: number;
+    accepted: number;
+    docSubmitted: number;
+    appointed: number;
+  };
+
+  postgraduateCounts: {
+    required: number;
+    remaining: number;
+    applied: number;
+    reviewed: number;
+    accepted: number;
+    docSubmitted: number;
+    appointed: number;
+  };
+  requirements: string;
+}
+
 const getStatusClass = (status: string) => {
   switch (status) {
     case "accepted":
@@ -36,7 +78,7 @@ const getStatusClass = (status: string) => {
   }
 };
 
-const ApplicationsTab = ({ moduleId }: { moduleId: string }) => {
+const ApplicationsTab = ({ moduleData }: { moduleData:ModuleDetails }) => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -102,7 +144,7 @@ const ApplicationsTab = ({ moduleId }: { moduleId: string }) => {
       setIsLoading(true);
       try {
         const response = await axiosInstance.get(
-          `/modules/${moduleId}/applications`
+          `/modules/${moduleData._id}/applications`
         );
         console.log("Fetched applications:", response.data);
         setApplications(response.data);
@@ -114,7 +156,7 @@ const ApplicationsTab = ({ moduleId }: { moduleId: string }) => {
     };
 
     fetchApplications();
-  }, [moduleId]);
+  }, [moduleData._id]);
 
   if (isLoading) {
     return (
@@ -204,7 +246,8 @@ const ApplicationsTab = ({ moduleId }: { moduleId: string }) => {
   );
 
   return (
-    <div className="w-full p-4 flex gap-x-4">
+    <div className="flex flex-col p-4">
+    <div className="w-full flex gap-x-4">
       {/* Undergraduate Applications */}
       <div className="flex-1 flex flex-col gap-y-3">
         <h3 className="text-text-primary text-lg font-semibold mb-2 sticky top-0 z-10">
@@ -246,6 +289,16 @@ const ApplicationsTab = ({ moduleId }: { moduleId: string }) => {
           )}
         </div>
       </div>
+    </div>
+    <div className="mt-4 rounded-md cursor-pointer px-4 py-1 bg-primary-dark hover:bg-primary text-text-inverted w-fit" onClick={
+        () => {
+            openModal(<AddApplicantsModal moduleData={moduleData} />
+                ,{showCloseButton: false}
+            );
+        }
+    }>
+        Add Applicants Manually
+    </div>
     </div>
   );
 };

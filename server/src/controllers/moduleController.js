@@ -701,7 +701,7 @@ const addApplicants = async (req, res) => {
       const appliedModule = appliedMap.get(String(userId));
       const existingApplication = existingAppMap.get(String(userId));
 
-      // Check AppliedModule first as requested
+      // Check AppliedModule first
       if (appliedModule) {
         // If there's already an application for this user & module
         if (existingApplication) {
@@ -711,10 +711,33 @@ const addApplicants = async (req, res) => {
             // Update application to accepted
             await TAApplication.updateOne({ _id: existingApplication._id }, { $set: { status: "accepted" } }, { session });
             results.set(userId, { name: user.name, status: "success", reason: "Existing application updated to accepted" });
+            
+            let updateModuleObj = {};
+
             if (role === "undergraduate") {
-              await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "undergraduateCounts.reviewed": 1, "undergraduateCounts.accepted": 1 } }, { session });
+              const newAcceptedCount = module.undergraduateCounts.accepted + 1;
+              if (newAcceptedCount === module.undergraduateCounts.required) {
+                //notify coordinators that undergrad positions are full
+                if(module.openForPostgraduates && module.postgraduateCounts && module.postgraduateCounts.accepted === module.postgraduateCounts.required){
+                  updateModuleObj.$set = { moduleStatus: "getting documents" };
+                }else if(!module.openForPostgraduates){
+                  updateModuleObj.$set = { moduleStatus: "getting documents" };
+                }
+              }
+              updateModuleObj.$inc = { "undergraduateCounts.reviewed": 1, "undergraduateCounts.accepted": 1 };
+              await ModuleDetails.updateOne({ _id: moduleId }, updateModuleObj, { session });
             } else {
-              await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "postgraduateCounts.reviewed": 1, "postgraduateCounts.accepted": 1 } }, { session });
+              const newAcceptedCount = module.postgraduateCounts.accepted + 1;
+              if (newAcceptedCount === module.postgraduateCounts.required) {
+                //notify coordinators that postgrad positions are full
+                if(module.openForUndergraduates && module.undergraduateCounts && module.undergraduateCounts.accepted === module.undergraduateCounts.required){
+                  updateModuleObj.$set = { moduleStatus: "getting documents" };
+                }else if(!module.openForUndergraduates){
+                  updateModuleObj.$set = { moduleStatus: "getting documents" };
+                }
+              }
+              updateModuleObj.$inc = { "postgraduateCounts.reviewed": 1, "postgraduateCounts.accepted": 1 };
+              await ModuleDetails.updateOne({ _id: moduleId }, updateModuleObj, { session });
             }
           }
           await session.commitTransaction();
@@ -722,8 +745,9 @@ const addApplicants = async (req, res) => {
           continue;
         }
 
+        // AppliedModule exists but no application: create one and attach
         if (appliedModule.availableHoursPerWeek >= neededHours) {
-          // AppliedModule exists but no application: create one and attach
+          let updateModuleObj = {};
           const taApplication = new TAApplication({ userId, moduleId, status: "accepted" });
           await taApplication.save({ session });
 
@@ -733,14 +757,42 @@ const addApplicants = async (req, res) => {
             { session, new: true }
           );
 
-        if (!updatedApplied) {
           
-        }
-
-        if (role === "undergraduate") {
-          await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "undergraduateCounts.applied": 1, "undergraduateCounts.reviewed": 1, "undergraduateCounts.accepted": 1, "undergraduateCounts.remaining": -1 } }, { session });
+          
+          if (role === "undergraduate") {
+          const newRemainingCount = module.undergraduateCounts.remaining - 1;
+          const newAcceptedCount = module.undergraduateCounts.accepted + 1;
+          if (newAcceptedCount === module.undergraduateCounts.required) {
+            if(module.openForPostgraduates && module.postgraduateCounts && module.postgraduateCounts.accepted === module.postgraduateCounts.required){
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            }else if(!module.openForPostgraduates){
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            }
+          }else if(newRemainingCount === 0){
+            //notify coordinators that undergrad positions are full
+            if(module.openForPostgraduates && module.postgraduateCounts && module.postgraduateCounts.remaining === 0){
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }else if(!module.openForPostgraduates){
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }
+          }
+          updateModuleObj.$inc = { "undergraduateCounts.applied": 1, "undergraduateCounts.reviewed": 1, "undergraduateCounts.accepted": 1, "undergraduateCounts.remaining": -1 };
+          await ModuleDetails.updateOne({ _id: moduleId }, updateModuleObj, { session });
         } else {
-          await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "postgraduateCounts.applied": 1, "postgraduateCounts.reviewed": 1, "postgraduateCounts.accepted": 1, "postgraduateCounts.remaining": -1 } }, { session });
+          const newRemainingCount = module.postgraduateCounts.remaining - 1;
+          const newAcceptedCount = module.postgraduateCounts.accepted + 1;
+          if (newAcceptedCount === module.postgraduateCounts.required) {
+            if(module.openForUndergraduates && module.undergraduateCounts && module.undergraduateCounts.accepted === module.undergraduateCounts.required){
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            }
+          }else if(newRemainingCount === 0){
+            //notify coordinators that postgrad positions are full
+            if(module.openForUndergraduates && module.undergraduateCounts && module.undergraduateCounts.remaining === 0){
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }
+          }
+          updateModuleObj.$inc = { "postgraduateCounts.applied": 1, "postgraduateCounts.reviewed": 1, "postgraduateCounts.accepted": 1, "postgraduateCounts.remaining": -1 };
+          await ModuleDetails.updateOne({ _id: moduleId }, updateModuleObj, { session });
         }
 
         results.set(userId, { name: user.name, status: "success" });
@@ -757,7 +809,7 @@ const addApplicants = async (req, res) => {
 
       // No AppliedModule exists: create AppliedModule first, then create application and attach
       const initialAvailable = role === "undergraduate" ? recruitmentSeries.undergradHourLimit : recruitmentSeries.postgradHourLimit;
-      
+      let updateModuleObj = {};
       const taApplication = new TAApplication({ userId, moduleId, status: "accepted" });
       await taApplication.save({ session });
 
@@ -765,9 +817,39 @@ const addApplicants = async (req, res) => {
       await newAppliedModule.save({ session });
 
       if (role === "undergraduate") {
-        await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "undergraduateCounts.applied": 1, "undergraduateCounts.reviewed": 1, "undergraduateCounts.accepted": 1, "undergraduateCounts.remaining": -1 } }, { session });
+        const newRemainingCount = module.undergraduateCounts.remaining - 1;
+          const newAcceptedCount = module.undergraduateCounts.accepted + 1;
+          if (newAcceptedCount === module.undergraduateCounts.required) {
+            if(module.openForPostgraduates && module.postgraduateCounts && module.postgraduateCounts.accepted === module.postgraduateCounts.required){
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            }else if(!module.openForPostgraduates){
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            }
+          }else if(newRemainingCount === 0){
+            //notify coordinators that undergrad positions are full
+            if(module.openForPostgraduates && module.postgraduateCounts && module.postgraduateCounts.remaining === 0){
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }else if(!module.openForPostgraduates){
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }
+          }
+          updateModuleObj.$inc = { "undergraduateCounts.applied": 1, "undergraduateCounts.reviewed": 1, "undergraduateCounts.accepted": 1, "undergraduateCounts.remaining": -1 };
+          await ModuleDetails.updateOne({ _id: moduleId }, updateModuleObj, { session });
       } else {
-        await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "postgraduateCounts.applied": 1, "postgraduateCounts.reviewed": 1, "postgraduateCounts.accepted": 1, "postgraduateCounts.remaining": -1 } }, { session });
+        const newRemainingCount = module.postgraduateCounts.remaining - 1;
+          const newAcceptedCount = module.postgraduateCounts.accepted + 1;
+          if (newAcceptedCount === module.postgraduateCounts.required) {
+            if(module.openForUndergraduates && module.undergraduateCounts && module.undergraduateCounts.accepted === module.undergraduateCounts.required){
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            }
+          }else if(newRemainingCount === 0){
+            //notify coordinators that postgrad positions are full
+            if(module.openForUndergraduates && module.undergraduateCounts && module.undergraduateCounts.remaining === 0){
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }
+          }
+          updateModuleObj.$inc = { "postgraduateCounts.applied": 1, "postgraduateCounts.reviewed": 1, "postgraduateCounts.accepted": 1, "postgraduateCounts.remaining": -1 };
+          await ModuleDetails.updateOne({ _id: moduleId }, updateModuleObj, { session });
       }
 
       results.set(userId, { name: user.name, status: "success" });

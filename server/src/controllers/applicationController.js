@@ -17,12 +17,9 @@ const deleteApplication = async (req, res) => {
         const moduleId = application.moduleId;
         
         const user = await User.findById(userId);
-        console.log("Deleting application for user:", user);
         const module = await ModuleDetails.findById(moduleId);
         const recSeriesId = module.recruitmentSeriesId;
-        console.log("Found module:", module);
         const appliedModule = await AppliedModule.findOne({ userId, recSeriesId });
-        console.log("Found applied module for user:", appliedModule);
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
@@ -44,10 +41,12 @@ const deleteApplication = async (req, res) => {
                     module.undergraduateCounts.applied -= 1;
                     if(application.status === "pending"){
                         module.undergraduateCounts.remaining += 1;
+                        module.moduleStatus = "advertised";
                     }else if(application.status === "accepted"){
                         module.undergraduateCounts.reviewed -= 1;
                         module.undergraduateCounts.accepted -= 1;
                         module.undergraduateCounts.remaining += 1;
+                        module.moduleStatus = "advertised";
                     }else if(application.status === "rejected"){
                         module.undergraduateCounts.reviewed -= 1;
                     }
@@ -55,10 +54,12 @@ const deleteApplication = async (req, res) => {
                     module.postgraduateCounts.applied -= 1;
                     if(application.status === "pending"){
                         module.postgraduateCounts.remaining += 1;
+                        module.moduleStatus = "advertised";
                     }else if(application.status === "accepted"){
                         module.postgraduateCounts.reviewed -= 1;
                         module.postgraduateCounts.accepted -= 1;
                         module.postgraduateCounts.remaining += 1;
+                        module.moduleStatus = "advertised";
                     }else if(application.status === "rejected"){
                         module.postgraduateCounts.reviewed -= 1;
                     }
