@@ -765,9 +765,9 @@ const addApplicants = async (req, res) => {
       await newAppliedModule.save({ session });
 
       if (role === "undergraduate") {
-        await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "undergraduateCounts.applied": 1, "undergraduateCounts.accepted": 1, "undergraduateCounts.remaining": -1 } }, { session });
+        await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "undergraduateCounts.applied": 1, "undergraduateCounts.reviewed": 1, "undergraduateCounts.accepted": 1, "undergraduateCounts.remaining": -1 } }, { session });
       } else {
-        await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "postgraduateCounts.applied": 1, "postgraduateCounts.accepted": 1, "postgraduateCounts.remaining": -1 } }, { session });
+        await ModuleDetails.updateOne({ _id: moduleId }, { $inc: { "postgraduateCounts.applied": 1, "postgraduateCounts.reviewed": 1, "postgraduateCounts.accepted": 1, "postgraduateCounts.remaining": -1 } }, { session });
       }
 
       results.set(userId, { name: user.name, status: "success" });
@@ -788,6 +788,21 @@ const addApplicants = async (req, res) => {
     });
 };
 
+const getModuleApplications = async (req, res) => {
+  try {
+    const moduleId = req.params.moduleId;
+
+    const applications = await TAApplication.find({ moduleId })
+      .populate("userId", "indexNumber profilePicture name email role")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(applications);
+  } catch (error) {
+    console.error("Error fetching module applications:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   getModuleDetailsById,
   changeModuleStatus,
@@ -795,4 +810,5 @@ module.exports = {
   notifyModule,
   updateModule,
   addApplicants,
+  getModuleApplications,
 };

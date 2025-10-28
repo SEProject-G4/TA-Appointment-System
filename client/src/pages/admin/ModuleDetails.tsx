@@ -2,6 +2,7 @@ import { useState, useEffect} from "react";
 import { useLocation } from "react-router-dom";
 
 import BasicModuleInfoTab from "../../components/admin/BasicModuleInfoTab";
+import ApplicationsTab from "../../components/admin/ApplicationsTab";
 
 import axiosInstance from "../../api/axiosConfig";
 import { useToast } from "../../contexts/ToastContext";
@@ -110,7 +111,7 @@ const ModuleDetails = () => {
                 <BasicModuleInfoTab moduleData={moduleDetails} />
               </TabPanel>
               <TabPanel className="mt-4">
-                <p className="text-text-primary">Applications Content</p>
+                <ApplicationsTab moduleId={moduleDetails._id} />
               </TabPanel>
               <TabPanel className="mt-4">
                 <p className="text-text-primary">Document Submissions Content</p>
