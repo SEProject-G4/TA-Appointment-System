@@ -5,6 +5,8 @@ const TAApplication = require("../models/TaApplication");
 const AppliedModule = require("../models/AppliedModules");
 const { sendEmail } = require("../services/emailService");
 const config = require("../config");
+const { default: mongoose } = require("mongoose");
+const e = require("express");
 
 const changeModuleStatus = async (req, res) => {
   try {
@@ -588,10 +590,307 @@ const updateModule = async (req, res) => {
   }
 };
 
+const addApplicants = async (req, res) => {
+  //TODO: Lock the module during this operation to prevent race conditions
+  //TODO: Send the email for corresponding tas
+
+  const { moduleId } = req.params;
+  const { role, userIds } = req.body;
+
+  if (role !== "undergraduate" && role !== "postgraduate") {
+    return res.status(400).json({ error: "Invalid role specified" });
+  }
+
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return res.status(400).json({ error: "No user IDs provided" });
+  }
+
+  const module = await ModuleDetails.findById(moduleId);
+
+  if (!module) {
+    return res.status(404).json({ error: "Module not found" });
+  }
+
+  let availableCount = 0;
+  if (role === "undergraduate") {
+    if (!module.openForUndergraduates) {
+      return res
+        .status(400)
+        .json({ error: "Module is not open for undergraduate applicants" });
+    } else {
+      availableCount =
+        module.undergraduateCounts?.required -
+          module.undergraduateCounts?.accepted || 0;
+    }
+  } else if (role === "postgraduate") {
+    if (!module.openForPostgraduates) {
+      return res
+        .status(400)
+        .json({ error: "Module is not open for postgraduate applicants" });
+    } else {
+      availableCount =
+        module.postgraduateCounts?.required -
+          module.postgraduateCounts?.accepted || 0;
+    }
+  }
+
+  if (availableCount === 0) {
+    return res
+      .status(400)
+      .json({
+        error:
+          "No available positions for this role. All positions are filled with approved applicants.",
+      });
+  }
+
+  if (userIds.length > availableCount) {
+    return res
+      .status(400)
+      .json({
+        error: `Number of applicants exceeds available positions. Only ${availableCount} positions are available.`,
+      });
+  }
+
+  const recSeriesId = module.recruitmentSeriesId;
+
+  if (!recSeriesId) {
+    return res.status(400).json({
+      error: "Module is not associated with any recruitment series",
+    });
+  }
+
+  const recruitmentSeries = await RecruitmentRound.findById(recSeriesId);
+
+  if (!recruitmentSeries) {
+    return res.status(404).json({ error: "Recruitment series not found" });
+  }
+
+  const availableHours =
+    role === "undergraduate"
+      ? recruitmentSeries.undergradHourLimit
+      : recruitmentSeries.postgradHourLimit;
+  const neededHours = module.requiredTAHours || 0;
+  const results = new Map();
+  // Batch-load users, appliedModules and existing TA applications to reduce round-trips
+  const usersList = await User.find({ _id: { $in: userIds } }).lean();
+  const userMap = new Map(usersList.map((u) => [String(u._id), u]));
+
+  const appliedModulesList = await AppliedModule.find({
+    userId: { $in: userIds },
+    recSeriesId,
+  }).lean();
+  const appliedMap = new Map(appliedModulesList.map((a) => [String(a.userId), a]));
+
+  const existingAppsList = await TAApplication.find({
+    userId: { $in: userIds },
+    moduleId,
+  }).lean();
+  const existingAppMap = new Map(existingAppsList.map((a) => [String(a.userId), a]));
+
+  for (const userId of userIds) {
+    const user = userMap.get(String(userId));
+    if (!user) {
+      results.set(userId, { name: "Unknown", status: "failed", reason: "User not found" });
+      continue;
+    }
+
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
+
+      const appliedModule = appliedMap.get(String(userId));
+      const existingApplication = existingAppMap.get(String(userId));
+
+      // Check AppliedModule first
+      if (appliedModule) {
+        // If there's already an application for this user & module
+        if (existingApplication) {
+          if (existingApplication.status === "accepted") {
+            results.set(userId, { name: user.name, status: "success", reason: "User already has an accepted application for this position" });
+          } else {
+            // Update application to accepted
+            await TAApplication.updateOne({ _id: existingApplication._id }, { $set: { status: "accepted" } }, { session });
+            results.set(userId, { name: user.name, status: "success", reason: "Existing application updated to accepted" });
+            
+            let updateModuleObj = {};
+
+            if (role === "undergraduate") {
+              const newAcceptedCount = module.undergraduateCounts.accepted + 1;
+              if (newAcceptedCount === module.undergraduateCounts.required) {
+                //notify coordinators that undergrad positions are full
+                if(module.openForPostgraduates && module.postgraduateCounts && module.postgraduateCounts.accepted === module.postgraduateCounts.required){
+                  updateModuleObj.$set = { moduleStatus: "getting documents" };
+                }else if(!module.openForPostgraduates){
+                  updateModuleObj.$set = { moduleStatus: "getting documents" };
+                }
+              }
+              updateModuleObj.$inc = { "undergraduateCounts.reviewed": 1, "undergraduateCounts.accepted": 1 };
+              await ModuleDetails.updateOne({ _id: moduleId }, updateModuleObj, { session });
+            } else {
+              const newAcceptedCount = module.postgraduateCounts.accepted + 1;
+              if (newAcceptedCount === module.postgraduateCounts.required) {
+                //notify coordinators that postgrad positions are full
+                if(module.openForUndergraduates && module.undergraduateCounts && module.undergraduateCounts.accepted === module.undergraduateCounts.required){
+                  updateModuleObj.$set = { moduleStatus: "getting documents" };
+                }else if(!module.openForUndergraduates){
+                  updateModuleObj.$set = { moduleStatus: "getting documents" };
+                }
+              }
+              updateModuleObj.$inc = { "postgraduateCounts.reviewed": 1, "postgraduateCounts.accepted": 1 };
+              await ModuleDetails.updateOne({ _id: moduleId }, updateModuleObj, { session });
+            }
+          }
+          await session.commitTransaction();
+          session.endSession();
+          continue;
+        }
+
+        // AppliedModule exists but no application: create one and attach
+        if (appliedModule.availableHoursPerWeek >= neededHours) {
+          let updateModuleObj = {};
+          const taApplication = new TAApplication({ userId, moduleId, status: "accepted" });
+          await taApplication.save({ session });
+
+          const updatedApplied = await AppliedModule.findOneAndUpdate(
+            { _id: appliedModule._id },
+            { $inc: { availableHoursPerWeek: -neededHours }, $push: { appliedModules: taApplication._id } },
+            { session, new: true }
+          );
+
+          
+          
+          if (role === "undergraduate") {
+          const newRemainingCount = module.undergraduateCounts.remaining - 1;
+          const newAcceptedCount = module.undergraduateCounts.accepted + 1;
+          if (newAcceptedCount === module.undergraduateCounts.required) {
+            if(module.openForPostgraduates && module.postgraduateCounts && module.postgraduateCounts.accepted === module.postgraduateCounts.required){
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            }else if(!module.openForPostgraduates){
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            }
+          }else if(newRemainingCount === 0){
+            //notify coordinators that undergrad positions are full
+            if(module.openForPostgraduates && module.postgraduateCounts && module.postgraduateCounts.remaining === 0){
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }else if(!module.openForPostgraduates){
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }
+          }
+          updateModuleObj.$inc = { "undergraduateCounts.applied": 1, "undergraduateCounts.reviewed": 1, "undergraduateCounts.accepted": 1, "undergraduateCounts.remaining": -1 };
+          await ModuleDetails.updateOne({ _id: moduleId }, updateModuleObj, { session });
+        } else {
+          const newRemainingCount = module.postgraduateCounts.remaining - 1;
+          const newAcceptedCount = module.postgraduateCounts.accepted + 1;
+          if (newAcceptedCount === module.postgraduateCounts.required) {
+            if(module.openForUndergraduates && module.undergraduateCounts && module.undergraduateCounts.accepted === module.undergraduateCounts.required){
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            }
+          }else if(newRemainingCount === 0){
+            //notify coordinators that postgrad positions are full
+            if(module.openForUndergraduates && module.undergraduateCounts && module.undergraduateCounts.remaining === 0){
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }
+          }
+          updateModuleObj.$inc = { "postgraduateCounts.applied": 1, "postgraduateCounts.reviewed": 1, "postgraduateCounts.accepted": 1, "postgraduateCounts.remaining": -1 };
+          await ModuleDetails.updateOne({ _id: moduleId }, updateModuleObj, { session });
+        }
+
+        results.set(userId, { name: user.name, status: "success" });
+        await session.commitTransaction();
+        session.endSession();
+        continue;
+      }else{
+        await session.abortTransaction();
+        session.endSession();
+        results.set(userId, { name: user.name, status: "failed", reason: "Insufficient available hours" });
+        continue;
+      }
+    }
+
+      // No AppliedModule exists: create AppliedModule first, then create application and attach
+      const initialAvailable = role === "undergraduate" ? recruitmentSeries.undergradHourLimit : recruitmentSeries.postgradHourLimit;
+      let updateModuleObj = {};
+      const taApplication = new TAApplication({ userId, moduleId, status: "accepted" });
+      await taApplication.save({ session });
+
+      const newAppliedModule = new AppliedModule({ userId, recSeriesId, availableHoursPerWeek: initialAvailable - neededHours, appliedModules: [taApplication._id] });
+      await newAppliedModule.save({ session });
+
+      if (role === "undergraduate") {
+        const newRemainingCount = module.undergraduateCounts.remaining - 1;
+          const newAcceptedCount = module.undergraduateCounts.accepted + 1;
+          if (newAcceptedCount === module.undergraduateCounts.required) {
+            if(module.openForPostgraduates && module.postgraduateCounts && module.postgraduateCounts.accepted === module.postgraduateCounts.required){
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            }else if(!module.openForPostgraduates){
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            }
+          }else if(newRemainingCount === 0){
+            //notify coordinators that undergrad positions are full
+            if(module.openForPostgraduates && module.postgraduateCounts && module.postgraduateCounts.remaining === 0){
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }else if(!module.openForPostgraduates){
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }
+          }
+          updateModuleObj.$inc = { "undergraduateCounts.applied": 1, "undergraduateCounts.reviewed": 1, "undergraduateCounts.accepted": 1, "undergraduateCounts.remaining": -1 };
+          await ModuleDetails.updateOne({ _id: moduleId }, updateModuleObj, { session });
+      } else {
+        const newRemainingCount = module.postgraduateCounts.remaining - 1;
+          const newAcceptedCount = module.postgraduateCounts.accepted + 1;
+          if (newAcceptedCount === module.postgraduateCounts.required) {
+            if(module.openForUndergraduates && module.undergraduateCounts && module.undergraduateCounts.accepted === module.undergraduateCounts.required){
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            }
+          }else if(newRemainingCount === 0){
+            //notify coordinators that postgrad positions are full
+            if(module.openForUndergraduates && module.undergraduateCounts && module.undergraduateCounts.remaining === 0){
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }
+          }
+          updateModuleObj.$inc = { "postgraduateCounts.applied": 1, "postgraduateCounts.reviewed": 1, "postgraduateCounts.accepted": 1, "postgraduateCounts.remaining": -1 };
+          await ModuleDetails.updateOne({ _id: moduleId }, updateModuleObj, { session });
+      }
+
+      results.set(userId, { name: user.name, status: "success" });
+      await session.commitTransaction();
+      session.endSession();
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      results.set(userId, { name: user.name, status: "failed", reason: error.message });
+    }
+  }
+
+  res
+    .status(200)
+    .json({
+      results: Array.from(results.values()),
+      message: `Processed ${userIds.length} applicants.`,
+    });
+};
+
+const getModuleApplications = async (req, res) => {
+  try {
+    const moduleId = req.params.moduleId;
+
+    const applications = await TAApplication.find({ moduleId })
+      .populate("userId", "indexNumber profilePicture name email role")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(applications);
+  } catch (error) {
+    console.error("Error fetching module applications:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   getModuleDetailsById,
   changeModuleStatus,
   advertiseModule,
   notifyModule,
   updateModule,
+  addApplicants,
+  getModuleApplications,
 };

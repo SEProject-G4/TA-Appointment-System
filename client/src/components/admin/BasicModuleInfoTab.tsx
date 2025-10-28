@@ -231,6 +231,13 @@ const BasicModuleInfoTab = ({ moduleData }: { moduleData: ModuleDetails }) => {
               </span>
             </p>
           </div>
+
+          <p className="w-full mt-4 border-b-[0px] border-text-secondary/80 text-md text-text-secondary">
+            Required hours/ week/ TA
+          </p>
+          <span className="font-semibold text-text-primary ml-2">
+            {moduleData.requiredTAHours} hours
+          </span>
         </div>
       </div>
 
