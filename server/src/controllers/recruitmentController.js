@@ -27,8 +27,8 @@ const createRecruitmentRound = async (req, res) => {
             status: "initialised"
         });
         console.log("New RecruitmentRound is going to create",newRecruitmentRound);
-        await newRecruitmentRound.save();
-        res.status(201).json(newRecruitmentRound);
+        const result = await newRecruitmentRound.save();
+        res.status(201).json(result);
     } catch (error) {
         console.error("Error creating recruitment series:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -134,6 +134,61 @@ const getModuleDetailsBySeriesId = async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 };
+                                                                                                                
+const getModulesForRounds = async (req, res) => {
+    try {
+        const { roundIds } = req.body;
+
+        // Validate input
+        if (!roundIds || !Array.isArray(roundIds) || roundIds.length === 0) {
+            return res.status(400).json({ error: "roundIds array is required" });
+        }
+
+        console.log(`Fetching modules for ${roundIds.length} recruitment rounds`);
+
+        // Fetch all modules for the given round IDs
+        const moduleDetails = await ModuleDetails.find({ 
+            recruitmentSeriesId: { $in: roundIds } 
+        });
+
+        console.log(`Found ${moduleDetails.length} modules across ${roundIds.length} rounds`);
+
+        // Populate coordinator details for all modules
+        const populatedModuleDetails = await Promise.all(moduleDetails.map(async (module) => {
+            const coordinatorDetails = await Promise.all(
+                module.coordinators.map(async (coordinatorId) => {
+                    const user = await User.findById(coordinatorId, "displayName email profilePicture");
+                    if (user) {
+                        return {
+                            id: user._id,
+                            displayName: user.displayName,
+                            email: user.email,
+                            profilePicture: user.profilePicture
+                        };
+                    }
+                    return null;
+                })
+            );
+            return {
+                ...module._doc,
+                coordinators: coordinatorDetails.filter(c => c !== null)
+            };
+        }));
+
+        // Group modules by recruitment round ID
+        const modulesByRound = {};
+        roundIds.forEach(roundId => {
+            modulesByRound[roundId] = populatedModuleDetails.filter(
+                module => module.recruitmentSeriesId.toString() === roundId.toString()
+            );
+        });
+
+        res.status(200).json(modulesByRound);
+    } catch (error) {
+        console.error("Error fetching modules for rounds:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
 
 const getEligibleUndergraduates = async (req, res) => {
     try {
@@ -228,7 +283,39 @@ const copyRecruitmentRound = async (req, res) => {
         }
 
         await session.commitTransaction();
-        res.status(201).json({ message: "The new recruitment round created successfully including " + modulesToCopy.length + " modules." });
+        const undergradMailingGroups = await Promise.all(newSeries.undergradMailingList.map(groupId => UserGroup.findById(groupId)));
+        const postgradMailingGroups = await Promise.all(newSeries.postgradMailingList.map(groupId => UserGroup.findById(groupId)));
+        const returningRR = {
+            ...newSeries._doc,
+            undergradMailingList: undergradMailingGroups,
+            postgradMailingList: postgradMailingGroups
+        }
+        const returningModules = await Promise.all(modulesToCopy.map(async (module) => {
+            const coordinatorDetails = await Promise.all(
+                module.coordinators.map(async (coordinatorId) => {
+                    const user = await User.findById(coordinatorId, "displayName email profilePicture");
+                    if (user) {
+                        return {
+                            id: user._id,
+                            displayName: user.displayName,
+                            email: user.email,
+                            profilePicture: user.profilePicture
+                        };
+                    }
+                    return null;
+                })
+            );
+            return {
+                ...module._doc,
+                coordinators: coordinatorDetails.filter(c => c !== null)
+            };
+        }));
+
+        res.status(201).json({ 
+            message: "The new recruitment round created successfully including " + modulesToCopy.length + " modules.",
+            recruitmentRound: returningRR,
+            modulesCopied: returningModules
+        });
     } catch (error) {
         await session.abortTransaction();
         console.error("Error copying recruitment round:", error);
@@ -456,7 +543,7 @@ const updateRecruitmentRoundDeadlines = async (req, res) => {
                     } 
                 }
             ).session(session);
-            modulesUpdated = moduleUpdateResult.modifiedCount;
+            modulesUpdated = moduleUpdateResult;
         }
 
         await session.commitTransaction();
@@ -945,6 +1032,7 @@ module.exports = {
     getAllRecruitmentRounds,
     addModuleToRecruitmentRound,
     getModuleDetailsBySeriesId,
+    getModulesForRounds,
     getEligibleUndergraduates,
     getEligiblePostgraduates,
     copyRecruitmentRound,

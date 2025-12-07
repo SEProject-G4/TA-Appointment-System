@@ -10,16 +10,16 @@ import Loader from "../common/Loader";
 import Timeline from "../common/Timeline";
 
 import { useModal } from "../../contexts/ModalProvider";
+import { useRoundsStore } from "../../stores/useRoundsStore";
 
 import axiosInstance from "../../api/axiosConfig";
 
 import { toLocalDatetimeInputValue } from "../../utils/DateTime";
 
-interface UserGroup {
-  _id: string;
-  name: string;
-  userCount: number;
-}
+// types
+import type { UserGroup } from "../../types/users";
+
+
 
 interface RecruitmentSeriesFormData {
   name: string;
@@ -29,12 +29,6 @@ interface RecruitmentSeriesFormData {
   postgradHourLimit: number;
   undergradMailingList: UserGroup[];
   postgradMailingList: UserGroup[];
-}
-
-interface UserGroup {
-  _id: string;
-  name: string;
-  userCount: number;
 }
 
 interface Option {
@@ -95,6 +89,7 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const { closeModal } = useModal();
+  const addRound = useRoundsStore((state) => state.addRound);
 
   const handleUndergradGroupSelect = (group: Option | null) => {
     const selectedGroup = availableUndergradGroups.find(g => g._id === (group ? group.id : ''));
@@ -311,6 +306,17 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
       );
       if (response.status === 201) {
         setResult({ success: true, message: response.data.message });
+        addRound(
+          { ...response.data.recruitmentRound,
+            areModulesFetched: true,
+            areModulesLoading: false,
+            modules: response.data.modulesCopied.reduce((acc: Record<string, Module>, module: Module) => {
+              acc[module._id] = module;
+              return acc;
+            }, {}),
+            lastRefreshedAt: new Date().toISOString(),
+           });
+        console.log(response);
       }
     } catch (error) {
       console.error("Error creating recruitment round:", error);

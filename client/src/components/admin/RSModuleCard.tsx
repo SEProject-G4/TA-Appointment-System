@@ -669,7 +669,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
             <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
               Change hour limits
             </li>
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
+            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted" onClick={() => navigate("/edit-module/"+_id)}>
               Edit
             </li>
             <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">

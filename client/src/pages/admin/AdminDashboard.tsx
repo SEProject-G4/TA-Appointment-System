@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import RSCard from "../../components/admin/RecruitmentSeriesCard";
+import RSCard from "../../components/admin/RecruitmentRoundCard";
 import { LuCirclePlus } from "react-icons/lu";
 import { FaBoxOpen } from "react-icons/fa";
 import axiosInstance from "../../api/axiosConfig";
+
+import { useRoundsStore } from "../../stores/useRoundsStore";
 
 interface UserGroup {
   _id: string;
@@ -30,37 +32,45 @@ interface RecruitmentSeriesData {
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [recruitmentSeriesList, setRecruitmentSeriesList] = useState<
-    RecruitmentSeriesData[]
-  >([]);
+  // const [recruitmentSeriesList, setRecruitmentSeriesList] = useState<
+  //   RecruitmentSeriesData[]
+  // >([]);
 
-  const fetchRecruitmentSeries = async () => {
-    try {
-      const res = await axiosInstance.get("/recruitment-series");
-      if (res.status === 200) {
-        setRecruitmentSeriesList(res.data);
-      }
-    } catch (error) {
-      console.error("Error fetching recruitment series:", error);
-    }
-  };
+  // const fetchRecruitmentSeries = async () => {
+  //   try {
+  //     const res = await axiosInstance.get("/recruitment-series");
+  //     if (res.status === 200) {
+  //       setRecruitmentSeriesList(res.data);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching recruitment series:", error);
+  //   }
+  // };
 
-  const initialisedSeries = recruitmentSeriesList.filter(
+  const { isInitiallyFetched, rounds, fetchRounds, fetchInitialModules } = useRoundsStore();
+
+  const initialisedSeries = Object.values(rounds).filter(
     (series) => series.status === "initialised"
   );
-  const publishedSeries = recruitmentSeriesList.filter(
+  const publishedSeries = Object.values(rounds).filter(
     (series) => series.status === "active"
   );
-  const closedSeries = recruitmentSeriesList.filter(
+  const closedSeries = Object.values(rounds).filter(
     (series) => series.status === "closed"
   );
-  const archivedSeries = recruitmentSeriesList.filter(
+  const archivedSeries = Object.values(rounds).filter(
     (series) => series.status === "archived"
   );
 
   useEffect(() => {
-    fetchRecruitmentSeries();
-  }, []);
+    const initializeData = async () => {
+      if (!isInitiallyFetched) {
+        await fetchRounds();
+        await fetchInitialModules();
+      }
+    };
+    initializeData();
+  }, [isInitiallyFetched, fetchRounds, fetchInitialModules]);
 
   return (
     <div className="min-h-screen w-full flex flex-col items-start justify-start bg-bg-page text-text-primary px-20 py-5">

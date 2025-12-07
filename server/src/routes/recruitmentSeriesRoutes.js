@@ -5,6 +5,7 @@ const { protected, authorize } = require('../middleware/authMiddleware');
 
 router.post('/create', protected, authorize(['admin']), recruitmentController.createRecruitmentRound);
 router.get('/', protected, authorize(['admin']), recruitmentController.getAllRecruitmentRounds);
+router.post('/modules/batch', protected, authorize(['admin']), recruitmentController.getModulesForRounds);
 router.post('/:seriesId/add-module', protected, authorize(['admin']), recruitmentController.addModuleToRecruitmentRound);
 router.get('/:seriesId/modules', protected, authorize(['admin']), recruitmentController.getModuleDetailsBySeriesId);
 router.get('/:seriesId/eligible-undergraduates', protected, authorize(['admin']), recruitmentController.getEligibleUndergraduates);
