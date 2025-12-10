@@ -62,6 +62,7 @@ app.use('/api/modules', require('./routes/moduleRoutes'));
 app.use('/api/cse-office', require('./routes/cseOfficeRoutes'));
 app.use('/api/ta', require('./routes/taRoutes'));
 app.use('/api/documents', require('./routes/driveRoutes'));
+app.use('/api/applications', require('./routes/applicationRoutes'));
 
 
 app.get('/', (req, res) => {

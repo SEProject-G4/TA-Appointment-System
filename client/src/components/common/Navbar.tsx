@@ -94,6 +94,8 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((_, ref) => {
             // { to: "/manage-users/overview", label: "Overview" },
             { to: "/manage-users/undergraduates", label: "Undergraduates" },
             { to: "/manage-users/postgraduates", label: "Postgraduates" },
+            { to: "/manage-users/lecturers", label: "Lecturers" },
+            { to: "/manage-users/admin-office-hod", label: "Admin, HoD & Office Users" },
             { to: "/manage-users/add-user", label: "Add User" },
           ]
         },

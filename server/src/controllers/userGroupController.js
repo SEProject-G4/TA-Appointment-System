@@ -109,6 +109,7 @@ const getUsersFromGroup = async (req, res) => {
       profilePicUrl: user.profilePicture,
       dateAdded: user.createdAt,
       indexNumber: user.indexNumber,
+      displayName: user.displayName,
     }));
     res.status(200).json(payload);
   } catch (error) {
@@ -216,6 +217,17 @@ const getAllLecturers = async (req, res) => {
   }
 };
 
+const getAdminOfficeHoDUserGroups = async (req, res) => {
+  console.log("Fetching admin, office, and HoD user groups...");
+  try {
+    const userGroups = await UserGroup.find({ groupType: { $in: ["admin", "cse-office", "hod"] } });
+    res.status(200).json(userGroups);
+  } catch (error) {
+    console.error("Error fetching user groups:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 const createNewUserGroup = async (req, res) => {
   try {
     const { name, groupType } = req.body;
@@ -242,4 +254,5 @@ module.exports = {
   updateUserGroupName,
   updateUserDetails,
   getAllLecturers,
+  getAdminOfficeHoDUserGroups,
 };

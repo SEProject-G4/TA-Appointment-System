@@ -15,6 +15,7 @@ import axiosInstance from "../../api/axiosConfig";
 // import { toast } from "react-hot-toast";
 import { useToast } from "../../contexts/ToastContext";
 import { useModal } from "../../contexts/ModalProvider";
+import Loader from "../common/Loader";
 
 interface ModuleDetails {
   _id: string;
@@ -82,11 +83,13 @@ const getClassForStatus = (status: string) => {
   }
 };
 
-const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
+export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
   moduleData,
 }) => {
   const [availableStudents, setAvailableStudents] = useState<Option[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<Option[]>([]);
+
+  const { showToast } = useToast();
 
   const [taType, setTaType] = useState<"undergraduate" | "postgraduate" | null>(
     !moduleData.openForPostgraduates
@@ -97,6 +100,9 @@ const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
   );
 
   const { closeModal } = useModal();
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiResults, setApiResults] = useState<Array<any> | null>(null);
 
   const fetchEligibleStudents = async (
     type: "undergraduate" | "postgraduate"
@@ -175,7 +181,7 @@ const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
           </div>
         </div>
       )}
-      {taType && (
+      {taType && !apiResults && !isSubmitting && (
         <div className="flex flex-col">
           <div className="flex flex-row items-center space-x-8 mb-5 mt-8">
             <label className="label">
@@ -234,19 +240,82 @@ const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
             <button
               className="px-4 py-2 text-text-secondary border border-text-secondary/20 rounded-md hover:bg-text-secondary/10 transition"
               onClick={closeModal}
+              disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               className="px-4 py-2 bg-primary text-text-inverted rounded-md hover:bg-primary-light transition disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={selectedStudents.length === 0}
-              onClick={() => {
+              disabled={selectedStudents.length === 0 || isSubmitting}
+              onClick={async () => {
                 // Handle adding selected applicants
-                console.log("Adding selected students:", selectedStudents);
-                closeModal();
+                const userIds = selectedStudents.map((s) => s.id);
+                setIsSubmitting(true);
+                setApiResults(null);
+                try {
+                  const response = await axiosInstance.post(
+                    `/modules/${moduleData._id}/add-applicants`,
+                    { role: taType, userIds }
+                  );
+                  // show results in modal
+                  setApiResults(response.data.results || []);
+                  showToast(response.data.message || "Applicants processed", "success");
+                } catch (error: any) {
+                  console.error("Error adding selected students:", error);
+                  showToast("Failed to add selected students", "error");
+                  const reason = error?.response?.data?.error || error?.message || "Request failed";
+                  setApiResults([{ name: "", status: "failed", reason }]);
+                } finally {
+                  setIsSubmitting(false);
+                }
               }}
             >
               Add Selected Applicants ({selectedStudents.length})
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Show loader while submitting */}
+      {isSubmitting && (
+        <div className="w-full py-8 flex flex-col items-center">
+          <Loader className="my-6 w-full" />
+          <p className="text-sm text-text-secondary mt-4 font-semibold">Processing...</p>
+        </div>
+      )}
+      {/* Show results after submission */}
+      {apiResults && (
+        <div className="mt-4 w-full">
+          <h3 className="text-sm font-semibold mb-2">Results summary</h3>
+          <p className="text-sm text-text-secondary mb-2">
+            {apiResults.filter((r) => r.status === "success").length} succeeded, {apiResults.filter((r) => r.status !== "success").length} failed
+          </p>
+          <div className="max-h-48 overflow-y-auto">
+            <ul className="space-y-2">
+              {apiResults.map((r: any, idx: number) => (
+                <li key={idx} className="p-2 bg-bg-page rounded-md">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-sm">{r.name || "Unknown"}</p>
+                      {r.reason && (
+                        <p className="text-xs text-text-secondary">{r.reason}</p>
+                      )}
+                    </div>
+                    <div>
+                      <span className={`text-xs font-semibold ${r.status === "success" ? "text-green-600" : "text-red-600"}`}>
+                        {r.status}
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex justify-end mt-4">
+            <button
+              className="px-4 py-2 bg-primary text-text-inverted rounded-md hover:bg-primary-light"
+              onClick={closeModal}
+            >
+              Done
             </button>
           </div>
         </div>
@@ -342,13 +411,19 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
 
   const notifyCoordinators = async (moduleData: ModuleDetails) => {
     // Implementation for notifying coordinators
-    try{
+    try {
       await axiosInstance.put(`/modules/${moduleData._id}/notify`);
-      showToast(`Coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName} are notified successfully`, "success");
+      showToast(
+        `Coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName} are notified successfully`,
+        "success"
+      );
       await fetchModuleDetails(moduleData._id);
     } catch (error) {
       console.error("Error notifying coordinators:", error);
-      showToast(`Failed to notify coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName}`, "error");
+      showToast(
+        `Failed to notify coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName}`,
+        "error"
+      );
     }
   };
 
@@ -360,16 +435,23 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     // Implementation for advertising a module
     try {
       await axiosInstance.put(`/modules/${moduleData._id}/advertise`);
-      showToast(`${moduleData.moduleCode} - ${moduleData.moduleName} advertised successfully`, "success");
+      showToast(
+        `${moduleData.moduleCode} - ${moduleData.moduleName} advertised successfully`,
+        "success"
+      );
       await fetchModuleDetails(moduleData._id);
     } catch (error) {
       console.error("Error advertising module:", error);
-      showToast(`Failed to advertise module ${moduleData.moduleCode} - ${moduleData.moduleName}`, "error");
+      showToast(
+        `Failed to advertise module ${moduleData.moduleCode} - ${moduleData.moduleName}`,
+        "error"
+      );
     }
   };
 
   const handleViewApplications = (moduleData: ModuleDetails) => {
     // Implementation for viewing applications
+    navigate(`/module-details/${moduleData._id}`, { state: { moduleData, selectedTab: 1 } });
   };
 
   const handleSendforApproval = async (moduleData: ModuleDetails) => {
@@ -444,7 +526,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
             label: "Add Applicants",
             action: (moduleData: ModuleDetails) => {
               openModal(<AddApplicantsModal moduleData={moduleData} />, {
-                showCloseButton: true,
+                showCloseButton: false,
               });
             },
             className:
@@ -732,36 +814,36 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
                   {data.requiredTAHours}hours/week
                 </p>
               </div>
-                {data.postgraduateCounts ? (
-                  <CircularProgress
-                    percentage={
-                      data.postgraduateCounts
-                        ? ((data.postgraduateCounts.required -
-                            data.postgraduateCounts.remaining) /
-                            data.postgraduateCounts.required) *
-                          100
-                        : 0
-                    }
-                    size="small"
-                    color={"blue"}
-                  >
-                    <p className="text-sm font-semibold">
-                      <span className="text-text-primary text-2xl">
-                        {data.postgraduateCounts.required -
-                          data.postgraduateCounts.remaining}
-                      </span>
-                      <span className="text-text-secondary">
-                        /{data.postgraduateCounts.required}
-                      </span>
-                    </p>
-                  </CircularProgress>
-                ) : (
-                  <CircularProgress
-                    percentage={0}
-                    size="small"
-                    color={"blue"}
-                  ></CircularProgress>
-                )}
+              {data.postgraduateCounts ? (
+                <CircularProgress
+                  percentage={
+                    data.postgraduateCounts
+                      ? ((data.postgraduateCounts.required -
+                          data.postgraduateCounts.remaining) /
+                          data.postgraduateCounts.required) *
+                        100
+                      : 0
+                  }
+                  size="small"
+                  color={"blue"}
+                >
+                  <p className="text-sm font-semibold">
+                    <span className="text-text-primary text-2xl">
+                      {data.postgraduateCounts.required -
+                        data.postgraduateCounts.remaining}
+                    </span>
+                    <span className="text-text-secondary">
+                      /{data.postgraduateCounts.required}
+                    </span>
+                  </p>
+                </CircularProgress>
+              ) : (
+                <CircularProgress
+                  percentage={0}
+                  size="small"
+                  color={"blue"}
+                ></CircularProgress>
+              )}
             </>
           )}
         </div>
