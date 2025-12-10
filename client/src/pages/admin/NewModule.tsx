@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaPlus, FaMinus } from "react-icons/fa";
-import { FaCircleCheck } from "react-icons/fa6";
+// import { FaCircleCheck } from "react-icons/fa6";
 import { MdClose, MdOutlineErrorOutline } from "react-icons/md";
-import {
-  Field,
-  Label,
-  Switch,
-  Checkbox,
-  Button,
-  Tab,
-  TabGroup,
-  TabList,
-  TabPanel,
-  TabPanels,
-} from "@headlessui/react";
+// Unused Headless UI imports removed
 import AutoSelect, { type Option } from "../../components/common/AutoSelect";
 // import { HiOutlineLink } from "react-icons/hi";
 
@@ -118,7 +107,7 @@ const NewModule: React.FC = () => {
         requirements: formData.specialNotes,
       };
       console.log("Posting payload:", payload);
-      const response = await axiosInstance.post(
+      await axiosInstance.post(
         "/recruitment-series/" + state.id + "/add-module",
         payload
       );

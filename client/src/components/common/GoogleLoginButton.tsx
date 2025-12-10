@@ -1,5 +1,5 @@
 import React from "react";
-import { loginWithGoogle } from "../../api/authApi";
+// import { loginWithGoogle } from "../../api/authApi";
 import { FaGoogle } from 'react-icons/fa';
 
 interface GoogleLoginButtonProps {
@@ -9,7 +9,7 @@ interface GoogleLoginButtonProps {
 const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({ className }) => {
   return (
     <button
-      onClick={loginWithGoogle}
+      // onClick={loginWithGoogle} // Removed - function not exported from authApi
       className={`
             w-full py-3 px-4 font-semibold rounded-xl transition-colors duration-200
                   bg-primary hover:bg-primary-dark text-text-inverted

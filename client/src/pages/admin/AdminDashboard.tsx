@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import RSCard from "../../components/admin/RecruitmentSeriesCard";
 import { LuCirclePlus } from "react-icons/lu";
@@ -28,7 +28,7 @@ interface RecruitmentSeriesData {
 }
 
 const AdminDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const navigate = useNavigate();
   const [recruitmentSeriesList, setRecruitmentSeriesList] = useState<
     RecruitmentSeriesData[]

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FaChevronDown } from "react-icons/fa";
+// import { FaChevronDown } from "react-icons/fa";
 
 export interface Option {
   id: number | string;

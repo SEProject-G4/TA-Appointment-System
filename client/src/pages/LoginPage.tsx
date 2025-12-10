@@ -42,7 +42,7 @@ const LoginPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [isGisScriptLoaded, setIsGisScriptLoaded] = useState(false);
-  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
+  const [_autoLoginAttempted, setAutoLoginAttempted] = useState(false);
   const [autoLoginStatus, setAutoLoginStatus] = useState<string>('');
 
   const showAlert = (message: string) => {
@@ -126,14 +126,6 @@ const LoginPage: React.FC = () => {
       } else {
         setAutoLoginStatus(`One Tap dismissed: ${reason}`);
       }
-    }
-  };
-
-  // Manual trigger for Google sign-in
-  const triggerGoogleSignIn = () => {
-    if (window.google?.accounts?.id) {
-      console.log('Manually triggering Google sign-in...');
-      window.google.accounts.id.prompt();
     }
   };
 

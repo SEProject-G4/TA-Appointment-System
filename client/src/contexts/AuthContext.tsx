@@ -7,7 +7,7 @@ import {
   selectRole,
   switchRole,
 } from "../api/authApi";
-import type { User, RoleSelectionResponse, AvailableRole } from "../api/authApi";
+import type { User, AvailableRole } from "../api/authApi";
 
 interface AuthContextType {
   user: User | null;

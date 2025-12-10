@@ -342,14 +342,13 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   requirements,
   documentDueDate,
   applicationDueDate,
-  refreshPage,
 }) => {
   const [marked, setMarked] = useState(false);
   const [fetchedModuleData, setFetchedModuleData] =
     useState<ModuleDetails | null>(null);
 
   const navigate = useNavigate();
-  const { openModal, closeModal } = useModal();
+  const { openModal } = useModal();
   const { showToast } = useToast();
 
   const fetchModuleDetails = async (_id: string) => {
@@ -392,20 +391,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     }
   };
 
-  const updateModuleStatus = async (id: string, newStatus: string) => {
-    console.log(`Updating module ${id} status to ${newStatus}`);
-    try {
-      await axiosInstance.put(`/modules/${id}/change-status`, {
-        status: newStatus,
-      });
-      showToast("Module status updated successfully", "success");
-    } catch (error) {
-      console.error("Error updating module status:", error);
-      showToast("Failed to update module status", "error");
-    }
-  };
-
-  const handleEditModule = (moduleData: ModuleDetails) => {
+  const handleEditModule = async (moduleData: ModuleDetails) => {
     navigate(`/edit-module/${moduleData._id}`, { state: { moduleData } });
   };
 
@@ -427,7 +413,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     }
   };
 
-  const handleDeleteModule = (moduleData: ModuleDetails) => {
+  const handleDeleteModule = (_moduleData: ModuleDetails) => {
     // Implementation for deleting a module
   };
 
@@ -469,7 +455,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     }
   };
 
-  const handleCopyModule = (moduleData: ModuleDetails) => {
+  const handleCopyModule = (_moduleData: ModuleDetails) => {
     // Implementation for copying a module
   };
 
