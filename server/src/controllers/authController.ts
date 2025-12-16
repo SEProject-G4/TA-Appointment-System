@@ -284,21 +284,26 @@ const getUserProfile = async (req: Request, res: Response): Promise<Response> =>
   }
 };
 
-const logout = (req: Request, res: Response): Response => {
+const logout = (req: Request, res: Response): void => {
   const userId = (req.session as any)?.userId;
   const sessionId = req.sessionID;
 
   req.session?.destroy((err) => {
     if (err) {
       console.error("Error destroying session:", err);
-      return res.status(500).json({ error: "Could not log out" });
+      // Only send response if headers haven't been sent
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Could not log out" });
+      }
+      return;
     }
 
-    // Clear session cookie
-    res.clearCookie("ta.session.id", {
+    // Clear session cookie (using connect.sid as per app.ts configuration)
+    res.clearCookie("connect.sid", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      path: "/",
     });
 
     // Invalidate user cache
@@ -307,11 +312,11 @@ const logout = (req: Request, res: Response): Response => {
       logSecurityEvent("AUTH_LOGOUT", { userId }, req);
     }
 
-    return res.status(200).json({ message: "Logout successful" });
+    // Only send response if headers haven't been sent
+    if (!res.headersSent) {
+      return res.status(200).json({ message: "Logout successful" });
+    }
   });
-
-  // Return early response (callback will handle actual response)
-  return res.status(200).json({ message: "Logging out..." });
 };
 
 // Session management endpoints
@@ -339,7 +344,8 @@ const revokeSession = async (req: Request, res: Response): Promise<Response> => 
 
   if (sessionId === req.sessionID) {
     // Revoking current session - redirect to logout
-    return logout(req, res);
+    logout(req, res);
+    return res; // logout handles the response asynchronously
   }
 
   // For other sessions, you'd need to implement store-specific revocation
