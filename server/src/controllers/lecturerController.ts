@@ -663,6 +663,14 @@ const rejectApplication = async (req: Request, res: Response): Promise<Response>
 
     await Promise.all(updatePromises);
 
+    // If module status is "full" and an application is rejected, change status to "advertised"
+    if (module.moduleStatus === "full") {
+      await ModuleDetails.findByIdAndUpdate(applicationModuleId, {
+        $set: { moduleStatus: "advertised" },
+      });
+      console.log(`Module ${module.moduleCode} status updated from 'full' to 'advertised' after rejection`);
+    }
+
     console.log("lecturer rejectApplication -> rejected application", applicationId, "for", coordinatorId);
 
     return res.status(200).json({
