@@ -35,7 +35,7 @@ interface DocumentSubmissionModalProps {
   };
   isDocSubmitted: boolean;
   recSeriesId?: string | null;
-  currentRoundDocument?: any | null;
+  // currentRoundDocument?: any | null;
   previousDocuments?: any[];
   onSuccess?: () => void; // Add optional success callback
 }
@@ -45,7 +45,7 @@ export default function DocumentSubmissionModal({
   onClose,
   position, 
   recSeriesId,
-  currentRoundDocument,
+  // currentRoundDocument,
   previousDocuments = [],
   onSuccess, // Add to destructuring
 }: DocumentSubmissionModalProps) {
@@ -69,14 +69,14 @@ export default function DocumentSubmissionModal({
 
   // Auto-fill form with current round document if it exists (for editing)
   useEffect(() => {
-    if (isDocOpen && currentRoundDocument) {
+    if (isDocOpen && previousDocuments) {
       setFormData((prev) => ({
         ...prev,
-        bankAccountName: currentRoundDocument.bankAccountName || prev.bankAccountName,
-        address: currentRoundDocument.address || prev.address,
-        nicNumber: currentRoundDocument.nicNumber || prev.nicNumber,
-        accountNumber: currentRoundDocument.accountNumber || prev.accountNumber,
-        studentType: currentRoundDocument.studentType || prev.studentType,
+        bankAccountName: prev.bankAccountName ||"" ,
+        address: prev.address || "",
+        nicNumber: prev.nicNumber || "",
+        accountNumber: prev.accountNumber || "",
+        studentType:  prev.studentType || "",
         // Note: Files cannot be auto-filled, user needs to upload new files
       }));
     } else if (isDocOpen) {
@@ -94,14 +94,14 @@ export default function DocumentSubmissionModal({
         declarationForm: null,
       });
     }
-  }, [isDocOpen, currentRoundDocument]);
+  }, [isDocOpen, previousDocuments]);
 
   // Auto-show previous documents when modal opens if they exist
   useEffect(() => {
-    if (isDocOpen && (previousDocuments?.length > 0 || currentRoundDocument)) {
+    if (isDocOpen && previousDocuments?.length > 0 ) {
       setShowPreviousDocs(true);
     }
-  }, [isDocOpen, previousDocuments, currentRoundDocument]);
+  }, [isDocOpen, previousDocuments]);
 
   // Function to import data from previous submission
   const handleImportPrevious = (prevDoc: any) => {
@@ -136,6 +136,12 @@ export default function DocumentSubmissionModal({
     // Validate required fields
     if (!formData.bankAccountName || !formData.nicNumber || !formData.accountNumber || !formData.address || !formData.studentType) {
       showToast("Please fill in all required fields", "error");
+      return;
+    }
+
+    // Declaration form is always required
+    if (!formData.declarationForm) {
+      showToast("Please upload the completed declaration form", "error");
       return;
     }
 
@@ -186,7 +192,7 @@ export default function DocumentSubmissionModal({
       });
 
       if (response.status === 201) {
-        const message = currentRoundDocument 
+        const message = previousDocuments 
           ? "Documents updated successfully!" 
           : "Documents submitted successfully!";
         showToast(message, "success");
@@ -210,7 +216,7 @@ export default function DocumentSubmissionModal({
     }
   };
 
-  if (!isDocOpen) return null;
+  if (!isDocOpen) return null; //why
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 bg-black/50 sm:p-4">
@@ -233,79 +239,10 @@ export default function DocumentSubmissionModal({
           </button>
         </div>
 
-        {/* Current Round Document - Show if exists (for editing) */}
-        {currentRoundDocument && (
-          <div className="mb-6 p-4 border-2 rounded-lg border-blue-400 bg-blue-50">
-            <div className="flex items-center gap-2 mb-3">
-              <FilePen className="w-5 h-5 text-blue-700" />
-              <h3 className="font-semibold text-gray-900">
-                Current Submission - Ready to Edit
-              </h3>
-              <span className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-200 rounded">
-                Form Pre-filled Below
-              </span>
-            </div>
-            <div className="p-3 bg-white rounded border border-blue-200">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h4 className="font-medium text-gray-900">
-                    {currentRoundDocument.recSeriesName}
-                  </h4>
-                  <p className="text-xs text-gray-500">
-                    Submitted on {new Date(currentRoundDocument.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm text-gray-700 mt-2">
-                <div>
-                  <span className="font-medium">Bank Account:</span>{" "}
-                  {currentRoundDocument.bankAccountName}
-                </div>
-                <div>
-                  <span className="font-medium">NIC:</span> {currentRoundDocument.nicNumber}
-                </div>
-                <div>
-                  <span className="font-medium">Account Number:</span>{" "}
-                  {currentRoundDocument.accountNumber}
-                </div>
-                <div>
-                  <span className="font-medium">Student Type:</span>{" "}
-                  {currentRoundDocument.studentType}
-                </div>
-              </div>
-              {currentRoundDocument.driveFiles && (
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <p className="text-xs font-medium text-gray-600 mb-2">
-                    Previously Uploaded Files:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(currentRoundDocument.driveFiles).map(
-                      ([key, file]: [string, any]) => (
-                        <a
-                          key={key}
-                          href={file.viewLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          {key}
-                        </a>
-                      )
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Note: You can update files by uploading new ones below
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Previous Documents Section - Show prominently if exists */}
         {(previousDocuments && previousDocuments.length > 0) && (
-          <div className="mb-6 p-4 border-2 rounded-lg border-green-300 bg-green-50">
+          <div className="p-4 mb-6 border-2 border-green-300 rounded-lg bg-green-50">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-green-700" />
@@ -324,7 +261,7 @@ export default function DocumentSubmissionModal({
             
             {/* Most Recent Document - Prominent Import Option */}
             {previousDocuments.length > 0 && (
-              <div className="mb-4 p-3 bg-white rounded border border-green-200">
+              <div className="p-3 mb-4 bg-white border border-green-200 rounded">
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <h4 className="font-medium text-gray-900">
@@ -343,7 +280,7 @@ export default function DocumentSubmissionModal({
                     Import This Data
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-sm text-gray-700 mt-2">
+                <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-gray-700">
                   <div>
                     <span className="font-medium">Bank Account:</span>{" "}
                     {previousDocuments[0].bankAccountName}
@@ -360,6 +297,32 @@ export default function DocumentSubmissionModal({
                     {previousDocuments[0].studentType}
                   </div>
                 </div>
+                {previousDocuments[0].driveFiles && (
+                <div className="pt-3 mt-3 border-t border-gray-200">
+                  <p className="mb-2 text-xs font-medium text-gray-600">
+                    Previously Uploaded Files:
+                  </p>
+                  <div className="flex flex-wrap gap-2"> 
+                    {Object.entries(previousDocuments[0].driveFiles).map(
+                      ([key, file]: [string, any]) => (
+                        <a
+                          key={key}
+                          href={file.viewLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-700 bg-blue-100 rounded hover:bg-blue-200"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          {key}
+                        </a>
+                      )
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Note: You can update files by uploading new ones below
+                  </p>
+                </div>
+              )}
               </div>
             )}
 
@@ -370,7 +333,7 @@ export default function DocumentSubmissionModal({
                 {previousDocuments.slice(1).map((prevDoc, idx) => (
                   <div
                     key={prevDoc._id || idx}
-                    className="p-3 bg-white rounded border border-green-100"
+                    className="p-3 bg-white border border-green-100 rounded"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div>
@@ -384,7 +347,7 @@ export default function DocumentSubmissionModal({
                       <button
                         type="button"
                         onClick={() => handleImportPrevious(prevDoc)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded hover:bg-green-200 transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-700 transition-colors bg-green-100 rounded hover:bg-green-200"
                       >
                         <Copy className="w-3 h-3" />
                         Import
@@ -408,8 +371,8 @@ export default function DocumentSubmissionModal({
                       </div>
                     </div>
                     {prevDoc.driveFiles && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <p className="text-xs font-medium text-gray-600 mb-2">
+                      <div className="pt-3 mt-3 border-t border-gray-200">
+                        <p className="mb-2 text-xs font-medium text-gray-600">
                           Uploaded Files:
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -420,7 +383,7 @@ export default function DocumentSubmissionModal({
                                 href={file.viewLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-700 bg-blue-100 rounded hover:bg-blue-200"
                               >
                                 <ExternalLink className="w-3 h-3" />
                                 {key}
@@ -588,11 +551,12 @@ export default function DocumentSubmissionModal({
                   Upload the signed and completed declaration form below.
                 </p>
                 <FileInput
-                  label="Completed Declaration Form"
+                  label="Completed Declaration Form *"
                   name="declarationForm"
                   accept=".pdf,.doc,.docx"
                   value={formData.declarationForm}
                   onChange={handleFileChange}
+                  helperText="Required for every submission"
                 />
               </div>
             </div>
@@ -659,8 +623,8 @@ export default function DocumentSubmissionModal({
             >
               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
               {isSubmitting 
-                ? (currentRoundDocument ? "Updating..." : "Submitting...") 
-                : (currentRoundDocument ? "Update Documents" : "Submit Documents")}
+                ? (previousDocuments ? "Updating..." : "Submitting...") 
+                : (previousDocuments? "Update Documents" : "Submit Documents")}
             </button>
           </div>
         </form>

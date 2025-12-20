@@ -27,7 +27,7 @@ function TADashboardAccepted() {
   const [isDocSubmitted, setIsDocSubmitted] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
   const [currentRecSeriesId, setCurrentRecSeriesId] = useState<string | null>(null);
-  const [currentRoundDocument, setCurrentRoundDocument] = useState<any | null>(null);
+  // const [currentRoundDocument, setCurrentRoundDocument] = useState<any | null>(null);
   const [previousDocuments, setPreviousDocuments] = useState<any[]>([]);
   const userRole = user?.role;
   const userId = user?.id; //check weather this correct------------------------------
@@ -69,7 +69,7 @@ const latestDocumentDueDate = modules.length > 0
         setApplications(response.data.acceptedApplications);
         setIsDocSubmitted(response.data.docSubmissionStatus);
         setCurrentRecSeriesId(response.data.currentRecSeriesId || null);
-        setCurrentRoundDocument(response.data.currentRoundDocument || null);
+        // setCurrentRoundDocument(response.data.currentRoundDocument || null);
         setPreviousDocuments(response.data.previousDocuments || []);
         
         // // Log the actual response data, not the state (state updates are async)
@@ -256,7 +256,7 @@ const latestDocumentDueDate = modules.length > 0
           }}
           isDocSubmitted={isDocSubmitted}
           recSeriesId={currentRecSeriesId}
-          currentRoundDocument={currentRoundDocument}
+          // currentRoundDocument={currentRoundDocument}
           previousDocuments={previousDocuments}
           onSuccess={() => {
             setRefreshTrigger(prev => prev + 1); // Trigger refresh after successful submission
