@@ -1,6 +1,5 @@
 const { google } = require("googleapis");
 const fs = require("fs");
-const path = require("path");
 
 interface MulterFile {
   fieldname: string;
