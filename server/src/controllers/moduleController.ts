@@ -4,7 +4,7 @@ const User = require("../models/User");
 const RecruitmentRound = require("../models/RecruitmentRound");
 const TAApplication = require("../models/TaApplication");
 const AppliedModule = require("../models/AppliedModules");
-const { sendEmail } = require("../services/emailService");
+const { EmailService } = require("../services/emailService");
 const config = require("../config/index");
 import mongoose = require("mongoose");
 
@@ -101,130 +101,31 @@ const advertiseModule = async (req: Request, res: Response): Promise<Response> =
     const undergradEmails = undergraduateUsers.map((user: any) => user.email);
     const postgradEmails = postgraduateUsers.map((user: any) => user.email);
 
-    const subject = `New TA Opportunities Available: ${module.moduleCode} - ${module.moduleName}`;
-    const undergradHtmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #007bff;">New TA Opportunities Available!</h2>
-            <p>Dear Undergraduate Student,</p>
-            <p>We are excited to announce that TA positions are now available for the following module:</p>
-            
-            <div style="background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
-                <div style="margin-bottom: 15px; padding: 15px; background-color: white; border-left: 4px solid #6f42c1; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <strong style="font-size: 16px; color: #6f42c1;">${
-                      module.moduleCode
-                    } - ${module.moduleName}</strong><br>
-                    <span style="color: #6c757d; font-size: 14px;">Semester: ${
-                      module.semester
-                    }</span><br>
-                    ${
-                      module.postgraduateCounts
-                        ? `<span style="color: #007bff; font-weight: 500;">Positions Available: ${module.postgraduateCounts.required}</span><br>`
-                        : ""
-                    }
-                    ${
-                      module.requiredTAHours
-                        ? `<span style="color: #fd7e14; font-weight: 500;">Hours per week: ${module.requiredTAHours}</span><br>`
-                        : ""
-                    }
-                    <div style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border-radius: 4px;">
-                        <strong style="color: #dc3545; font-size: 14px;">📅 Module Deadlines:</strong><br>
-                        <span style="color: #dc3545; font-size: 13px;">Application Due: ${new Date(
-                          module.applicationDueDate
-                        ).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}</span><br>
-                        <span style="color: #dc3545; font-size: 13px;">Document Due: ${new Date(
-                          module.documentDueDate
-                        ).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}</span>
-                    </div>
-                </div>
-            </div>
-                
-            <p>Don't miss this opportunity to gain valuable teaching experience and enhance your academic journey!</p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-                <a href="${config.FRONTEND_URL}/login" 
-                    style="background-color: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-                    Apply Now
-                </a>
-            </div>
+    const undergradEmailParamas = {
+      moduleName: module.moduleName,
+      moduleCode: module.moduleCode,
+      semester: module.semester,
+      positionsCount: module.undergraduateCounts ? module.undergraduateCounts.required : 0,
+      hoursPerWeek: module.requiredTAHours || 0,
+      applicationDeadline: module.applicationDueDate,
+      docSubmittingDeadline: module.documentDueDate,
+      type: "undergraduate"
+    };
 
-            <p style="font-size: 14px; color: #6c757d;">
-                For questions or support, please contact the TA Appointment System administrators.
-            </p>
-            <p>Best regards,<br>TA Appointment System</p>
-        </div>
-    `;
-
-    const postgradHtmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #007bff;">New TA Opportunities Available!</h2>
-            <p>Dear Postgraduate Student,</p>
-            <p>We are excited to announce that TA positions are now available for the following module:</p>
-
-            <div style="background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
-                <div style="margin-bottom: 15px; padding: 15px; background-color: white; border-left: 4px solid #6f42c1; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <strong style="font-size: 16px; color: #6f42c1;">${
-                      module.moduleCode
-                    } - ${module.moduleName}</strong><br>
-                    <span style="color: #6c757d; font-size: 14px;">Semester: ${
-                      module.semester
-                    }</span><br>
-                    ${
-                      module.postgraduateCounts
-                        ? `<span style="color: #007bff; font-weight: 500;">Positions Available: ${module.postgraduateCounts.required}</span><br>`
-                        : ""
-                    }
-                    ${
-                      module.requiredTAHours
-                        ? `<span style="color: #fd7e14; font-weight: 500;">Hours per week: ${module.requiredTAHours}</span><br>`
-                        : ""
-                    }
-                    <div style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border-radius: 4px;">
-                        <strong style="color: #dc3545; font-size: 14px;">📅 Module Deadlines:</strong><br>
-                        <span style="color: #dc3545; font-size: 13px;">Application Due: ${new Date(
-                          module.applicationDueDate
-                        ).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}</span><br>
-                        <span style="color: #dc3545; font-size: 13px;">Document Due: ${new Date(
-                          module.documentDueDate
-                        ).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}</span>
-                    </div>
-                </div>
-            </div>
-
-            <p>Don't miss this opportunity to gain valuable teaching experience and enhance your academic journey!</p>
-
-            <div style="text-align: center; margin: 30px 0;">
-                <a href="${config.FRONTEND_URL}/login"
-                    style="background-color: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-                    Apply Now
-                </a>
-            </div>
-
-            <p style="font-size: 14px; color: #6c757d;">
-                For questions or support, please contact the TA Appointment System administrators.
-            </p>
-            <p>Best regards,<br>TA Appointment System</p>
-        </div>
-    `;
+    const postgradEmailParams = {
+      moduleName: module.moduleName,
+      moduleCode: module.moduleCode,
+      semester: module.semester,
+      positionsCount: module.postgraduateCounts ? module.postgraduateCounts.required : 0,
+      hoursPerWeek: module.requiredTAHours || 0,
+      applicationDeadline: module.applicationDueDate,
+      docSubmittingDeadline: module.documentDueDate,
+      type: "postgraduate"
+    };
 
     // Send emails to both groups
-    await sendEmail(undergradEmails, subject, undergradHtmlContent);
-    await sendEmail(postgradEmails, subject, postgradHtmlContent);
+    await EmailService.enqueueOneModuleAdvertisingEmail(undergradEmails, undergradEmailParamas);
+    await EmailService.enqueueOneModuleAdvertisingEmail(postgradEmails, postgradEmailParams);
 
     // Update module status to 'advertised'
     module.moduleStatus = "advertised";
@@ -233,7 +134,7 @@ const advertiseModule = async (req: Request, res: Response): Promise<Response> =
         `✅ Updated module statuses to 'advertised' for postgraduate modules`
       );
       if (recruitmentSeries.status !== "active") {
-        // If the recruitment series is not active, we can archive it
+        // If the recruitment series is not active, we can activate it
         recruitmentSeries.status = "active";
         await recruitmentSeries.save();
       }
@@ -286,29 +187,17 @@ const notifyModule = async (req: Request, res: Response): Promise<Response> => {
     }
 
     const emailAddresses = coordinators.map((coordinator: any) => coordinator.email);
-    const subject = `Please enter your TA requests for ${module.moduleCode} - ${module.moduleName} in semester ${module.semester}`;
-    const htmlContent = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2>TA Request Required</h2>
-                <p>Dear Module Coordinator,</p>
-                <p>This is a reminder to submit your TA requirements for the following module:</p>
-                <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-left: 4px solid #007bff;">
-                    <strong>Module:</strong> ${module.moduleCode} - ${module.moduleName}<br>
-                    <strong>Semester:</strong> ${module.semester}<br>
-                </div>
-                <p>Please log into the TA Appointment System to review and submit your TA requirements.</p>
-                <div style="text-align: center; margin: 30px 0;">
-                    <a href="${config.FRONTEND_URL}/login" 
-                        style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                        Access TA System
-                    </a>
-                </div>
-                <p>If you have any questions or need assistance, please contact the system administrators.</p>
-                <p>Best regards,<br>TA Appointment System</p>
-            </div>
-        `;
+    for(const coord of coordinators) {
+      const emailParamas = {
+        coordName: coord.displayName || "Module Coordinator",
+        moduleName: module.moduleName,
+        moduleCode: module.moduleCode,
+        semester: module.semester,
+      };
 
-    await sendEmail(emailAddresses, subject, htmlContent);
+      await EmailService.enqueueModuleNotifyingEmail([coord.email], emailParamas);
+    }
+    
     console.log(
       `✅ Notifications sent to ${emailAddresses.length} coordinators for ${module.moduleCode}`
     );
@@ -559,26 +448,26 @@ const updateModule = async (req: Request, res: Response): Promise<Response> => {
     );
 
     // Send notification emails to affected users if applications were removed
-    if (affectedUsers.length > 0) {
-      const emailPromises = affectedUsers.map((user: any) => {
-        const subject = `TA Application Removed - ${moduleCode}`;
-        const htmlContent = `
-                    <p>Dear ${user.name},</p>
-                    <p>We regret to inform you that your TA application for <strong>${moduleCode} - ${moduleName}</strong> has been removed due to a reduction in the number of required TAs for this module.</p>
-                    ${
-                      user.hoursReturned > 0
-                        ? `<p>Your allocated hours (${user.hoursReturned} hours) have been returned to your available hours.</p>`
-                        : ""
-                    }
-                    <p>You are welcome to apply for other available TA positions.</p>
-                    <p>We apologize for any inconvenience caused.</p>
-                    <p>Best regards,<br>The TA Recruitment Team</p>
-                `;
-        return sendEmail(user.email, subject, htmlContent);
-      });
+    // if (affectedUsers.length > 0) {
+    //   const emailPromises = affectedUsers.map((user: any) => {
+    //     const subject = `TA Application Removed - ${moduleCode}`;
+    //     const htmlContent = `
+    //                 <p>Dear ${user.name},</p>
+    //                 <p>We regret to inform you that your TA application for <strong>${moduleCode} - ${moduleName}</strong> has been removed due to a reduction in the number of required TAs for this module.</p>
+    //                 ${
+    //                   user.hoursReturned > 0
+    //                     ? `<p>Your allocated hours (${user.hoursReturned} hours) have been returned to your available hours.</p>`
+    //                     : ""
+    //                 }
+    //                 <p>You are welcome to apply for other available TA positions.</p>
+    //                 <p>We apologize for any inconvenience caused.</p>
+    //                 <p>Best regards,<br>The TA Recruitment Team</p>
+    //             `;
+    //     return sendEmail(user.email, subject, htmlContent);
+    //   });
 
-      await Promise.all(emailPromises);
-    }
+    //   await Promise.all(emailPromises);
+    // }
 
     return res.status(200).json({
       message: "Module updated successfully",

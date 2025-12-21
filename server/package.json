@@ -17,6 +17,7 @@
   "dependencies": {
     "axios": "^1.11.0",
     "bull": "^4.16.5",
+    "bullmq": "^5.66.2",
     "compression": "^1.8.1",
     "connect-mongo": "^5.1.0",
     "cors": "^2.8.5",
