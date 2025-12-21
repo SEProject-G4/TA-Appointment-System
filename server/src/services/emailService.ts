@@ -1,62 +1,145 @@
-const nodemailer = require("nodemailer");
-import type { Transporter } from "nodemailer";
-const config = require("../config/index");
+import { Queue } from 'bullmq';
 
-/**
- * Direct Email Service with Chunk Processing
- * Optimized for better performance with bulk email sending
- */
-
-const transporter: Transporter = nodemailer.createTransport({
-  service: "Gmail",
-  auth: {
-    user: config.GMAIL_USER,
-    pass: config.GMAIL_PASS,
-  },
-  pool: true,
-  maxConnections: 5,
-  maxMessages: 10,
-  rateLimit: 5, // 5 emails per second
-});
-
-/**
- * Send a single email directly
- * @param {string|string[]} to - Recipient email address or array of addresses
- * @param {string} subject - Email subject
- * @param {string} html - Email HTML content
- * @param {string} from - Sender name (optional)
- * @returns {Promise<boolean>} Success status
- */
-const sendEmail = async (
-  to: string | string[],
-  subject: string,
-  html: string,
-  from: string = "TA Appointment System - CSE"
-): Promise<boolean> => {
-  try {
-    // Handle both single email and array of emails
-    const recipients = Array.isArray(to) ? to.join(", ") : to;
-
-    const mailOptions = {
-      from: `${from} <${config.GMAIL_USER}>`,
-      to: recipients,
-      subject,
-      html, // This ensures HTML content is rendered
-    };
-
-    const result = await transporter.sendMail(mailOptions);
-    console.log(
-      `✅ Email sent to ${Array.isArray(to) ? to.length + " recipients" : to}: ${result.messageId}`
-    );
-    return true;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error(
-      `❌ Failed to send email to ${Array.isArray(to) ? to.length + " recipients" : to}:`,
-      errorMessage
-    );
-    return false;
-  }
+const connection = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379')
 };
 
-module.exports = { sendEmail };
+const emailQueue = new Queue('email-queue', { connection });
+
+interface ModuleNotifyingParams {
+  coordName?: string;
+  moduleName: string;
+  moduleCode: string;
+  semester: number;
+}
+
+interface AdvertisingModuleDetails {
+  moduleName: string;
+  moduleCode: string;
+  semester: number;
+  positionsCount: number;
+  hoursPerWeek: number;
+  applicationDeadline: string;
+  docSubmittingDeadline: string;
+}
+
+interface OneModuleAdvertisingEmailParams extends AdvertisingModuleDetails {
+  type: "undergraduate" | "postgraduate";
+}
+
+interface ModulesAdvertisingEmailParams {
+  modules: AdvertisingModuleDetails[];
+  type: "undergraduate" | "postgraduate";
+  semesters: number[];
+}
+
+interface ModuleReadyForApproval {
+  moduleName: string;
+  moduleCode: string;
+  semester: number;
+  coordinators: string[];
+  type: "undergraduate" | "postgraduate";
+}
+
+interface ModuleReadyForApprovalEmailParams {
+  modules: ModuleReadyForApproval[];
+}
+
+interface ApproveTARequestsForModuleParams {
+  moduleName: string;
+  moduleCode: string;
+  semester: number;
+  coordName: string;
+  type: "undergraduate" | "postgraduate";
+}
+
+interface ProvideNecessaryDetailsForAppointmentParams {
+  studentName: string;
+  moduleName: string;
+  moduleCode: string;
+  semester: number;
+}
+
+interface TAReadyForAppointment {
+  index: string;
+  name: string;
+  email: string;
+  studentType: "undergraduate" | "postgraduate";
+  modules: {
+    moduleName: string;
+    moduleCode: string;
+    hoursPerWeek: number;
+  }[];
+}
+
+export const EmailService = {
+
+  /**
+   * Adds an email job to the background queue.
+   * @param templateId The name of the template function (e.g., 'MODULE_NOTIFYING')
+   * @param recipients The target email address array
+   * @param data The parameters required by that specific template
+   */
+  async queueEmail(templateId: string, recipients: string[], params: any, from = "TA Appointment System - CSE") {
+    try {
+      await emailQueue.add(templateId, { from, recipients, params }, {
+        attempts: 3, // Retry 3 times if it fails
+        backoff: { type: 'exponential', delay: 5000 } // Wait 5s, then 10s, etc.
+      });
+      console.log(`Job ${templateId} queued for ${recipients.join(', ')}`);
+    } catch (error) {
+      console.error('Failed to queue email:', error);
+    }
+  },
+
+  async enqueueModuleNotifyingEmail(
+    recipients: string[],
+    params: ModuleNotifyingParams
+  ) {
+    await this.queueEmail('MODULE_NOTIFYING', recipients, params);
+  },
+
+  async enqueueOneModuleAdvertisingEmail(
+    recipients: string[],
+    params: OneModuleAdvertisingEmailParams
+  ) {
+    await this.queueEmail('ADVERTISING_ONE_MODULE', recipients, params);
+  },
+
+  async enqueueModulesAdvertisingEmail(
+    recipients: string[],
+    params: ModulesAdvertisingEmailParams
+  ) {
+    await this.queueEmail('ADVERTISING_MODULES', recipients, params);
+  },
+
+  async enqueueModulesReadyForApprovalEmail(
+    recipients: string[],
+    params: ModuleReadyForApprovalEmailParams
+  ) {
+    await this.queueEmail('MODULES_READY_FOR_APPROVAL', recipients, params);
+  },
+
+  async enqueueApproveTARequestsForModuleEmail(
+    recipients: string[],
+    params: ApproveTARequestsForModuleParams
+  ) {
+    await this.queueEmail('APPROVE_TA_REQUESTS', recipients, params);
+  },
+
+  async enqueueProvideNecessaryDetailsForAppointmentEmail(
+    recipients: string[],
+    params: ProvideNecessaryDetailsForAppointmentParams
+  ) {
+    await this.queueEmail('PROVIDE_DETAILS_FOR_APPOINTMENT', recipients, params);
+  },
+
+  async enqueueTAsReadyForAppointmentEmail(
+    recipients: string[],
+    params: TAReadyForAppointment[]
+  ) {
+    await this.queueEmail('TAS_READY_FOR_APPOINTMENT', recipients, params);
+  }
+
+};
