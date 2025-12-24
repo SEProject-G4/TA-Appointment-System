@@ -15,9 +15,9 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { MdMoreVert, MdRefresh } from "react-icons/md";
-import { LuCirclePlus, LuMail } from "react-icons/lu";
-import { FiClock } from "react-icons/fi";
-import { HiSpeakerphone, HiBell } from "react-icons/hi";
+import { LuCirclePlus, LuMail, LuRefreshCw } from "react-icons/lu";
+import { FiClock, FiRefreshCw } from "react-icons/fi";
+import { HiSpeakerphone, HiBell, HiRefresh } from "react-icons/hi";
 
 // Context & Store Imports
 import { useModal } from "../../contexts/ModalProvider";
@@ -62,14 +62,20 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
   const {
     round,
     fetchModulesForRound,
+    updateRound,
+    deleteRound,
   }: {
     round: RecruitmentRoundState | undefined;
     fetchModulesForRound: (id: string) => void;
+    updateRound: (roundId: string, updates: Partial<RecruitmentRoundState>) => void;
+    deleteRound: (roundId: string) => void;
   } = useRoundsStore(
     useShallow((state) => {
       return {
         round: state.rounds[_id],
         fetchModulesForRound: state.fetchModulesForRound,
+        updateRound: state.updateRound,
+        deleteRound: state.deleteRound,
       };
     })
   );
@@ -278,10 +284,11 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                 );
                 if (response.status === 200) {
                   showToast(
-                    "Recruitment series deleted successfully with all its associated data.",
+                    "Recruitment round deleted successfully with all its associated data.",
                     "success"
                   );
                   closeModal();
+                  deleteRound(_id);
                 }
                 // Optionally refresh the list or provide feedback
               } catch (error) {
@@ -380,6 +387,7 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                   );
                   closeModal();
                   refreshModuleDetails(); // Refresh to show updated status
+                  updateRound(_id, { status: "archived" });
                 }
               } catch (error: any) {
                 console.error("Error archiving recruitment round:", error);
@@ -722,7 +730,7 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                 className="h-6 w-6 bg-bg-card text-text-secondary hover:text-primary hover:bg-primary-light/10 rounded-sm outline outline-1 outline-text-secondary/50 flex items-center justify-center transition-colors duration-200"
                 title="Refresh modules"
               >
-                <MdRefresh className="h-4 w-4" />
+                <FiRefreshCw className="h-4 w-4" />
               </button>
             </div>
             {/* <div className="px-3 w-full flex justify-start items-center">

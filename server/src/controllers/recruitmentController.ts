@@ -828,12 +828,10 @@ const notifyModules = async (
 
     if (modules.length === 0) {
       return res.status(404).json({
-        error: "No initialised modules found in this recruitment series",
+        error: "No initialised modules found in this recruitment round",
       });
     }
 
-    // Prepare emails for job queue
-    const emails = [];
     const moduleUpdates = [];
 
     for (const module of modules as any[]) {
@@ -900,6 +898,7 @@ const notifyModules = async (
 
     return res.status(200).json({
       message: `Notification emails sent successfully`,
+      modulesNotified: moduleUpdates
     });
   } catch (error) {
     console.error("Error in notifyModules function:", error);
