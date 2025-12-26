@@ -16,6 +16,7 @@ import axiosInstance from "../../api/axiosConfig";
 import { useToast } from "../../contexts/ToastContext";
 import { useModal } from "../../contexts/ModalProvider";
 import Loader from "../common/Loader";
+import { useRoundsStore } from "../../stores/useRoundsStore";
 
 interface ModuleDetails {
   _id: string;
@@ -58,8 +59,9 @@ interface ModuleDetails {
   requirements: string;
 }
 
-interface RSModuleCardProps extends ModuleDetails {
-  refreshPage: () => void;
+interface RSModuleCardProps {
+  roundId: string;
+  moduleId: string;
 }
 
 const getClassForStatus = (status: string) => {
@@ -327,22 +329,8 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
 };
 
 const RSModuleCard: React.FC<RSModuleCardProps> = ({
-  _id,
-  recruitmentSeriesId,
-  moduleCode,
-  moduleName,
-  semester,
-  moduleStatus,
-  coordinators,
-  requiredTAHours,
-  openForUndergraduates,
-  openForPostgraduates,
-  undergraduateCounts,
-  postgraduateCounts,
-  requirements,
-  documentDueDate,
-  applicationDueDate,
-  refreshPage,
+  roundId,
+  moduleId,
 }) => {
   const [marked, setMarked] = useState(false);
   const [fetchedModuleData, setFetchedModuleData] =
@@ -351,6 +339,39 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   const navigate = useNavigate();
   const { openModal, closeModal } = useModal();
   const { showToast } = useToast();
+
+  // Get module data from store
+  const moduleData = useRoundsStore((state) =>
+    state.getModuleById(roundId, moduleId)
+  );
+  const updateModuleInStore = useRoundsStore((state) => state.updateModuleInRound);
+
+  // If module not found in store, return early
+  if (!moduleData) {
+    return (
+      <div className="hover:shadow-xl flex flex-col p-3 gap-y-2 rounded-md drop-shadow-xl bg-bg-card w-[400px]">
+        <p className="text-text-secondary">Module not found</p>
+      </div>
+    );
+  }
+
+  const {
+    _id,
+    recruitmentSeriesId,
+    moduleCode,
+    moduleName,
+    semester,
+    moduleStatus,
+    coordinators,
+    requiredTAHours,
+    openForUndergraduates,
+    openForPostgraduates,
+    undergraduateCounts,
+    postgraduateCounts,
+    requirements,
+    documentDueDate,
+    applicationDueDate,
+  } = moduleData;
 
   const fetchModuleDetails = async (_id: string) => {
     try {
@@ -386,6 +407,8 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
         data = response.data;
       }
       setFetchedModuleData(data);
+      // Update store with fresh data
+      updateModuleInStore(roundId, moduleId, data);
     } catch (error) {
       console.error("Error fetching module details:", error);
       showToast("Failed to fetch module details", "error");
@@ -412,7 +435,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   const notifyCoordinators = async (moduleData: ModuleDetails) => {
     // Implementation for notifying coordinators
     try {
-      await axiosInstance.put(`/modules/${moduleData._id}/notify`);
+      const response = await axiosInstance.put(`/modules/${moduleData._id}/notify`);
       showToast(
         `Coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName} are notified successfully`,
         "success"
@@ -577,25 +600,23 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     }
   };
 
-  const data: ModuleDetails = fetchedModuleData
-    ? fetchedModuleData
-    : {
-        _id,
-        recruitmentSeriesId,
-        moduleCode,
-        moduleName,
-        semester,
-        moduleStatus,
-        coordinators,
-        requiredTAHours,
-        openForUndergraduates,
-        openForPostgraduates,
-        undergraduateCounts,
-        postgraduateCounts,
-        requirements,
-        documentDueDate: new Date(documentDueDate),
-        applicationDueDate: new Date(applicationDueDate),
-      };
+  const data: ModuleDetails = fetchedModuleData || {
+    _id,
+    recruitmentSeriesId,
+    moduleCode,
+    moduleName,
+    semester,
+    moduleStatus,
+    coordinators,
+    requiredTAHours,
+    openForUndergraduates,
+    openForPostgraduates,
+    undergraduateCounts,
+    postgraduateCounts,
+    requirements,
+    documentDueDate: new Date(documentDueDate),
+    applicationDueDate: new Date(applicationDueDate),
+  };
 
   return (
     <div className="hover:shadow-xl flex flex-col p-3 gap-y-2 rounded-md drop-shadow-xl bg-bg-card w-[400px]">

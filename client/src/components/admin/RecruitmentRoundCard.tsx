@@ -753,8 +753,8 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                     {filteredModules.map((module) => (
                       <RSModuleCard
                         key={module._id}
-                        {...module}
-                        refreshPage={refreshModuleDetails}
+                        roundId={_id}
+                        moduleId={module._id}
                       />
                     ))}
                   </div>
