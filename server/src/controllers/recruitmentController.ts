@@ -36,7 +36,28 @@ const createRecruitmentRound = async (
     });
     console.log("New RecruitmentRound is going to create", newRecruitmentRound);
     const result = await newRecruitmentRound.save();
-    return res.status(201).json(result);
+    
+    // Populate user groups before returning
+    const undergradGroups = await Promise.all(
+      result.undergradMailingList.map((group_id: any) =>
+        UserGroup.findById(group_id)
+      )
+    );
+    const postgradGroups = await Promise.all(
+      result.postgradMailingList.map((group_id: any) =>
+        UserGroup.findById(group_id)
+      )
+    );
+
+    const responseData = {
+      ...result._doc,
+      undergradMailingList: undergradGroups.filter(
+        (group) => group !== null
+      ),
+      postgradMailingList: postgradGroups.filter((group) => group !== null),
+    };
+
+    return res.status(201).json(responseData);
   } catch (error) {
     console.error("Error creating recruitment series:", error);
     return res.status(500).json({ error: "Internal server error" });

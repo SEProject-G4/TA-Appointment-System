@@ -13,6 +13,7 @@ import { MdClose } from "react-icons/md";
 import { FaChevronDown } from "react-icons/fa";
 import axiosInstance from "../../api/axiosConfig";
 import { useToast } from "../../contexts/ToastContext";
+import { useRoundsStore } from "../../stores/useRoundsStore";
 
 interface UserGroup {
   _id: string;
@@ -146,6 +147,7 @@ function NewRecruitmentSeries() {
 
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const addRound = useRoundsStore(state => state.addRound);
 
   const handleUndergradGroupSelect = (group: UserGroup | null) => {
     setFormData((prevData) => ({
@@ -312,15 +314,22 @@ function NewRecruitmentSeries() {
         );
         if (response.status === 201) {
           // Handle successful creation
-          showToast("Recruitment series created successfully", "success");
+          showToast("Recruitment round created successfully", "success");
+          addRound({
+            ...response.data,
+            areModulesLoading: false,
+            areModulesFetched: false,
+            modules: [],
+            error: null,
+          });
           navigate("/admin-dashboard");
         } else {
-          showToast("Failed to create recruitment series", "error");
-          console.error("Failed to create recruitment series");
+          showToast("Failed to create recruitment round", "error");
+          console.error("Failed to create recruitment round");
         }
       } catch (error) {
-        showToast("Error creating recruitment series", "error");
-        console.error("Error creating recruitment series:", error);
+        showToast("Error creating recruitment round", "error");
+        console.error("Error creating recruitment round:", error);
       }
     }else{
       showToast("Please fix errors in the form, before submitting", "error");
@@ -337,7 +346,7 @@ function NewRecruitmentSeries() {
     <div className="flex flex-col items-center justify-start p-4 min-h-screen bg-gradient-to-br from-primary-dark/10 to-primary-light/20">
       <div className="rounded-lg w-full max-w-4xl bg-bg-card shadow-xl p-8">
         <h2 className="text-3xl font-bold text-center mb-8 text-base-content select-none">
-          New Recruitment Series
+          New Recruitment Round
         </h2>
 
         <div className="flex flex-col gap-y-6">
@@ -585,7 +594,7 @@ function NewRecruitmentSeries() {
 
           <p className="px-2 py-1 text-text-secondary text-sm border-t-[1px] border-solid border-text-secondary/80">
             Total User Count:
-            <span className="font-semibold">{` ${usrsCount.under}`}</span>
+            <span className="font-semibold">{` ${usrsCount.post}`}</span>
           </p>
         </div>
         {inputErrors.postgradMailingList && (
