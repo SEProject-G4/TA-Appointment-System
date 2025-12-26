@@ -24,6 +24,13 @@ interface RoundsState {
     roundId: string,
     updates: Partial<RecruitmentRoundState>
   ) => void;
+  addModuleToRound: (roundId: string, module: ModuleDetails) => void;
+  updateModuleInRound: (
+    roundId: string,
+    moduleId: string,
+    updates: Partial<ModuleDetails>
+  ) => void;
+  deleteModuleFromRound: (roundId: string, moduleId: string) => void;
 }
 
 export const useRoundsStore = create<RoundsState>((set, get) => ({
@@ -226,6 +233,49 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
           ...updatedRounds[roundId],
           ...updates,
         };
+      }
+      return { rounds: updatedRounds };
+    });
+  },
+  addModuleToRound: (roundId: string, module: ModuleDetails) => {
+    set((state) => {
+      const updatedRounds = { ...state.rounds }; 
+      if (updatedRounds[roundId]) {
+        const currentModules = updatedRounds[roundId].modules || {};
+        updatedRounds[roundId].modules = {
+          ...currentModules,
+          [module._id]: module,
+        };
+      }
+      return { rounds: updatedRounds };
+    });
+  },
+  updateModuleInRound: (
+    roundId: string,
+    moduleId: string,
+    updates: Partial<ModuleDetails>
+  ) => {
+    set((state) => {
+      const updatedRounds = { ...state.rounds };
+      if (updatedRounds[roundId] && updatedRounds[roundId].modules) {
+        const currentModule = updatedRounds[roundId].modules![moduleId];
+        if (currentModule) {
+          updatedRounds[roundId].modules![moduleId] = {
+            ...currentModule,
+            ...updates,
+          };
+        }
+      }
+      return { rounds: updatedRounds };
+    });
+  },
+  deleteModuleFromRound: (roundId: string, moduleId: string) => {
+    set((state) => {
+      const updatedRounds = { ...state.rounds };
+      if (updatedRounds[roundId] && updatedRounds[roundId].modules) {
+        const updatedModules = { ...updatedRounds[roundId].modules };
+        delete updatedModules[moduleId];
+        updatedRounds[roundId].modules = updatedModules;
       }
       return { rounds: updatedRounds };
     });

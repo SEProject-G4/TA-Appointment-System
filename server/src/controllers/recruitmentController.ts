@@ -146,9 +146,33 @@ const addModuleToRecruitmentRound = async (
       moduleStatus: "initialised",
       requirements: moduleData.requirements,
     });
-    await newModule.save();
+    const result = await newModule.save();
 
-    return res.status(200).json(recruitmentSeries);
+    // Populate coordinator details before returning
+    const coordinatorDetails = await Promise.all(
+      result.coordinators.map(async (coordinatorId: any) => {
+        const user = await User.findById(
+          coordinatorId,
+          "displayName email profilePicture"
+        );
+        if (user) {
+          return {
+            id: user._id,
+            displayName: (user as any).displayName,
+            email: user.email,
+            profilePicture: (user as any).profilePicture,
+          };
+        }
+        return null;
+      })
+    );
+
+    const populatedModule = {
+      ...result._doc,
+      coordinators: coordinatorDetails.filter((c) => c !== null),
+    };
+
+    return res.status(201).json(populatedModule);
   } catch (error) {
     console.error("Error adding module to recruitment series:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -262,6 +286,7 @@ const getModulesForRounds = async (
   }
 };
 
+// xxxxx
 const getEligibleUndergraduates = async (
   req: Request,
   res: Response
@@ -284,6 +309,7 @@ const getEligibleUndergraduates = async (
   }
 };
 
+// xxxxx
 const getEligiblePostgraduates = async (
   req: Request,
   res: Response
@@ -459,6 +485,7 @@ const copyRecruitmentRound = async (
   }
 };
 
+// xxxxx
 const deleteRecruitmentRound = async (
   req: Request,
   res: Response
@@ -500,6 +527,7 @@ const deleteRecruitmentRound = async (
   }
 };
 
+// xxxxx
 const updateRecruitmentRound = async (
   req: Request,
   res: Response

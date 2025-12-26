@@ -20,6 +20,7 @@ import AutoSelect, { type Option } from "../../components/common/AutoSelect";
 
 import { useToast } from "../../contexts/ToastContext";
 import axiosInstance from "../../api/axiosConfig";
+import { useRoundsStore } from "../../stores/useRoundsStore";
 
 import "./NewModule.css";
 
@@ -45,6 +46,8 @@ function toLocalDatetimeInputValue(date: Date) {
     date.getDate()
   )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
+
+const { addModuleToRound } = useRoundsStore.getState();
 
 const NewModule: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
@@ -122,25 +125,33 @@ const NewModule: React.FC = () => {
         "/recruitment-series/" + state.id + "/add-module",
         payload
       );
-      showToast(
-        "Module added successfully to the recruitment Round!",
-        "success"
-      );
-      setFormData({
-        moduleCode: "",
-        moduleName: "",
-        semester: null,
-        coordinators: [],
-        undergraduateTAsRequired: 0,
-        postgraduateTAsRequired: 0,
-        taHours: 0,
-        appDueDate: toLocalDatetimeInputValue(new Date(state.appDueDate)),
-        docDueDate: toLocalDatetimeInputValue(new Date(state.docDueDate)),
-        specialNotes: "",
-        openForUndergrads: false,
-        openForPostgrads: false,
-      });
-      fetchLecturers();
+      if (response.status === 201) {
+        
+        showToast(
+          "Module added successfully to the recruitment Round!",
+          "success"
+        );
+        const newModule = response.data;
+        // Update the rounds store to add the new module
+        addModuleToRound(state.id, newModule);
+        // Reset form
+
+        setFormData({
+          moduleCode: "",
+          moduleName: "",
+          semester: null,
+          coordinators: [],
+          undergraduateTAsRequired: 0,
+          postgraduateTAsRequired: 0,
+          taHours: 0,
+          appDueDate: toLocalDatetimeInputValue(new Date(state.appDueDate)),
+          docDueDate: toLocalDatetimeInputValue(new Date(state.docDueDate)),
+          specialNotes: "",
+          openForUndergrads: false,
+          openForPostgrads: false,
+        });
+        fetchLecturers();
+      }
     } catch (error) {
       console.error("Error creating module:", error);
       showToast("Failed to create module.", "error");
