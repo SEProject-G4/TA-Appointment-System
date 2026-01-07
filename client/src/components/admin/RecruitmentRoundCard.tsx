@@ -1,5 +1,5 @@
 // React Imports
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 // Icon Imports
@@ -64,11 +64,13 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
     fetchModulesForRound,
     updateRound,
     deleteRound,
+    updateModuleInRound,
   }: {
     round: RecruitmentRoundState | undefined;
     fetchModulesForRound: (id: string) => void;
     updateRound: (roundId: string, updates: Partial<RecruitmentRoundState>) => void;
     deleteRound: (roundId: string) => void;
+    updateModuleInRound: ( roundId: string, moduleId: string, updates: Partial<ModuleDetails>) => void;
   } = useRoundsStore(
     useShallow((state) => {
       return {
@@ -76,13 +78,13 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
         fetchModulesForRound: state.fetchModulesForRound,
         updateRound: state.updateRound,
         deleteRound: state.deleteRound,
+        updateModuleInRound: state.updateModuleInRound,
       };
     })
   );
   const [isExpanded, setIsExpanded] = useState(
     round?.status === "initialised" || round?.status === "active"
   );
-  const [moduleDetails, setModuleDetails] = useState<ModuleDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -95,12 +97,20 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
   const areModulesFetched = round?.areModulesFetched;
   const errorInModules = round?.error ?? null;
 
-  const changesSubmittedModules = moduleDetails.filter(
-    (mod) => mod.moduleStatus === "changes submitted"
-  );
-  const initialisedModules = moduleDetails.filter(
-    (mod) => mod.moduleStatus === "initialised"
-  );
+  // Use useMemo to filter modules by status for action buttons
+  const { changesSubmittedModules, initialisedModules } = useMemo(() => {
+    if (!modules) return { changesSubmittedModules: [], initialisedModules: [] };
+    
+    const allModules = Object.values(modules);
+    return {
+      changesSubmittedModules: allModules.filter(
+        (mod) => mod.moduleStatus === "changes submitted"
+      ),
+      initialisedModules: allModules.filter(
+        (mod) => mod.moduleStatus === "initialised"
+      ),
+    };
+  }, [modules]);
 
   // Filter modules based on search query and status filter
   const filteredModules = modules
@@ -155,46 +165,26 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
       const response = await axiosInstance.post(
         `/recruitment-series/${_id}/notify-modules`
       );
-      const { summary, details } = response.data;
-
-      if (summary.successful > 0) {
-        const successModules = details.filter(
-          (d: any) => d.status === "success"
-        );
-        const moduleNames = successModules
-          .map((d: any) => d.moduleCode)
-          .join(", ");
-        const totalEmails = successModules.reduce(
-          (sum: number, d: any) => sum + (d.recipientCount || 0),
-          0
-        );
-
-        showToast(
-          `Successfully notified ${summary.successful} module(s): ${moduleNames}. ${totalEmails} emails sent to coordinators.`,
-          "success"
-        );
-
-        if (summary.failed > 0) {
-          const failedModules = details.filter(
-            (d: any) => d.status === "failed"
-          );
-          const failedNames = failedModules
-            .map((d: any) => d.moduleCode)
-            .join(", ");
+      // console.log("Notify Modules Response:", response.data);
+      if(response.status === 200){
+        const { modulesNotified } = response.data;
+        if(modulesNotified && modulesNotified.length > 0){
           showToast(
-            `Failed to notify ${summary.failed} module(s): ${failedNames}`,
-            "info"
+            `Successfully notified ${modulesNotified.length} module(s).`,
+            "success"
+          );
+          modulesNotified.forEach((modId: any) => {
+            updateModuleInRound(_id, modId, { moduleStatus: "pending changes" });
+          });
+
+        } else {
+          showToast(
+            "No modules could be notified. Please check module status and coordinator assignments.",
+            "error"
           );
         }
-      } else {
-        showToast(
-          "No modules could be notified. Please check module status and coordinator assignments.",
-          "error"
-        );
-      }
 
-      // Refresh module details to update status
-      refreshModuleDetails();
+      }
     } catch (error: any) {
       console.error("Error notifying module coordinators:", error);
       if (error.response?.data?.error) {
@@ -210,51 +200,25 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
       const response = await axiosInstance.post(
         `/recruitment-series/${_id}/advertise-modules`
       );
-      const { summary, emailResults } = response.data;
+      const { wasRRStatusChanged, advertisedModules } = response.data;
 
-      if (summary.totalEmailsSent > 0) {
-        let detailMessage = `Successfully advertised ${summary.modulesProcessed} module(s) to ${summary.totalEmailsSent} students`;
-
-        if (summary.undergradModules > 0 && summary.postgradModules > 0) {
-          detailMessage += ` (${summary.undergradModules} undergraduate + ${summary.postgradModules} postgraduate modules)`;
-        } else if (summary.undergradModules > 0) {
-          detailMessage += ` (${summary.undergradModules} undergraduate modules)`;
-        } else if (summary.postgradModules > 0) {
-          detailMessage += ` (${summary.postgradModules} postgraduate modules)`;
-        }
-
-        // Add email group breakdown
-        const emailBreakdown = emailResults
-          .map((result: any) => {
-            return `${result.recipientCount} ${result.type}s`;
-          })
-          .join(" + ");
-
-        if (emailBreakdown) {
-          detailMessage += `. Emails sent to: ${emailBreakdown}`;
-        }
-
-        showToast(detailMessage, "success");
-
-        // Show any failed email groups
-        const failedResults = emailResults.filter(
-          (result: any) => !result.success
+      if (advertisedModules && advertisedModules.length > 0) {
+        showToast(
+          `Successfully advertised ${advertisedModules.length} module(s).`,
+          "success"
         );
-        if (failedResults.length > 0) {
-          const failedGroups = failedResults
-            .map((result: any) => result.type)
-            .join(", ");
-          showToast(`Failed to send emails to: ${failedGroups}`, "info");
-        }
+        advertisedModules.forEach((modId: any) => {
+          updateModuleInRound(_id, modId, { moduleStatus: "advertised" });
+        });
+        if (wasRRStatusChanged) {
+          updateRound(_id, { status: "active" });
+        }        
       } else {
         showToast(
           "No advertisement emails were sent. Please check module status and student groups.",
           "error"
         );
       }
-
-      // Refresh module details to update status
-      refreshModuleDetails();
     } catch (error: any) {
       console.error("Error advertising modules:", error);
       if (error.response?.data?.error) {

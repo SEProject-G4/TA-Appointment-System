@@ -31,6 +31,7 @@ interface RoundsState {
     updates: Partial<ModuleDetails>
   ) => void;
   deleteModuleFromRound: (roundId: string, moduleId: string) => void;
+  hasModulesWithStatusInRound: (roundId: string, status: string) => boolean;
 }
 
 export const useRoundsStore = create<RoundsState>((set, get) => ({
@@ -260,9 +261,16 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
       if (updatedRounds[roundId] && updatedRounds[roundId].modules) {
         const currentModule = updatedRounds[roundId].modules![moduleId];
         if (currentModule) {
-          updatedRounds[roundId].modules![moduleId] = {
-            ...currentModule,
-            ...updates,
+          // Create new round and modules objects to trigger React updates
+          updatedRounds[roundId] = {
+            ...updatedRounds[roundId],
+            modules: {
+              ...updatedRounds[roundId].modules,
+              [moduleId]: {
+                ...currentModule,
+                ...updates,
+              },
+            },
           };
         }
       }
@@ -279,5 +287,13 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
       }
       return { rounds: updatedRounds };
     });
+  },
+  hasModulesWithStatusInRound: (roundId: string, status: string) => { 
+    const rounds = get().rounds;
+    const round = rounds[roundId];
+    if (!round || !round.modules) return false;
+    return Object.values(round.modules).some(
+      (module) => module.moduleStatus === status
+    );
   },
 }));

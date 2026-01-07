@@ -129,6 +129,7 @@ const advertiseModule = async (req: Request, res: Response): Promise<Response> =
 
     // Update module status to 'advertised'
     module.moduleStatus = "advertised";
+    let wasRRStatusChanged = false;
     await module.save().then(async () => {
       console.log(
         `✅ Updated module statuses to 'advertised' for postgraduate modules`
@@ -137,9 +138,10 @@ const advertiseModule = async (req: Request, res: Response): Promise<Response> =
         // If the recruitment series is not active, we can activate it
         recruitmentSeries.status = "active";
         await recruitmentSeries.save();
+        wasRRStatusChanged = true;
       }
     });
-    return res.status(200).json({ message: "Module advertised successfully" });
+    return res.status(200).json({ wasRRStatusChanged,message: "Module advertised successfully" });
   } catch (error) {
     console.error("Error advertising module:", error);
     return res.status(500).json({ error: "Internal server error" });

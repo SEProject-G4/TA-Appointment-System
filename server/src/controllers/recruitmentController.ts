@@ -36,7 +36,7 @@ const createRecruitmentRound = async (
     });
     console.log("New RecruitmentRound is going to create", newRecruitmentRound);
     const result = await newRecruitmentRound.save();
-    
+
     // Populate user groups before returning
     const undergradGroups = await Promise.all(
       result.undergradMailingList.map((group_id: any) =>
@@ -51,9 +51,7 @@ const createRecruitmentRound = async (
 
     const responseData = {
       ...result._doc,
-      undergradMailingList: undergradGroups.filter(
-        (group) => group !== null
-      ),
+      undergradMailingList: undergradGroups.filter((group) => group !== null),
       postgradMailingList: postgradGroups.filter((group) => group !== null),
     };
 
@@ -677,6 +675,7 @@ const updateRecruitmentRound = async (
   }
 };
 
+// xxxxx
 const updateRecruitmentRoundDeadlines = async (
   req: Request,
   res: Response
@@ -786,6 +785,7 @@ const updateRecruitmentRoundDeadlines = async (
   }
 };
 
+// xxxxx
 const updateRecruitmentRoundHourLimits = async (
   req: Request,
   res: Response
@@ -925,7 +925,7 @@ const notifyModules = async (
           };
 
           await EmailService.enqueueModuleNotifyingEmail(
-            coord.email,
+            [coord.email],
             emailParamas
           );
         }
@@ -946,8 +946,7 @@ const notifyModules = async (
     }
 
     return res.status(200).json({
-      message: `Notification emails sent successfully`,
-      modulesNotified: moduleUpdates
+      modulesNotified: moduleUpdates,
     });
   } catch (error) {
     console.error("Error in notifyModules function:", error);
@@ -1017,6 +1016,7 @@ const advertiseModules = async (
     const postgradModules: any[] = [];
     const underSemesters = new Set();
     const postSemesters = new Set();
+    const advertisedModuleIds: string[] = [];
 
     modules.forEach((module: any) => {
       if (module.openForUndergraduates) {
@@ -1060,13 +1060,11 @@ const advertiseModules = async (
         emailParams
       );
 
-      await ModuleDetails.updateMany(
-        { _id: { $in: undergradModules.map((mod: any) => mod._id) } },
-        { $set: { moduleStatus: "advertised" } }
-      ).then(() => {
-        console.log(
-          `✅ Updated module statuses to 'advertised' for undergraduate modules`
-        );
+      // Collect updated module IDs
+      undergradModules.forEach((mod: any) => {
+        if (!advertisedModuleIds.includes(mod._id.toString())) {
+          advertisedModuleIds.push(mod._id.toString());
+        }
       });
     }
 
@@ -1106,17 +1104,42 @@ const advertiseModules = async (
         console.log(
           `✅ Updated module statuses to 'advertised' for postgraduate modules`
         );
-        if ((recruitmentSeries as any).status !== "active") {
-          // If the recruitment series is not active, we can archive it
-          await RecruitmentRound.updateOne(
-            { _id: seriesId },
-            { $set: { status: "active" } }
-          );
-        }
+        // Collect updated module IDs
+        postgradModules.forEach((mod: any) => {
+          if (!advertisedModuleIds.includes(mod._id.toString())) {
+            advertisedModuleIds.push(mod._id.toString());
+          }
+        });
       });
     }
+    
+    let wasRRStatusChanged = false;
+    await ModuleDetails.updateMany(
+      { _id: { $in: advertisedModuleIds } },
+      { $set: { moduleStatus: "advertised" } }
+    ).then(async () => {
+      console.log(
+        `✅ Updated module statuses to 'advertised' for all advertised modules`
+      );
+    
+      if ((recruitmentSeries as any).status !== "active") {
+      // If the recruitment series is not active, we can archive it
+      await RecruitmentRound.updateOne(
+        { _id: seriesId },
+        { $set: { status: "active" } }
+      );
+      wasRRStatusChanged = true;
+      console.log(
+        `✅ Updated recruitment series ${seriesId} status to 'active'`
+      );
+    }
+  });
 
-    return res.status(200).json({ message: "Modules advertised successfully" });
+    
+    return res.status(200).json({
+      wasRRStatusChanged,
+      advertisedModules: advertisedModuleIds,
+    });
   } catch (error) {
     console.error("Error in advertiseModules function:", error);
     return res

@@ -17,47 +17,7 @@ import { useToast } from "../../contexts/ToastContext";
 import { useModal } from "../../contexts/ModalProvider";
 import Loader from "../common/Loader";
 import { useRoundsStore } from "../../stores/useRoundsStore";
-
-interface ModuleDetails {
-  _id: string;
-  recruitmentSeriesId: string;
-  moduleCode: string;
-  moduleName: string;
-  semester: number;
-  moduleStatus: string;
-  coordinators: {
-    id: string;
-    displayName: string;
-    email: string;
-    profilePicture: string;
-  }[];
-  applicationDueDate: Date;
-  documentDueDate: Date;
-  requiredTAHours: number;
-  openForUndergraduates: boolean;
-  openForPostgraduates: boolean;
-
-  undergraduateCounts: {
-    required: number;
-    remaining: number;
-    applied: number;
-    reviewed: number;
-    accepted: number;
-    docSubmitted: number;
-    appointed: number;
-  };
-
-  postgraduateCounts: {
-    required: number;
-    remaining: number;
-    applied: number;
-    reviewed: number;
-    accepted: number;
-    docSubmitted: number;
-    appointed: number;
-  };
-  requirements: string;
-}
+import type { ModuleDetails } from "../../types/module";
 
 interface RSModuleCardProps {
   roundId: string;
@@ -345,6 +305,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     state.getModuleById(roundId, moduleId)
   );
   const updateModuleInStore = useRoundsStore((state) => state.updateModuleInRound);
+  const updateRound = useRoundsStore((state) => state.updateRound);
 
   // If module not found in store, return early
   if (!moduleData) {
@@ -436,10 +397,14 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     // Implementation for notifying coordinators
     try {
       const response = await axiosInstance.put(`/modules/${moduleData._id}/notify`);
-      showToast(
-        `Coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName} are notified successfully`,
-        "success"
-      );
+      if (response.status === 200){
+        showToast(
+          `Coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName} are notified successfully`,
+          "success"
+        );
+        updateModuleInStore(roundId, moduleId, { moduleStatus: "pending changes" });
+
+      }
       await fetchModuleDetails(moduleData._id);
     } catch (error) {
       console.error("Error notifying coordinators:", error);
@@ -457,12 +422,16 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   const handleAdvertiseModule = async (moduleData: ModuleDetails) => {
     // Implementation for advertising a module
     try {
-      await axiosInstance.put(`/modules/${moduleData._id}/advertise`);
+      const response = await axiosInstance.put(`/modules/${moduleData._id}/advertise`);
+      const {wasRRStatusChanged, message} = response.data;
       showToast(
         `${moduleData.moduleCode} - ${moduleData.moduleName} advertised successfully`,
         "success"
       );
-      await fetchModuleDetails(moduleData._id);
+      updateModuleInStore(roundId, moduleId, { moduleStatus: "advertised" });
+      if (wasRRStatusChanged) {
+        updateRound(roundId, { status: "active" });
+      }
     } catch (error) {
       console.error("Error advertising module:", error);
       showToast(
