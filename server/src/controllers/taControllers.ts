@@ -5,6 +5,7 @@ const TaApplication = require("../models/TaApplication");
 const User = require("../models/User");
 const RecruitmentSeries = require("../models/RecruitmentRound");
 const AppliedModules = require("../models/AppliedModules");
+const documentModel = require("../models/documentModel");
 
 const getAllRequests = async (req: Request, res: Response): Promise<Response> => {
   const userId = req.query.userId as string;
@@ -322,13 +323,25 @@ const getAcceptedModules = async (req: Request, res: Response): Promise<Response
       },
     });
 
+    const currentRecSeriesId = activeRecSeries[0]?._id;
+
     const appliedModulesDoc = await AppliedModules.findOne({
       userId,
-      recSeriesId: activeRecSeries[0]?._id,
+      recSeriesId: currentRecSeriesId,
     });
     const docSubmissionStatus = appliedModulesDoc?.isDocSubmitted || false;
+    
+      let previousDocuments = await documentModel.find(
+        {userId}
+      )
+      
 
-    return res.status(200).json({ acceptedApplications, docSubmissionStatus });
+    return res.status(200).json({
+      acceptedApplications, // Only return AppliedModules that have accepted applications
+      docSubmissionStatus,
+      currentRecSeriesId: currentRecSeriesId?.toString(), // Current round's document if submitted
+      previousDocuments,
+    });
   } catch (error) {
     console.error("Error fetching accepted modules:", error);
     return res.status(500).json({ message: "Error fetching accepted modules", error });

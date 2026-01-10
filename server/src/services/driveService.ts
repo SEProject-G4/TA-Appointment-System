@@ -19,6 +19,8 @@ interface UploadedFile {
   webViewLink?: string;
   webContentLink?: string;
 }
+const SERVICE_ACCOUNT_FILE = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+// const SERVICE_ACCOUNT_FILE = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "{}");
 
 // Configure for Shared Drive or regular folder
 const USE_SHARED_DRIVE = process.env.USE_SHARED_DRIVE === "true";
