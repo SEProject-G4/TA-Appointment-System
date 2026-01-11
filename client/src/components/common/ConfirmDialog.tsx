@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 interface ConfirmDialogProps {
   isOpen: boolean;
   title?: string;
-  message: string;
+  message: string | React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
   confirmButtonText?: string;

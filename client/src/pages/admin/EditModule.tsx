@@ -7,49 +7,9 @@ import { ConfirmDialog } from "../../components/common/ConfirmDialog";
 
 import { useToast } from "../../contexts/ToastContext";
 import axiosInstance from "../../api/axiosConfig";
+import { useRoundsStore } from "../../stores/useRoundsStore";
 
 import "./NewModule.css";
-
-interface ModuleDetails {
-  _id: string;
-  recruitmentSeriesId: string;
-  moduleCode: string;
-  moduleName: string;
-  semester: number;
-  moduleStatus: string;
-  coordinators: {
-    id: string;
-    displayName: string;
-    email: string;
-    profilePicture: string;
-  }[];
-  applicationDueDate: Date;
-  documentDueDate: Date;
-  requiredTAHours: number;
-  openForUndergraduates: boolean;
-  openForPostgraduates: boolean;
-
-  undergraduateCounts: {
-    required: number;
-    remaining: number;
-    applied: number;
-    reviewed: number;
-    accepted: number;
-    docSubmitted: number;
-    appointed: number;
-  } | null;
-
-  postgraduateCounts: {
-    required: number;
-    remaining: number;
-    applied: number;
-    reviewed: number;
-    accepted: number;
-    docSubmitted: number;
-    appointed: number;
-  } | null;
-  requirements: string;
-}
 
 interface FormData {
   moduleCode: string;
@@ -66,7 +26,7 @@ interface FormData {
 
 function toLocalDatetimeInputValue(date: Date) {
   // Ensure we get the local time zone offset correctly
-  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return localDate.toISOString().slice(0, 16);
 }
 
@@ -94,8 +54,10 @@ const EditModule: React.FC = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const state = location.state as { moduleData: ModuleDetails } | null;
+  const state = location.state as { roundId: string; moduleId: string } | null;
   const { showToast } = useToast();
+  const getModuleById = useRoundsStore((state) => state.getModuleById);
+  const refreshModule = useRoundsStore((state) => state.refreshModule);
 
   const fetchLecturers = async () => {
     try {
@@ -131,32 +93,33 @@ const EditModule: React.FC = () => {
         requiredUndergraduateTACount: formData.undergraduateTAsRequired,
         requiredPostgraduateTACount: formData.postgraduateTAsRequired,
         requirements: formData.specialNotes,
-        confirmRemoval
+        confirmRemoval,
       };
-      
+
       console.log("Updating module with payload:", payload);
-      await axiosInstance.put(
-        `/modules/${state?.moduleData._id}`,
-        payload
-      );
-      
+      await axiosInstance.put(`/modules/${state?.moduleId}`, payload);
+
       setShowConfirmDialog(false);
       setConfirmationData(null);
       showToast("Module updated successfully!", "success");
+      await refreshModule(state!.roundId, state!.moduleId);
       navigate(-1); // Go back to previous page
-      
     } catch (error: any) {
       console.error("Error updating module:", error);
-      
+
       // Handle confirmation requirement
-      if (error.response?.status === 409 && error.response?.data?.requiresConfirmation) {
+      if (
+        error.response?.status === 409 &&
+        error.response?.data?.requiresConfirmation
+      ) {
         setConfirmationData({
           message: error.response.data.message,
-          applicationsToRemove: error.response.data.applicationsToRemove || []
+          applicationsToRemove: error.response.data.applicationsToRemove || [],
         });
         setShowConfirmDialog(true);
       } else {
-        const errorMessage = error.response?.data?.error || "Failed to update module";
+        const errorMessage =
+          error.response?.data?.error || "Failed to update module";
         showToast(errorMessage, "error");
       }
     } finally {
@@ -397,47 +360,51 @@ const EditModule: React.FC = () => {
   }));
 
   useEffect(() => {
-    if (state && state.moduleData) {
-      const modData = state.moduleData;
+    if (state && state.roundId && state.moduleId) {
+      const modData = getModuleById(state.roundId, state.moduleId);
       console.log("Editing module data:", modData);
 
-      setFormData({
-        moduleCode: modData.moduleCode,
-        moduleName: modData.moduleName,
-        semester: {
-          id: modData.semester,
-          label: `Semester ${modData.semester}`,
-        },
-        coordinators: modData.coordinators.map((coord) => ({
-          id: coord.id,
-          label: coord.displayName,
-          subtitle: coord.email,
-          picture: coord.profilePicture,
-        })),
-        taHours: modData.requiredTAHours,
-        undergraduateTAsRequired: modData.undergraduateCounts
-          ? modData.undergraduateCounts.required
-          : 0,
-        postgraduateTAsRequired: modData.postgraduateCounts
-          ? modData.postgraduateCounts.required
-          : 0,
-        specialNotes: modData.requirements,
-        docDueDate: toLocalDatetimeInputValue(
-          new Date(modData.documentDueDate)
-        ),
-        appDueDate: toLocalDatetimeInputValue(
-          new Date(modData.applicationDueDate)
-        ),
-      });
+      if (modData) {
+        setFormData({
+          moduleCode: modData.moduleCode,
+          moduleName: modData.moduleName,
+          semester: {
+            id: modData.semester,
+            label: `Semester ${modData.semester}`,
+          },
+          coordinators: modData.coordinators.map((coord) => ({
+            id: coord.id,
+            label: coord.displayName,
+            subtitle: coord.email,
+            picture: coord.profilePicture,
+          })),
+          taHours: modData.requiredTAHours,
+          undergraduateTAsRequired: modData.undergraduateCounts
+            ? modData.undergraduateCounts.required
+            : 0,
+          postgraduateTAsRequired: modData.postgraduateCounts
+            ? modData.postgraduateCounts.required
+            : 0,
+          specialNotes: modData.requirements,
+          docDueDate: toLocalDatetimeInputValue(
+            new Date(modData.documentDueDate)
+          ),
+          appDueDate: toLocalDatetimeInputValue(
+            new Date(modData.applicationDueDate)
+          ),
+        });
 
-      fetchLecturers().then(() => {
-        setAvailableLecturers((prev) =>
-          prev.filter(
-            (lecturer) =>
-              !modData.coordinators.some((coord) => coord.id === lecturer.id)
-          )
-        );
-      });
+        fetchLecturers().then(() => {
+          setAvailableLecturers((prev) =>
+            prev.filter(
+              (lecturer) =>
+                !modData.coordinators.some((coord) => coord.id === lecturer.id)
+            )
+          );
+        });
+      } else {
+        showToast("Module data not found.", "error");
+      }
     } else {
       fetchLecturers();
     }
@@ -805,19 +772,26 @@ const EditModule: React.FC = () => {
         isOpen={showConfirmDialog}
         title="Remove Applications?"
         message={
-          confirmationData
-            ? `${confirmationData.message}.\n\nThe following recent applications will be removed:\n${confirmationData.applicationsToRemove
-                .map(
-                  (app, index) =>
-                    `${index + 1}. ${app.userName} (${app.userEmail}) - ${app.studentType} - ${app.hoursAllocated} hours`
-                )
-                .join('\n')}\n\nTA hours will be returned to affected students. Do you want to continue?`
-            : ""
+          confirmationData ? (
+            <div className="space-y-3">
+              <p>{confirmationData.message}.</p>
+              <p className="font-semibold">The following recent applications will be removed:</p>
+              <ul className="list-decimal list-inside space-y-1 pl-2">
+                {confirmationData.applicationsToRemove.map((app, index) => (
+                  <li key={index} className="text-sm">
+                    {app.userName} ({app.userEmail}) - {app.studentType} - {app.hoursAllocated} hours
+                  </li>
+                ))}
+              </ul>
+              <p className="font-semibold mt-4">TA hours will be returned to affected students.</p>
+              <p className="text-warning">Do you want to continue?</p>
+            </div>
+          ) : ""
         }
         onConfirm={handleConfirmUpdate}
         onCancel={handleCancelConfirm}
         confirmButtonText="Yes, Update Module"
-        cancelButtonText="Cancel"
+        cancelButtonText="Cancle"
         confirmButtonClassName="px-4 py-2 font-medium text-white bg-red-600 rounded-lg shadow-sm hover:bg-red-700 transition"
         isProcessing={isUpdating}
       />

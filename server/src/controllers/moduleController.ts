@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { open } from "fs";
 const ModuleDetails = require("../models/ModuleDetails");
 const User = require("../models/User");
 const RecruitmentRound = require("../models/RecruitmentRound");
@@ -260,35 +261,46 @@ const updateModule = async (req: Request, res: Response): Promise<Response> => {
     let undergradApplicationsToRemove = 0;
     let postgradApplicationsToRemove = 0;
 
-    if (existingModule.openForPostgraduates) {
-      const currentPostgradCounts = existingModule.postgraduateCounts;
-      if (currentPostgradCounts && currentPostgradCounts.accepted > newPostgradRequired) {
-        return res.status(400).json({
-          error:
-            "New postgraduate TA count cannot be less than the number of already accepted postgraduate TAs",
-        });
-      }
-    }
-
+    // Check undergraduate counts
     if (existingModule.openForUndergraduates) {
       const currentUndergradCounts = existingModule.undergraduateCounts;
       if (currentUndergradCounts) {
+        // Potential count = accepted + pending (applied - reviewed)
         const potentialUndergradCount =
           currentUndergradCounts.accepted +
-          currentUndergradCounts.applied -
-          currentUndergradCounts.reviewed;
+          (currentUndergradCounts.applied - currentUndergradCounts.reviewed);
+        
         if (currentUndergradCounts.accepted > newUndergradRequired) {
           return res.status(400).json({
             error:
               "New undergraduate TA count cannot be less than the number of already accepted undergraduate TAs",
           });
-        } else if (currentUndergradCounts.accepted === newUndergradRequired) {
-          if (existingModule.moduleStatus === "advertised") {
-            existingModule.moduleStatus = "full" as any;
-          }
         } else if (potentialUndergradCount > newUndergradRequired) {
+          // Need to remove some pending applications
           undergradApplicationsToRemove =
             potentialUndergradCount - newUndergradRequired;
+        }
+      }
+    }
+
+    // Check postgraduate counts
+    if (existingModule.openForPostgraduates) {
+      const currentPostgradCounts = existingModule.postgraduateCounts;
+      if (currentPostgradCounts) {
+        // Potential count = accepted + pending (applied - reviewed)
+        const potentialPostgradCount =
+          currentPostgradCounts.accepted +
+          (currentPostgradCounts.applied - currentPostgradCounts.reviewed);
+        
+        if (currentPostgradCounts.accepted > newPostgradRequired) {
+          return res.status(400).json({
+            error:
+              "New postgraduate TA count cannot be less than the number of already accepted postgraduate TAs",
+          });
+        } else if (potentialPostgradCount > newPostgradRequired) {
+          // Need to remove some pending applications
+          postgradApplicationsToRemove =
+            potentialPostgradCount - newPostgradRequired;
         }
       }
     }
@@ -361,17 +373,21 @@ const updateModule = async (req: Request, res: Response): Promise<Response> => {
           userId: (application.userId as any)._id,
           recSeriesId: recSeriesId,
         });
+        
         if (appliedModule) {
+          // Return hours to user
           appliedModule.availableHoursPerWeek = (appliedModule.availableHoursPerWeek || 0) + hoursToReturn;
+          
+          // Remove the application ID from appliedModules array
           const currentAppliedModules = appliedModule.appliedModules || [];
           appliedModule.appliedModules = currentAppliedModules.filter(
-            (modId: any) => modId.toString() !== moduleId
+            (appId: any) => appId.toString() !== application._id.toString()
           );
-          await TAApplication.deleteOne({ _id: application._id })
-            .then(async () => await appliedModule.save())
-            .catch((err: Error) => {
-              console.error("Error removing application:", err);
-            });
+          
+          // Delete the application and save the updated appliedModule
+          await TAApplication.deleteOne({ _id: application._id });
+          await appliedModule.save();
+          
           affectedUsers.push({
             name: (application.userId as any).name,
             email: (application.userId as any).email,
@@ -394,29 +410,33 @@ const updateModule = async (req: Request, res: Response): Promise<Response> => {
       openForPostgraduates: newPostgradRequired > 0,
     };
 
-    // Update counts (recalculate after potential application removal)
+    // Recalculate counts after potential application removal
     const remainingApplications = await TAApplication.find({
       moduleId: moduleId,
     }).populate("userId", "role");
-    const newAppliedUndergradCount = remainingApplications.filter(
+    
+    const undergradApps = remainingApplications.filter(
       (app: any) => (app.userId as any).role === "undergraduate"
-    ).length;
-    const newAppliedPostgradCount = remainingApplications.filter(
+    );
+    const postgradApps = remainingApplications.filter(
       (app: any) => (app.userId as any).role === "postgraduate"
-    ).length;
+    );
 
     if (newUndergradRequired > 0) {
-      const reviewedCount = existingModule.undergraduateCounts?.reviewed || 0;
-      const acceptedCount = existingModule.undergraduateCounts?.accepted || 0;
-      const remainingCount =
-        newUndergradRequired -
-        (acceptedCount + newAppliedUndergradCount - reviewedCount);
+      const acceptedCount = undergradApps.filter((app: any) => app.status === "accepted").length;
+      const reviewedCount = undergradApps.filter((app: any) => app.status !== "pending").length;
+      const appliedCount = undergradApps.length;
+      
+      // Remaining = required - (accepted + pending)
+      const pendingCount = appliedCount - reviewedCount;
+      const remainingCount = newUndergradRequired - (acceptedCount + pendingCount);
+      
       updateData.undergraduateCounts = {
         required: newUndergradRequired,
-        applied: newAppliedUndergradCount,
+        applied: appliedCount,
         remaining: Math.max(0, remainingCount),
-        reviewed: existingModule.undergraduateCounts?.reviewed || 0,
-        accepted: existingModule.undergraduateCounts?.accepted || 0,
+        reviewed: reviewedCount,
+        accepted: acceptedCount,
         docSubmitted: existingModule.undergraduateCounts?.docSubmitted || 0,
         appointed: existingModule.undergraduateCounts?.appointed || 0,
       };
@@ -425,23 +445,58 @@ const updateModule = async (req: Request, res: Response): Promise<Response> => {
     }
 
     if (newPostgradRequired > 0) {
-      const reviewedCount = existingModule.postgraduateCounts?.reviewed || 0;
-      const acceptedCount = existingModule.postgraduateCounts?.accepted || 0;
-      const remainingPostgradCount =
-        newPostgradRequired -
-        (acceptedCount + newAppliedPostgradCount - reviewedCount);
+      const acceptedCount = postgradApps.filter((app: any) => app.status === "accepted").length;
+      const reviewedCount = postgradApps.filter((app: any) => app.status !== "pending").length;
+      const appliedCount = postgradApps.length;
+      
+      // Remaining = required - (accepted + pending)
+      const pendingCount = appliedCount - reviewedCount;
+      const remainingCount = newPostgradRequired - (acceptedCount + pendingCount);
+      
       updateData.postgraduateCounts = {
         required: newPostgradRequired,
-        applied: newAppliedPostgradCount,
-        remaining: Math.max(0, remainingPostgradCount),
-        reviewed: existingModule.postgraduateCounts?.reviewed || 0,
-        accepted: existingModule.postgraduateCounts?.accepted || 0,
+        applied: appliedCount,
+        remaining: Math.max(0, remainingCount),
+        reviewed: reviewedCount,
+        accepted: acceptedCount,
         docSubmitted: existingModule.postgraduateCounts?.docSubmitted || 0,
         appointed: existingModule.postgraduateCounts?.appointed || 0,
       };
     } else {
       updateData.postgraduateCounts = null;
     }
+
+    // Determine module status based on new counts
+    let newModuleStatus = existingModule.moduleStatus;
+    
+    if (updateData.openForUndergraduates && updateData.openForPostgraduates) {
+      // Both types open
+      const undergradFull = updateData.undergraduateCounts.remaining === 0;
+      const postgradFull = updateData.postgraduateCounts.remaining === 0;
+      
+      if (undergradFull && postgradFull) {
+        newModuleStatus = "full";
+      } else if (updateData.undergraduateCounts.accepted === updateData.undergraduateCounts.required &&
+                 updateData.postgraduateCounts.accepted === updateData.postgraduateCounts.required) {
+        newModuleStatus = "getting documents";
+      }
+    } else if (updateData.openForUndergraduates) {
+      // Only undergrad open
+      if (updateData.undergraduateCounts.remaining === 0) {
+        newModuleStatus = "full";
+      } else if (updateData.undergraduateCounts.accepted === updateData.undergraduateCounts.required) {
+        newModuleStatus = "getting documents";
+      }
+    } else if (updateData.openForPostgraduates) {
+      // Only postgrad open
+      if (updateData.postgraduateCounts.remaining === 0) {
+        newModuleStatus = "full";
+      } else if (updateData.postgraduateCounts.accepted === updateData.postgraduateCounts.required) {
+        newModuleStatus = "getting documents";
+      }
+    }
+    
+    updateData.moduleStatus = newModuleStatus;
 
     const updatedModule = await ModuleDetails.findByIdAndUpdate(
       moduleId,

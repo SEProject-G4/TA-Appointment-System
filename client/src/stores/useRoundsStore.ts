@@ -32,6 +32,7 @@ interface RoundsState {
   ) => void;
   deleteModuleFromRound: (roundId: string, moduleId: string) => void;
   hasModulesWithStatusInRound: (roundId: string, status: string) => boolean;
+  refreshModule(roundId: string, moduleId: string): Promise<void>;
 }
 
 export const useRoundsStore = create<RoundsState>((set, get) => ({
@@ -295,5 +296,17 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
     return Object.values(round.modules).some(
       (module) => module.moduleStatus === status
     );
+  },
+  refreshModule: async (roundId: string, moduleId: string): Promise<void> => {
+    try {
+      const response = await axiosInstance.get(
+        `/modules/${moduleId}`
+      );
+      const updatedModule = response.data as ModuleDetails;
+      // Update the module in the store
+      get().updateModuleInRound(roundId, moduleId, updatedModule);
+    } catch (error) {
+      console.error(`Error refreshing module ${moduleId} in round ${roundId}:`, error);
+    }
   },
 }));

@@ -376,21 +376,21 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     }
   };
 
-  const updateModuleStatus = async (id: string, newStatus: string) => {
-    console.log(`Updating module ${id} status to ${newStatus}`);
-    try {
-      await axiosInstance.put(`/modules/${id}/change-status`, {
-        status: newStatus,
-      });
-      showToast("Module status updated successfully", "success");
-    } catch (error) {
-      console.error("Error updating module status:", error);
-      showToast("Failed to update module status", "error");
-    }
-  };
+  // const updateModuleStatus = async (id: string, newStatus: string) => {
+  //   console.log(`Updating module ${id} status to ${newStatus}`);
+  //   try {
+  //     await axiosInstance.put(`/modules/${id}/change-status`, {
+  //       status: newStatus,
+  //     });
+  //     showToast("Module status updated successfully", "success");
+  //   } catch (error) {
+  //     console.error("Error updating module status:", error);
+  //     showToast("Failed to update module status", "error");
+  //   }
+  // };
 
   const handleEditModule = (moduleData: ModuleDetails) => {
-    navigate(`/edit-module/${moduleData._id}`, { state: { moduleData } });
+    navigate(`/edit-module/${moduleData._id}`, { state: { roundId: roundId, moduleId: moduleData._id } });
   };
 
   const notifyCoordinators = async (moduleData: ModuleDetails) => {
@@ -540,7 +540,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
               "outline-primary text-text-inverted bg-primary hover:bg-primary-light",
           },
         ];
-      case "getting-documents":
+      case "getting documents":
         return [
           {
             label: "View Applications",
@@ -659,7 +659,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
             <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
               Change hour limits
             </li>
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted" onClick={() => navigate("/edit-module/"+_id)}>
+            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted" onClick={() => navigate("/edit-module/"+_id, { state: { roundId: roundId, moduleId: _id } })}>
               Edit
             </li>
             <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
