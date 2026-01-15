@@ -47,12 +47,26 @@ const deleteApplication = async (req: Request, res: Response): Promise<Response>
         module.undergraduateCounts.applied -= 1;
         if (application.status === "pending") {
           module.undergraduateCounts.remaining += 1;
-          module.moduleStatus = "advertised";
+          const now = new Date();
+          const applicationDueDate = new Date(module.applicationDueDate);
+          if (
+            module.moduleStatus !== "advertised" &&
+            applicationDueDate > now
+          ) {
+            module.moduleStatus = "advertised";
+          }
         } else if (application.status === "accepted") {
           module.undergraduateCounts.reviewed -= 1;
           module.undergraduateCounts.accepted -= 1;
           module.undergraduateCounts.remaining += 1;
-          module.moduleStatus = "advertised";
+          const now = new Date();
+          const applicationDueDate = new Date(module.applicationDueDate);
+          if (
+            module.moduleStatus !== "advertised" &&
+            applicationDueDate > now
+          ) {
+            module.moduleStatus = "advertised";
+          }
         } else if (application.status === "rejected") {
           module.undergraduateCounts.reviewed -= 1;
         }
@@ -60,12 +74,26 @@ const deleteApplication = async (req: Request, res: Response): Promise<Response>
         module.postgraduateCounts.applied -= 1;
         if (application.status === "pending") {
           module.postgraduateCounts.remaining += 1;
-          module.moduleStatus = "advertised";
+          const now = new Date();
+          const applicationDueDate = new Date(module.applicationDueDate);
+          if (
+            module.moduleStatus !== "advertised" &&
+            applicationDueDate > now
+          ) {
+            module.moduleStatus = "advertised";
+          }
         } else if (application.status === "accepted") {
           module.postgraduateCounts.reviewed -= 1;
           module.postgraduateCounts.accepted -= 1;
           module.postgraduateCounts.remaining += 1;
-          module.moduleStatus = "advertised";
+          const now = new Date();
+          const applicationDueDate = new Date(module.applicationDueDate);
+          if (
+            module.moduleStatus !== "advertised" &&
+            applicationDueDate > now
+          ) {
+            module.moduleStatus = "advertised";
+          }
         } else if (application.status === "rejected") {
           module.postgraduateCounts.reviewed -= 1;
         }

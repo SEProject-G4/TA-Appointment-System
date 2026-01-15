@@ -42,9 +42,9 @@ const deleteUserDocuments = async (
       .filter((id: string) => id);
 
     // Delete Google Drive folders
-    if (driveFolderIds.length > 0) {
-      await deleteGoogleDriveFolders(driveFolderIds);
-    }
+    // if (driveFolderIds.length > 0) {
+    //   await deleteGoogleDriveFolders(driveFolderIds);
+    // }
 
     // Delete document records
     await Document.deleteMany({ userId });
@@ -104,6 +104,15 @@ const deleteUserApplications = async (
           }
         } else if (application.status === "pending") {
           counts.applied = Math.max(0, counts.applied - 1);
+          counts.remaining = counts.remaining + 1;
+          const now = new Date();
+          const applicationDueDate = new Date(module.applicationDueDate);
+          if (
+            module.moduleStatus !== "advertised" &&
+            applicationDueDate > now
+          ) {
+            module.moduleStatus = "advertised";
+          }
         } else if (application.status === "rejected") {
           counts.applied = Math.max(0, counts.applied - 1);
           counts.reviewed = Math.max(0, counts.reviewed - 1);
@@ -440,7 +449,7 @@ export const deleteRecruitmentRound = async (
       return { success: false, message: "Recruitment round not found" };
     }
 
-    if (recruitmentRound.status !== "closed") {
+    if (recruitmentRound.status !== "archived") {
       await session.abortTransaction();
       return {
         success: false,
@@ -466,9 +475,9 @@ export const deleteRecruitmentRound = async (
           .filter((id: string) => id);
 
         // Delete Google Drive folders (outside transaction for external API)
-        if (driveFolderIds.length > 0) {
-          await deleteGoogleDriveFolders(driveFolderIds);
-        }
+        // if (driveFolderIds.length > 0) {
+        //   await deleteGoogleDriveFolders(driveFolderIds);
+        // }
 
         // Delete documents
         await Document.deleteMany({ _id: { $in: documentIds } });

@@ -246,6 +246,7 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                 const response = await axiosInstance.delete(
                   `/recruitment-series/${_id}`
                 );
+                console.log("Delete Recruitment Series Response:", response);
                 if (response.status === 200) {
                   showToast(
                     "Recruitment round deleted successfully with all its associated data.",
@@ -257,6 +258,8 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                 // Optionally refresh the list or provide feedback
               } catch (error) {
                 console.error("Error deleting recruitment series:", error);
+              } finally {
+                closeModal();
               }
             }}
           >

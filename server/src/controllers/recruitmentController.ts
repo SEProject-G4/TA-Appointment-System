@@ -1251,7 +1251,8 @@ const deleteRecruitmentRoundById = async (
     
     if (!result.success) {
       // Distinguish between not found (404) and validation errors (400)
-      const statusCode = result.message.includes("not found") ? 404 : 400;
+      const statusCode = result.message.includes("not found") ? 404 : 500;
+      console.log('Error while deleting recruitment round', result.message);
       return res.status(statusCode).json({ message: result.message });
     }
     
