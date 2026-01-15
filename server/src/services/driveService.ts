@@ -21,7 +21,7 @@ interface UploadedFile {
 }
 
 // const SERVICE_ACCOUNT_FILE = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "{}");
-const SERVICE_ACCOUNT_FILE = path.join(__dirname, "../../service-account-key.json");
+// const SERVICE_ACCOUNT_FILE = path.join(__dirname, "../../service-account-key.json");
 
 // Configure for Shared Drive or regular folder
 const USE_SHARED_DRIVE = process.env.USE_SHARED_DRIVE === "true";
@@ -29,7 +29,7 @@ const SHARED_DRIVE_ID = process.env.SHARED_DRIVE_ID;
 const PARENT_FOLDER_ID = process.env.PARENT_FOLDER_ID || null; // For regular Drive
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: SERVICE_ACCOUNT_FILE,
+  keyFilename: process.env.GOOGLE_SERVICE_ACCOUNT,
   scopes: ["https://www.googleapis.com/auth/drive"],
 });
 
