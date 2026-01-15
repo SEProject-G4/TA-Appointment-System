@@ -19,7 +19,7 @@ const appliedModulesSchema = new Schema<IAppliedModules>({
   },
   recSeriesId: {
     type: Schema.Types.ObjectId,
-    ref: "RecSeries",
+    ref: "RecruitmentRound",
     required: true,
   },
   availableHoursPerWeek: {
@@ -40,7 +40,7 @@ const appliedModulesSchema = new Schema<IAppliedModules>({
   },
   Documents: {
     type: Schema.Types.ObjectId,
-    ref: "TaDocumentSubmission"
+    ref: "Document"
   },
 });
 

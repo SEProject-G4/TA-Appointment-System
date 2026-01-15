@@ -519,15 +519,23 @@ const acceptApplication = async (req: Request, res: Response): Promise<Response>
     await Promise.all(updatePromises);
 
     const moduleAfterUpdate = await ModuleDetails.findById(applicationModuleId);
-    const hasAcceptedTAs =
-      (moduleAfterUpdate!.undergraduateCounts?.accepted || 0) > 0 ||
-      (moduleAfterUpdate!.postgraduateCounts?.accepted || 0) > 0;
-
-    if (hasAcceptedTAs && moduleAfterUpdate!.moduleStatus !== "getting documents") {
+    
+    // Check if all required positions are now filled (last request approved)
+    const undergradRequired = moduleAfterUpdate!.undergraduateCounts?.required || 0;
+    const undergradAccepted = moduleAfterUpdate!.undergraduateCounts?.accepted || 0;
+    const postgradRequired = moduleAfterUpdate!.postgraduateCounts?.required || 0;
+    const postgradAccepted = moduleAfterUpdate!.postgraduateCounts?.accepted || 0;
+    
+    const undergradFilled = undergradRequired === 0 || undergradAccepted >= undergradRequired;
+    const postgradFilled = postgradRequired === 0 || postgradAccepted >= postgradRequired;
+    const allPositionsFilled = undergradFilled && postgradFilled;
+    
+    // Change status to "getting documents" when the last required application is approved
+    if (allPositionsFilled && moduleAfterUpdate!.moduleStatus !== "getting documents") {
       await ModuleDetails.findByIdAndUpdate(applicationModuleId, {
         $set: { moduleStatus: "getting documents" },
       });
-      console.log(`Module ${module.moduleCode} status updated to 'getting documents'`);
+      console.log(`Module ${module.moduleCode} status updated to 'getting documents' - all required positions filled`);
     }
 
     // Send email notification asynchronously
@@ -662,6 +670,14 @@ const rejectApplication = async (req: Request, res: Response): Promise<Response>
     }
 
     await Promise.all(updatePromises);
+
+    // If module status is "full" and an application is rejected, change status to "advertised"
+    if (module.moduleStatus === "full") {
+      await ModuleDetails.findByIdAndUpdate(applicationModuleId, {
+        $set: { moduleStatus: "advertised" },
+      });
+      console.log(`Module ${module.moduleCode} status updated from 'full' to 'advertised' after rejection`);
+    }
 
     console.log("lecturer rejectApplication -> rejected application", applicationId, "for", coordinatorId);
 

@@ -322,13 +322,101 @@ const getAcceptedModules = async (req: Request, res: Response): Promise<Response
       },
     });
 
-    const appliedModulesDoc = await AppliedModules.findOne({
+    const currentRecSeriesId = activeRecSeries[0]?._id;
+    
+    // Filter acceptedApplications to only include those that actually have accepted applications
+    // (The match filter in populate filters the array, but the parent document is still returned)
+    const appliedModulesWithAccepted = acceptedApplications.filter((app: any) => 
+      app.appliedModules && app.appliedModules.length > 0
+    );
+    
+    // Check ALL AppliedModules for this user (across all recruitment rounds)
+    // Check if ANY of them have isDocSubmitted: false
+    // If all have isDocSubmitted: true, then docSubmissionStatus should be true (all submitted - disable button)
+    // If any have isDocSubmitted: false, then docSubmissionStatus should be false (needs submission - enable button)
+    
+    const allAppliedModulesForUser = await AppliedModules.find({
       userId,
-      recSeriesId: activeRecSeries[0]?._id,
-    });
-    const docSubmissionStatus = appliedModulesDoc?.isDocSubmitted || false;
+    }).lean();
+    
+    let docSubmissionStatus = true; // Default to true (all submitted - button disabled)
+    
+    if (allAppliedModulesForUser && allAppliedModulesForUser.length > 0) {
+      // Check if ANY AppliedModules for this user has isDocSubmitted: false
+      const hasUnsubmittedDocs = allAppliedModulesForUser.some((app: any) => {
+        return !app.isDocSubmitted;
+      });
+      docSubmissionStatus = !hasUnsubmittedDocs; // If any are unsubmitted, status is false (enable button)
+    } else {
+      // No AppliedModules records for this user, so no need to submit documents
+      docSubmissionStatus = true; // Button disabled
+    }
 
-    return res.status(200).json({ acceptedApplications, docSubmissionStatus });
+    // Fetch current round's submitted document if it exists
+    let currentRoundDocument = null;
+    if (currentRecSeriesId) {
+      const currentAppliedModule = await AppliedModules.findOne({
+        userId,
+        recSeriesId: currentRecSeriesId,
+        isDocSubmitted: true,
+        Documents: { $exists: true, $ne: null },
+      })
+        .populate("recSeriesId", "name")
+        .populate("Documents")
+        .lean();
+
+      if (currentAppliedModule && currentAppliedModule.Documents) {
+        currentRoundDocument = {
+          _id: currentAppliedModule.Documents._id,
+          recSeriesName: currentAppliedModule.recSeriesId?.name || "Current Round",
+          recSeriesId: currentAppliedModule.recSeriesId?._id?.toString(),
+          bankAccountName: currentAppliedModule.Documents.bankAccountName,
+          address: currentAppliedModule.Documents.address,
+          nicNumber: currentAppliedModule.Documents.nicNumber,
+          accountNumber: currentAppliedModule.Documents.accountNumber,
+          studentType: currentAppliedModule.Documents.studentType,
+          driveFiles: currentAppliedModule.Documents.driveFiles,
+          createdAt: currentAppliedModule.Documents.createdAt,
+          isCurrentRound: true,
+        };
+      }
+    }
+
+    // Fetch previously submitted documents from other recruitment rounds through AppliedModules
+    const previousAppliedModules = await AppliedModules.find({
+      userId,
+      recSeriesId: { $ne: currentRecSeriesId },
+      isDocSubmitted: true,
+      Documents: { $exists: true, $ne: null },
+    })
+      .populate("recSeriesId", "name")
+      .populate("Documents")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const previousDocuments = previousAppliedModules
+      .filter((am: any) => am.Documents) // Only include those with documents
+      .map((am: any) => ({
+        _id: am.Documents._id,
+        recSeriesName: am.recSeriesId?.name || "Unknown Round",
+        recSeriesId: am.recSeriesId?._id?.toString(),
+        bankAccountName: am.Documents.bankAccountName,
+        address: am.Documents.address,
+        nicNumber: am.Documents.nicNumber,
+        accountNumber: am.Documents.accountNumber,
+        studentType: am.Documents.studentType,
+        driveFiles: am.Documents.driveFiles,
+        createdAt: am.Documents.createdAt,
+        isCurrentRound: false,
+      }));
+
+    return res.status(200).json({
+      acceptedApplications: appliedModulesWithAccepted, // Only return AppliedModules that have accepted applications
+      docSubmissionStatus,
+      currentRecSeriesId: currentRecSeriesId?.toString(),
+      currentRoundDocument, // Current round's document if submitted
+      previousDocuments,
+    });
   } catch (error) {
     console.error("Error fetching accepted modules:", error);
     return res.status(500).json({ message: "Error fetching accepted modules", error });
