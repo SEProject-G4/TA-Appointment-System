@@ -1,45 +1,7 @@
 import CommonAvatar from "../../assets/images/common_avatar.jpg";
 
-interface ModuleDetails {
-  _id: string;
-  recruitmentSeriesId: string;
-  moduleCode: string;
-  moduleName: string;
-  semester: number;
-  moduleStatus: string;
-  coordinators: {
-    id: string;
-    displayName: string;
-    email: string;
-    profilePicture: string;
-  }[];
-  applicationDueDate: Date;
-  documentDueDate: Date;
-  requiredTAHours: number;
-  openForUndergraduates: boolean;
-  openForPostgraduates: boolean;
-
-  undergraduateCounts: {
-    required: number;
-    remaining: number;
-    applied: number;
-    reviewed: number;
-    accepted: number;
-    docSubmitted: number;
-    appointed: number;
-  };
-
-  postgraduateCounts: {
-    required: number;
-    remaining: number;
-    applied: number;
-    reviewed: number;
-    accepted: number;
-    docSubmitted: number;
-    appointed: number;
-  };
-  requirements: string;
-}
+import type { ModuleDetails } from "../../types/module";
+import { LuRefreshCw } from "react-icons/lu";
 
 const ProgressBar = ({
   label,
@@ -93,7 +55,7 @@ const getClassForStatus = (status: string) => {
       return "bg-purple-100 text-purple-800";
     case "full":
       return "bg-green-100 text-green-800";
-    case "getting-documents":
+    case "getting documents":
       return "bg-pink-100 text-pink-800";
     case "closed":
       return "bg-black text-white";
@@ -118,7 +80,7 @@ const BasicModuleInfoTab = ({ moduleData }: { moduleData: ModuleDetails }) => {
     : 0;
 
   return (
-    <div className="w-full p-4 flex flex-col gap-y-3">
+    <div className="relative w-full p-4 flex flex-col gap-y-3">
       <div className="flex w-full items-center justify-start">
         <p className="text-text-secondary text-md flex-[2] flex">
           Module Code:
@@ -153,7 +115,7 @@ const BasicModuleInfoTab = ({ moduleData }: { moduleData: ModuleDetails }) => {
         <p className="text-text-secondary text-md flex-1 flex items-center">
           Module Status:
           <span
-            className={`px-3 py-1 rounded-full font-semibold text-text-primary ml-2 ${getClassForStatus(
+            className={`px-3 py-1 rounded-full font-semibold ml-2 ${getClassForStatus(
               moduleData.moduleStatus
             )}`}
           >
@@ -256,61 +218,61 @@ const BasicModuleInfoTab = ({ moduleData }: { moduleData: ModuleDetails }) => {
           <p className="text-text-primary text-2xl w-full text-center mb-2">
             Undergraduates
           </p>
-        {moduleData.openForUndergraduates ? (
-          <>
-          <p className="text-text-primary text-7xl w-full text-center font-raleway">
-            {moduleData.undergraduateCounts.required}
-          </p>
-          <p className="text-text-primary text-md w-full text-center mb-2">
-            Required
-          </p>
-          <div className="flex flex-col gap-y-8 mt-2 w-full p-2">
-            <ProgressBar
-              label="Applied so far"
-              value={moduleData.undergraduateCounts.applied}
-              maxValue={moduleData.undergraduateCounts.applied}
-              upperLimit={undergradUpperLimit}
-              requiredValue={moduleData.undergraduateCounts.required}
-            />
+          {moduleData.openForUndergraduates ? (
+            <>
+              <p className="text-text-primary text-7xl w-full text-center font-raleway">
+                {moduleData.undergraduateCounts.required}
+              </p>
+              <p className="text-text-primary text-md w-full text-center mb-2">
+                Required
+              </p>
+              <div className="flex flex-col gap-y-8 mt-2 w-full p-2">
+                <ProgressBar
+                  label="Applied so far"
+                  value={moduleData.undergraduateCounts.applied}
+                  maxValue={moduleData.undergraduateCounts.applied}
+                  upperLimit={undergradUpperLimit}
+                  requiredValue={moduleData.undergraduateCounts.required}
+                />
 
-            <ProgressBar
-              label="Reviewed applications"
-              value={moduleData.undergraduateCounts.reviewed}
-              maxValue={moduleData.undergraduateCounts.applied}
-              upperLimit={undergradUpperLimit}
-              requiredValue={moduleData.undergraduateCounts.required}
-            />
+                <ProgressBar
+                  label="Reviewed applications"
+                  value={moduleData.undergraduateCounts.reviewed}
+                  maxValue={moduleData.undergraduateCounts.applied}
+                  upperLimit={undergradUpperLimit}
+                  requiredValue={moduleData.undergraduateCounts.required}
+                />
 
-            <ProgressBar
-              label="Approved applications"
-              value={moduleData.undergraduateCounts.accepted}
-              maxValue={moduleData.undergraduateCounts.reviewed}
-              upperLimit={undergradUpperLimit}
-              requiredValue={moduleData.undergraduateCounts.required}
-            />
+                <ProgressBar
+                  label="Approved applications"
+                  value={moduleData.undergraduateCounts.accepted}
+                  maxValue={moduleData.undergraduateCounts.reviewed}
+                  upperLimit={undergradUpperLimit}
+                  requiredValue={moduleData.undergraduateCounts.required}
+                />
 
-            <ProgressBar
-              label="Document submitted"
-              value={moduleData.undergraduateCounts.docSubmitted}
-              maxValue={moduleData.undergraduateCounts.accepted}
-              upperLimit={undergradUpperLimit}
-              requiredValue={moduleData.undergraduateCounts.required}
-            />
+                <ProgressBar
+                  label="Document submitted"
+                  value={moduleData.undergraduateCounts.docSubmitted}
+                  maxValue={moduleData.undergraduateCounts.accepted}
+                  upperLimit={undergradUpperLimit}
+                  requiredValue={moduleData.undergraduateCounts.required}
+                />
 
-            <ProgressBar
+                {/* <ProgressBar
               label="Appointed"
               value={moduleData.undergraduateCounts.appointed}
               maxValue={moduleData.undergraduateCounts.docSubmitted}
               upperLimit={undergradUpperLimit}
               requiredValue={moduleData.undergraduateCounts.required}
-            />
-          </div>
-          </>
-        ) : (
-          <p className="text-text-primary text-3xl w-full text-center font-raleway">
-            N/A
-          </p>
-        )}
+            /> */}
+              </div>
+            </>
+          ) : (
+            <p className="text-text-primary text-3xl w-full text-center font-raleway">
+              N/A
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col flex-1 rounded-md px-4 py-5 outline outline-1 outline-text-secondary/20 gap-y-3">
@@ -325,49 +287,49 @@ const BasicModuleInfoTab = ({ moduleData }: { moduleData: ModuleDetails }) => {
               <p className="text-text-primary text-md w-full text-center mb-2">
                 Required
               </p>
-          
-          <div className="flex flex-col gap-y-8 mt-2 w-full p-2">
-            <ProgressBar
-              label="Applied so far"
-              value={moduleData.postgraduateCounts.applied}
-              maxValue={moduleData.postgraduateCounts.applied}
-              upperLimit={postgradUpperLimit}
-              requiredValue={moduleData.postgraduateCounts.required}
-            />
 
-            <ProgressBar
-              label="Reviewed applications"
-              value={moduleData.postgraduateCounts.reviewed}
-              maxValue={moduleData.postgraduateCounts.applied}
-              upperLimit={postgradUpperLimit}
-              requiredValue={moduleData.postgraduateCounts.required}
-            />
+              <div className="flex flex-col gap-y-8 mt-2 w-full p-2">
+                <ProgressBar
+                  label="Applied so far"
+                  value={moduleData.postgraduateCounts.applied}
+                  maxValue={moduleData.postgraduateCounts.applied}
+                  upperLimit={postgradUpperLimit}
+                  requiredValue={moduleData.postgraduateCounts.required}
+                />
 
-            <ProgressBar
-              label="Approved applications"
-              value={moduleData.postgraduateCounts.accepted}
-              maxValue={moduleData.postgraduateCounts.reviewed}
-              upperLimit={postgradUpperLimit}
-              requiredValue={moduleData.postgraduateCounts.required}
-            />
+                <ProgressBar
+                  label="Reviewed applications"
+                  value={moduleData.postgraduateCounts.reviewed}
+                  maxValue={moduleData.postgraduateCounts.applied}
+                  upperLimit={postgradUpperLimit}
+                  requiredValue={moduleData.postgraduateCounts.required}
+                />
 
-            <ProgressBar
-              label="Document submitted"
-              value={moduleData.postgraduateCounts.docSubmitted}
-              maxValue={moduleData.postgraduateCounts.accepted}
-              upperLimit={postgradUpperLimit}
-              requiredValue={moduleData.postgraduateCounts.required}
-            />
+                <ProgressBar
+                  label="Approved applications"
+                  value={moduleData.postgraduateCounts.accepted}
+                  maxValue={moduleData.postgraduateCounts.reviewed}
+                  upperLimit={postgradUpperLimit}
+                  requiredValue={moduleData.postgraduateCounts.required}
+                />
 
-            <ProgressBar
+                <ProgressBar
+                  label="Document submitted"
+                  value={moduleData.postgraduateCounts.docSubmitted}
+                  maxValue={moduleData.postgraduateCounts.accepted}
+                  upperLimit={postgradUpperLimit}
+                  requiredValue={moduleData.postgraduateCounts.required}
+                />
+
+                {/* <ProgressBar
               label="Appointed"
               value={moduleData.postgraduateCounts.appointed}
               maxValue={moduleData.postgraduateCounts.docSubmitted}
               upperLimit={postgradUpperLimit}
               requiredValue={moduleData.postgraduateCounts.required}
-            />
-          </div>
-          </>
+            /> */}
+              </div>
+            </>
           ) : (
             <p className="text-text-primary text-3xl w-full text-center font-raleway">
               N/A

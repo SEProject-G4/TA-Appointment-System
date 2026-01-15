@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
 import axiosInstance from "../../api/axiosConfig";
 import { useModal } from "../../contexts/ModalProvider";
 import { useToast } from "../../contexts/ToastContext";
+import { useRoundsStore } from "../../stores/useRoundsStore";
 
 import { AiOutlineDelete } from "react-icons/ai";
 
-import Loader from "../common/Loader";
+import type { ModuleDetails } from "../../types/module";
+
 import { AddApplicantsModal } from "./RSModuleCard";
 import CommonAvatar from "../../assets/images/common_avatar.jpg";
 
@@ -24,47 +25,6 @@ interface Application {
   createdAt: string;
 }
 
-interface ModuleDetails {
-  _id: string;
-  recruitmentSeriesId: string;
-  moduleCode: string;
-  moduleName: string;
-  semester: number;
-  moduleStatus: string;
-  coordinators: {
-    id: string;
-    displayName: string;
-    email: string;
-    profilePicture: string;
-  }[];
-  applicationDueDate: Date;
-  documentDueDate: Date;
-  requiredTAHours: number;
-  openForUndergraduates: boolean;
-  openForPostgraduates: boolean;
-
-  undergraduateCounts: {
-    required: number;
-    remaining: number;
-    applied: number;
-    reviewed: number;
-    accepted: number;
-    docSubmitted: number;
-    appointed: number;
-  };
-
-  postgraduateCounts: {
-    required: number;
-    remaining: number;
-    applied: number;
-    reviewed: number;
-    accepted: number;
-    docSubmitted: number;
-    appointed: number;
-  };
-  requirements: string;
-}
-
 const getStatusClass = (status: string) => {
   switch (status) {
     case "accepted":
@@ -78,9 +38,18 @@ const getStatusClass = (status: string) => {
   }
 };
 
-const ApplicationsTab = ({ moduleData }: { moduleData:ModuleDetails }) => {
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+const ApplicationsTab = ({
+  moduleData,
+  applications,
+  setApplications,
+  triggerApplicationsFetch,
+}: {
+  moduleData: ModuleDetails;
+  applications: Application[];
+  setApplications: React.Dispatch<React.SetStateAction<Application[]>>;
+  triggerApplicationsFetch: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
+  const refreshModule = useRoundsStore((state) => state.refreshModule);
 
   const undergraduateApplications = applications.filter(
     (app) => app.userId.role === "undergraduate"
@@ -99,6 +68,7 @@ const ApplicationsTab = ({ moduleData }: { moduleData:ModuleDetails }) => {
       setApplications((prevApps) =>
         prevApps.filter((app) => app._id !== applicationId)
       );
+      await refreshModule(moduleData.recruitmentSeriesId, moduleData._id);
     } catch (error) {
       console.error("Error deleting application:", error);
       showToast("Failed to delete application. Please try again.", "error");
@@ -121,6 +91,7 @@ const ApplicationsTab = ({ moduleData }: { moduleData:ModuleDetails }) => {
           <button
             className="px-4 py-2 bg-gray-300 text-black rounded-md"
             onClick={closeModal}
+            title="Cancel Deletion"
           >
             Cancel
           </button>
@@ -130,6 +101,7 @@ const ApplicationsTab = ({ moduleData }: { moduleData:ModuleDetails }) => {
               deleteApplication(application._id);
               closeModal();
             }}
+            title="Delete Application"
           >
             Delete
           </button>
@@ -138,33 +110,6 @@ const ApplicationsTab = ({ moduleData }: { moduleData:ModuleDetails }) => {
       { showCloseButton: false }
     );
   };
-
-  useEffect(() => {
-    const fetchApplications = async () => {
-      setIsLoading(true);
-      try {
-        const response = await axiosInstance.get(
-          `/modules/${moduleData._id}/applications`
-        );
-        console.log("Fetched applications:", response.data);
-        setApplications(response.data);
-      } catch (error) {
-        console.error("Error fetching applications:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchApplications();
-  }, [moduleData._id]);
-
-  if (isLoading) {
-    return (
-      <div className="w-full p-4 flex flex-col gap-y-3 items-center h-[50vh] justify-center">
-        <Loader className="my-6 w-full" />
-      </div>
-    );
-  }
 
   if (applications.length === 0) {
     return (
@@ -234,12 +179,13 @@ const ApplicationsTab = ({ moduleData }: { moduleData:ModuleDetails }) => {
           application.status.slice(1)}
       </div>
 
-      <div className="dropdown dropdown-left">
+      <div className="">
         <AiOutlineDelete
           className="p-1 hover:bg-warning hover:text-text-inverted hover:outline-warning text-warning rounded-md inline-block h-6 w-6 cursor-pointer outline outline-2 outline-warning/50 font-semibold transition"
           onClick={() => {
             handleDeleteApplication(application);
           }}
+          title="Delete Application"
         />
       </div>
     </div>
@@ -247,58 +193,59 @@ const ApplicationsTab = ({ moduleData }: { moduleData:ModuleDetails }) => {
 
   return (
     <div className="flex flex-col p-4">
-    <div className="w-full flex gap-x-4">
-      {/* Undergraduate Applications */}
-      <div className="flex-1 flex flex-col gap-y-3">
-        <h3 className="text-text-primary text-lg font-semibold mb-2 sticky top-0 z-10">
-          Undergraduate Applications ({undergraduateApplications.length})
-        </h3>
-        <div className="flex flex-col gap-y-3 w-full overflow-y-auto px-2 py-2 max-h-[calc(100vh-200px)]">
-          {undergraduateApplications.length === 0 ? (
-            <p className="text-text-secondary text-center py-8">
-              No undergraduate applications found.
-            </p>
-          ) : (
-            undergraduateApplications.map((application) => (
-              <ApplicationCard
-                key={application._id}
-                application={application}
-              />
-            ))
-          )}
+      <div className="w-full flex gap-x-4">
+        {/* Undergraduate Applications */}
+        <div className="flex-1 flex flex-col gap-y-3">
+          <h3 className="text-text-primary text-lg font-semibold mb-2 sticky top-0 z-10">
+            Undergraduate Applications ({undergraduateApplications.length})
+          </h3>
+          <div className="flex flex-col gap-y-3 w-full overflow-y-auto px-2 py-2 max-h-[calc(100vh-200px)]">
+            {undergraduateApplications.length === 0 ? (
+              <p className="text-text-secondary text-center py-8">
+                No undergraduate applications found.
+              </p>
+            ) : (
+              undergraduateApplications.map((application) => (
+                <ApplicationCard
+                  key={application._id}
+                  application={application}
+                />
+              ))
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Postgraduate Applications */}
-      <div className="flex-1 flex flex-col gap-y-3">
-        <h3 className="text-text-primary text-lg font-semibold mb-2 sticky top-0 z-10">
-          Postgraduate Applications ({postgraduateApplications.length})
-        </h3>
-        <div className="flex flex-col gap-y-3 w-full overflow-y-auto px-2 py-2 max-h-[calc(100vh-200px)]">
-          {postgraduateApplications.length === 0 ? (
-            <p className="text-text-secondary text-center py-8">
-              No postgraduate applications found.
-            </p>
-          ) : (
-            postgraduateApplications.map((application) => (
-              <ApplicationCard
-                key={application._id}
-                application={application}
-              />
-            ))
-          )}
+        {/* Postgraduate Applications */}
+        <div className="flex-1 flex flex-col gap-y-3">
+          <h3 className="text-text-primary text-lg font-semibold mb-2 sticky top-0 z-10">
+            Postgraduate Applications ({postgraduateApplications.length})
+          </h3>
+          <div className="flex flex-col gap-y-3 w-full overflow-y-auto px-2 py-2 max-h-[calc(100vh-200px)]">
+            {postgraduateApplications.length === 0 ? (
+              <p className="text-text-secondary text-center py-8">
+                No postgraduate applications found.
+              </p>
+            ) : (
+              postgraduateApplications.map((application) => (
+                <ApplicationCard
+                  key={application._id}
+                  application={application}
+                />
+              ))
+            )}
+          </div>
         </div>
       </div>
-    </div>
-    <div className="mt-4 rounded-md cursor-pointer px-4 py-1 bg-primary-dark hover:bg-primary text-text-inverted w-fit" onClick={
-        () => {
-            openModal(<AddApplicantsModal moduleData={moduleData} />
-                ,{showCloseButton: false}
-            );
-        }
-    }>
+      <div
+        className="mt-4 rounded-md cursor-pointer px-4 py-1 bg-primary-dark hover:bg-primary text-text-inverted w-fit"
+        onClick={() => {
+          openModal(<AddApplicantsModal moduleData={moduleData} triggerRefreshApplications={triggerApplicationsFetch}/>, {
+            showCloseButton: false,
+          });
+        }}
+      >
         Add Applicants Manually
-    </div>
+      </div>
     </div>
   );
 };

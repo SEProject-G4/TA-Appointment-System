@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import { MdMoreVert, MdClose } from "react-icons/md";
 import CommonAvatar from "../../assets/images/common_avatar.jpg";
 import { FiClock } from "react-icons/fi";
 import { FaUserGraduate } from "react-icons/fa";
 
-import { Checkbox } from "@headlessui/react";
 import CircularProgress from "../common/CircularProgressBar";
 import { useNavigate } from "react-router-dom";
 
@@ -36,7 +35,7 @@ const getClassForStatus = (status: string) => {
       return "bg-purple-100 text-purple-800";
     case "full":
       return "bg-green-100 text-green-800";
-    case "getting-documents":
+    case "getting documents":
       return "bg-pink-100 text-pink-800";
     case "closed":
       return "bg-black text-white";
@@ -45,8 +44,9 @@ const getClassForStatus = (status: string) => {
   }
 };
 
-export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
+export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails, triggerRefreshApplications?:React.Dispatch<React.SetStateAction<boolean>> }> = ({
   moduleData,
+  triggerRefreshApplications,
 }) => {
   const [availableStudents, setAvailableStudents] = useState<Option[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<Option[]>([]);
@@ -65,6 +65,7 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiResults, setApiResults] = useState<Array<any> | null>(null);
+  const refreshModule = useRoundsStore((state) => state.refreshModule);
 
   const fetchEligibleStudents = async (
     type: "undergraduate" | "postgraduate"
@@ -103,6 +104,12 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
     setAvailableStudents((prev) => [...prev, student]);
   };
 
+  useEffect(() => {
+    if (taType) {
+      fetchEligibleStudents(taType);
+    }
+  }, [taType]);
+
   return (
     <div className="p-4">
       <h2 className="text-lg font-semibold mb-2">
@@ -121,7 +128,6 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
                   : "bg-white text-primary"
               }`}
               onClick={() => {
-                fetchEligibleStudents("undergraduate");
                 setTaType("undergraduate");
               }}
             >
@@ -134,7 +140,6 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
                   : "bg-white text-primary"
               }`}
               onClick={() => {
-                fetchEligibleStudents("postgraduate");
                 setTaType("postgraduate");
               }}
             >
@@ -221,11 +226,21 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
                   );
                   // show results in modal
                   setApiResults(response.data.results || []);
-                  showToast(response.data.message || "Applicants processed", "success");
+                  showToast(
+                    response.data.message || "Applicants processed",
+                    "success"
+                  );
+                  await refreshModule(moduleData.recruitmentSeriesId, moduleData._id);
+                  if (triggerRefreshApplications) {
+                    triggerRefreshApplications(true);
+                  }
                 } catch (error: any) {
                   console.error("Error adding selected students:", error);
                   showToast("Failed to add selected students", "error");
-                  const reason = error?.response?.data?.error || error?.message || "Request failed";
+                  const reason =
+                    error?.response?.data?.error ||
+                    error?.message ||
+                    "Request failed";
                   setApiResults([{ name: "", status: "failed", reason }]);
                 } finally {
                   setIsSubmitting(false);
@@ -241,7 +256,9 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
       {isSubmitting && (
         <div className="w-full py-8 flex flex-col items-center">
           <Loader className="my-6 w-full" />
-          <p className="text-sm text-text-secondary mt-4 font-semibold">Processing...</p>
+          <p className="text-sm text-text-secondary mt-4 font-semibold">
+            Processing...
+          </p>
         </div>
       )}
       {/* Show results after submission */}
@@ -249,7 +266,8 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
         <div className="mt-4 w-full">
           <h3 className="text-sm font-semibold mb-2">Results summary</h3>
           <p className="text-sm text-text-secondary mb-2">
-            {apiResults.filter((r) => r.status === "success").length} succeeded, {apiResults.filter((r) => r.status !== "success").length} failed
+            {apiResults.filter((r) => r.status === "success").length} succeeded,{" "}
+            {apiResults.filter((r) => r.status !== "success").length} failed
           </p>
           <div className="max-h-48 overflow-y-auto">
             <ul className="space-y-2">
@@ -257,13 +275,23 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
                 <li key={idx} className="p-2 bg-bg-page rounded-md">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="font-semibold text-sm">{r.name || "Unknown"}</p>
+                      <p className="font-semibold text-sm">
+                        {r.name || "Unknown"}
+                      </p>
                       {r.reason && (
-                        <p className="text-xs text-text-secondary">{r.reason}</p>
+                        <p className="text-xs text-text-secondary">
+                          {r.reason}
+                        </p>
                       )}
                     </div>
                     <div>
-                      <span className={`text-xs font-semibold ${r.status === "success" ? "text-green-600" : "text-red-600"}`}>
+                      <span
+                        className={`text-xs font-semibold ${
+                          r.status === "success"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
                         {r.status}
                       </span>
                     </div>
@@ -288,11 +316,7 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
   );
 };
 
-const RSModuleCard: React.FC<RSModuleCardProps> = ({
-  roundId,
-  moduleId,
-}) => {
-  const [marked, setMarked] = useState(false);
+const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
   const [fetchedModuleData, setFetchedModuleData] =
     useState<ModuleDetails | null>(null);
 
@@ -304,7 +328,9 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   const moduleData = useRoundsStore((state) =>
     state.getModuleById(roundId, moduleId)
   );
-  const updateModuleInStore = useRoundsStore((state) => state.updateModuleInRound);
+  const updateModuleInStore = useRoundsStore(
+    (state) => state.updateModuleInRound
+  );
   const updateRound = useRoundsStore((state) => state.updateRound);
 
   // If module not found in store, return early
@@ -390,20 +416,25 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   // };
 
   const handleEditModule = (moduleData: ModuleDetails) => {
-    navigate(`/edit-module/${moduleData._id}`, { state: { roundId: roundId, moduleId: moduleData._id } });
+    navigate(`/edit-module/${moduleData._id}`, {
+      state: { roundId: roundId, moduleId: moduleData._id },
+    });
   };
 
   const notifyCoordinators = async (moduleData: ModuleDetails) => {
     // Implementation for notifying coordinators
     try {
-      const response = await axiosInstance.put(`/modules/${moduleData._id}/notify`);
-      if (response.status === 200){
+      const response = await axiosInstance.put(
+        `/modules/${moduleData._id}/notify`
+      );
+      if (response.status === 200) {
         showToast(
           `Coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName} are notified successfully`,
           "success"
         );
-        updateModuleInStore(roundId, moduleId, { moduleStatus: "pending changes" });
-
+        updateModuleInStore(roundId, moduleId, {
+          moduleStatus: "pending changes",
+        });
       }
       await fetchModuleDetails(moduleData._id);
     } catch (error) {
@@ -422,8 +453,10 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   const handleAdvertiseModule = async (moduleData: ModuleDetails) => {
     // Implementation for advertising a module
     try {
-      const response = await axiosInstance.put(`/modules/${moduleData._id}/advertise`);
-      const {wasRRStatusChanged, message} = response.data;
+      const response = await axiosInstance.put(
+        `/modules/${moduleData._id}/advertise`
+      );
+      const { wasRRStatusChanged, message } = response.data;
       showToast(
         `${moduleData.moduleCode} - ${moduleData.moduleName} advertised successfully`,
         "success"
@@ -443,7 +476,9 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
 
   const handleViewApplications = (moduleData: ModuleDetails) => {
     // Implementation for viewing applications
-    navigate(`/module-details/${moduleData._id}`, { state: { moduleData, selectedTab: 1 } });
+    navigate(`/module-details/${moduleData._id}`, {
+      state: { roundId:roundId, moduleId:moduleId, selectedTab: 1 },
+    });
   };
 
   const handleSendforApproval = async (moduleData: ModuleDetails) => {
@@ -459,10 +494,6 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
       console.error("Error sending module for approval:", error);
       showToast("Failed to send module for approval", "error");
     }
-  };
-
-  const handleCopyModule = (moduleData: ModuleDetails) => {
-    // Implementation for copying a module
   };
 
   const getActionButtonsOnStatus = (status: string) => {
@@ -552,12 +583,6 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
       case "closed":
         return [
           {
-            label: "Copy Module",
-            action: handleCopyModule,
-            className:
-              "outline-primary text-text-inverted bg-primary hover:bg-primary-light",
-          },
-          {
             label: "Delete",
             action: handleDeleteModule,
             className:
@@ -590,30 +615,11 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   return (
     <div className="hover:shadow-xl flex flex-col p-3 gap-y-2 rounded-md drop-shadow-xl bg-bg-card w-[400px]">
       <div className="flex items-start w-full gap-x-2">
-        <Checkbox
-          checked={marked}
-          onChange={setMarked}
-          className="cursor-pointer group block size-4 rounded border bg-primary-light/10 transition data-[checked]:bg-primary"
-        >
-          <svg
-            className="stroke-bg-card opacity-0 transition group-data-[checked]:opacity-100"
-            viewBox="0 0 14 14"
-            fill="none"
-          >
-            <path
-              d="M3 8L6 11L11 3.5"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </Checkbox>
-
         <p
           className="text-sm text-text-primary text-wrap flex-1 font-semibold flex items-center hover:underline cursor-pointer"
           onClick={() => {
             navigate(`/module-details/${data._id}`, {
-              state: { moduleData: data },
+              state: { roundId: roundId, moduleId: moduleId, selectedTab: 0 },
             });
           }}
         >
@@ -653,17 +659,15 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
             tabIndex={0}
             className="menu outline outline-text-secondary/20 outline-1 gap-y-1 mt-1 z-[10] p-2 shadow dropdown-content bg-bg-card rounded-box w-52 flex"
           >
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
-              Change deadlines
-            </li>
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
-              Change hour limits
-            </li>
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted" onClick={() => navigate("/edit-module/"+_id, { state: { roundId: roundId, moduleId: _id } })}>
-              Edit
-            </li>
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
-              Make a copy
+            <li
+              className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
+              onClick={() =>
+                navigate("/edit-module/" + _id, {
+                  state: { roundId: roundId, moduleId: _id },
+                })
+              }
+            >
+              Edit Details
             </li>
             <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
               Delete

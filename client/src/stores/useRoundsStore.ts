@@ -32,7 +32,7 @@ interface RoundsState {
   ) => void;
   deleteModuleFromRound: (roundId: string, moduleId: string) => void;
   hasModulesWithStatusInRound: (roundId: string, status: string) => boolean;
-  refreshModule(roundId: string, moduleId: string): Promise<void>;
+  refreshModule: (roundId: string, moduleId: string) => Promise<void>;
 }
 
 export const useRoundsStore = create<RoundsState>((set, get) => ({

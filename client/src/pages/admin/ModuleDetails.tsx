@@ -1,57 +1,30 @@
-import { useState, useEffect} from "react";
+import { useState, useEffect, use } from "react";
 import { useLocation } from "react-router-dom";
 
 import BasicModuleInfoTab from "../../components/admin/BasicModuleInfoTab";
 import ApplicationsTab from "../../components/admin/ApplicationsTab";
-
+import { useRoundsStore } from "../../stores/useRoundsStore";
 import axiosInstance from "../../api/axiosConfig";
-import { useToast } from "../../contexts/ToastContext";
 
-import { Tab,
-  TabGroup,
-  TabPanel,
-  TabPanels,
-  TabList, } from "@headlessui/react";
+import type { ModuleDetails } from "../../types/module";
 
-interface ModuleDetails {
+import { Tab, TabGroup, TabPanel, TabPanels, TabList } from "@headlessui/react";
+import { LuRefreshCw } from "react-icons/lu";
+import Loader from "../../components/common/Loader";
+
+interface Application {
   _id: string;
-  recruitmentSeriesId: string;
-  moduleCode: string;
-  moduleName: string;
-  semester: number;
-  moduleStatus: string;
-  coordinators: {
-    id: string;
-    displayName: string;
+  userId: {
+    _id: string;
+    name: string;
     email: string;
-    profilePicture: string;
-  }[];
-  applicationDueDate: Date;
-  documentDueDate: Date;
-  requiredTAHours: number;
-  openForUndergraduates: boolean;
-  openForPostgraduates: boolean;
-  
-  undergraduateCounts: {
-    required: number;
-    remaining: number;
-    applied: number;
-    reviewed: number;
-    accepted: number;
-    docSubmitted: number;
-    appointed: number;
-  } ;
-
-  postgraduateCounts: {
-    required: number;
-    remaining: number;
-    applied: number;
-    reviewed: number;
-    accepted: number;
-    docSubmitted: number;
-    appointed: number;
-  } ;
-  requirements: string;
+    indexNumber?: string;
+    profilePicture?: string;
+    role: "undergraduate" | "postgraduate";
+  };
+  moduleId: string;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: string;
 }
 
 const getClassForStatus = (status: string) => {
@@ -66,7 +39,7 @@ const getClassForStatus = (status: string) => {
       return "bg-purple-100 text-purple-800";
     case "full":
       return "bg-green-100 text-green-800";
-    case "getting-documents":
+    case "getting documents":
       return "bg-pink-100 text-pink-800";
     case "closed":
       return "bg-black text-white";
@@ -76,53 +49,125 @@ const getClassForStatus = (status: string) => {
 };
 
 const ModuleDetails = () => {
-
-    const [moduleDetails, setModuleDetails] = useState<ModuleDetails | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [triggerApplicationsFetch, setTriggerApplicationsFetch] = useState(false);
 
   const location = useLocation();
 
-  const { moduleData, selectedTab } = location.state || {};
+  const { roundId, moduleId, selectedTab } = location.state || {};
+  const moduleDetails = useRoundsStore(
+    (state) => roundId && moduleId && state.getModuleById(roundId, moduleId)
+  );
+  const refreshModuleDetails = useRoundsStore((state) => state.refreshModule);
+
+  const fetchApplications = async () => {
+    try {
+      const response = await axiosInstance.get(
+        `/modules/${moduleId}/applications`
+      );
+      console.log("Fetched applications:", response.data);
+      setApplications(response.data);
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+    } 
+  };
 
   useEffect(() => {
-    if (moduleData) {
-      setModuleDetails(moduleData);
-    }
     if (selectedTab !== undefined) {
       setSelectedIndex(selectedTab);
     }
-  }, [moduleData, selectedTab]);
+  }, [selectedTab]);
+  
+  useEffect(() => {
+    refreshModuleDetails(roundId, moduleId);
+    fetchApplications();
+  }, [moduleId]);
 
+  useEffect(() => {
+    if (triggerApplicationsFetch) {
+      fetchApplications();
+      setTriggerApplicationsFetch(false);
+    }
+  }, [triggerApplicationsFetch]);
 
   return (
-    <div className="bg-bg-page flex flex-col items-center px-20 py-4 min-h-full w-full gap-y-4">
+    <div className="relative bg-bg-page flex flex-col items-center px-20 py-4 min-h-full w-full gap-y-4">
       {moduleDetails ? (
         <>
-          <p className="w-full text-text-primary text-2xl font-semibold">{moduleDetails.moduleCode} - {moduleDetails.moduleName} [Semester {moduleDetails.semester}]
-            <span className={`ml-4 px-3 py-1 rounded-full text-sm font-medium ${getClassForStatus(moduleDetails.moduleStatus)}`}>
-              {moduleDetails.moduleStatus.charAt(0).toUpperCase() + moduleDetails.moduleStatus.slice(1)}
+          <p className="w-full text-text-primary text-2xl font-semibold">
+            {moduleDetails.moduleCode} - {moduleDetails.moduleName} [Semester{" "}
+            {moduleDetails.semester}]
+            <span
+              className={`ml-4 px-3 py-1 rounded-full text-sm font-medium ${getClassForStatus(
+                moduleDetails.moduleStatus
+              )}`}
+            >
+              {moduleDetails.moduleStatus.charAt(0).toUpperCase() +
+                moduleDetails.moduleStatus.slice(1)}
             </span>
           </p>
-          <TabGroup selectedIndex={selectedIndex} onChange={setSelectedIndex} className={"w-full bg-bg-card p-4 rounded-md"}>
+          <button
+            onClick={async () => {
+                setIsPageLoading(true);
+                await fetchApplications();
+                await refreshModuleDetails(roundId, moduleId);
+                setIsPageLoading(false);
+            }}
+            className="absolute top-[90px] mr-2 right-24 h-6 w-6 bg-bg-card text-text-secondary hover:text-primary hover:bg-primary-light/10 rounded-sm outline outline-1 outline-text-secondary/50 flex items-center justify-center transition-colors duration-200"
+            title="Refresh module details & applications"
+          >
+            <LuRefreshCw className="h-4 w-4" />
+          </button>
+          <TabGroup
+            selectedIndex={selectedIndex}
+            onChange={setSelectedIndex}
+            className={"w-full bg-bg-card p-4 rounded-md"}
+          >
             <TabList className="flex border-b border-text-secondary">
-              <Tab className="data-[selected]:border-b-2 data-[selected]:border-primary data-[selected]:text-primary py-2 px-4 cursor-pointer outline-none">Basic Info</Tab>
-              <Tab className="data-[selected]:border-b-2 data-[selected]:border-primary data-[selected]:text-primary py-2 px-4 cursor-pointer outline-none">Applications</Tab>
+              <Tab className="data-[selected]:border-b-2 data-[selected]:border-primary data-[selected]:text-primary py-2 px-4 cursor-pointer outline-none">
+                Basic Info
+              </Tab>
+              <Tab className="data-[selected]:border-b-2 data-[selected]:border-primary data-[selected]:text-primary py-2 px-4 cursor-pointer outline-none">
+                Applications
+              </Tab>
             </TabList>
             <TabPanels>
               <TabPanel className="mt-4">
-                <BasicModuleInfoTab moduleData={moduleDetails} />
+                {isPageLoading && (
+                  <div className="w-full h-[50vh] flex items-center justify-center">
+                    <Loader />
+                  </div>
+                )}
+                {!isPageLoading && (
+                  <BasicModuleInfoTab moduleData={moduleDetails} />
+                )}
               </TabPanel>
               <TabPanel className="mt-4">
-                <ApplicationsTab moduleData={moduleDetails} />
+                {isPageLoading && (
+                  <div className="w-full h-[50vh] flex items-center justify-center">
+                    <Loader />
+                  </div>
+                )}
+                {!isPageLoading && (
+                  <ApplicationsTab
+                  moduleData={moduleDetails} 
+                  applications={applications} 
+                  setApplications={setApplications} 
+                  triggerApplicationsFetch={setTriggerApplicationsFetch} />
+                )}
               </TabPanel>
             </TabPanels>
           </TabGroup>
         </>
       ) : (
-        <p className="w-full text-text-primary text-2xl">Couldn't load module details</p>
+        <p className="w-full text-text-primary text-2xl">
+          Couldn't load module details
+        </p>
       )}
     </div>
-  )
-}
+  );
+};
 
 export default ModuleDetails;

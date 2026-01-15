@@ -474,25 +474,25 @@ const updateModule = async (req: Request, res: Response): Promise<Response> => {
       const undergradFull = updateData.undergraduateCounts.remaining === 0;
       const postgradFull = updateData.postgraduateCounts.remaining === 0;
       
-      if (undergradFull && postgradFull) {
-        newModuleStatus = "full";
-      } else if (updateData.undergraduateCounts.accepted === updateData.undergraduateCounts.required &&
+      if (updateData.undergraduateCounts.accepted === updateData.undergraduateCounts.required &&
                  updateData.postgraduateCounts.accepted === updateData.postgraduateCounts.required) {
         newModuleStatus = "getting documents";
+      } else if (undergradFull && postgradFull) {
+        newModuleStatus = "full";
       }
     } else if (updateData.openForUndergraduates) {
       // Only undergrad open
-      if (updateData.undergraduateCounts.remaining === 0) {
-        newModuleStatus = "full";
-      } else if (updateData.undergraduateCounts.accepted === updateData.undergraduateCounts.required) {
+      if (updateData.undergraduateCounts.accepted === updateData.undergraduateCounts.required) {
         newModuleStatus = "getting documents";
+      } else if (updateData.undergraduateCounts.remaining === 0) {
+        newModuleStatus = "full";
       }
     } else if (updateData.openForPostgraduates) {
       // Only postgrad open
-      if (updateData.postgraduateCounts.remaining === 0) {
-        newModuleStatus = "full";
-      } else if (updateData.postgraduateCounts.accepted === updateData.postgraduateCounts.required) {
+      if (updateData.postgraduateCounts.accepted === updateData.postgraduateCounts.required) {
         newModuleStatus = "getting documents";
+      } else if (updateData.postgraduateCounts.remaining === 0) {
+        newModuleStatus = "full";
       }
     }
     
@@ -665,7 +665,7 @@ const addApplicants = async (req: Request, res: Response): Promise<Response> => 
             if (role === "undergraduate") {
               const newAcceptedCount = (module.undergraduateCounts?.accepted || 0) + 1;
               if (newAcceptedCount === module.undergraduateCounts?.required) {
-                //notify coordinators that undergrad positions are full
+                //notify admin that undergrad positions are full
                 if(module.openForPostgraduates && module.postgraduateCounts && module.postgraduateCounts.accepted === module.postgraduateCounts.required){
                   updateModuleObj.$set = { moduleStatus: "getting documents" };
                 }else if(!module.openForPostgraduates){
@@ -677,7 +677,7 @@ const addApplicants = async (req: Request, res: Response): Promise<Response> => 
             } else {
               const newAcceptedCount = (module.postgraduateCounts?.accepted || 0) + 1;
               if (newAcceptedCount === module.postgraduateCounts?.required) {
-                //notify coordinators that postgrad positions are full
+                //notify admin that postgrad positions are full
                 if(module.openForUndergraduates && module.undergraduateCounts && module.undergraduateCounts.accepted === module.undergraduateCounts.required){
                   updateModuleObj.$set = { moduleStatus: "getting documents" };
                 }else if(!module.openForUndergraduates){

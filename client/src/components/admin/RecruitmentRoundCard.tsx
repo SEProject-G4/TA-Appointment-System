@@ -14,10 +14,10 @@ import {
   FaSearch,
   FaTimes,
 } from "react-icons/fa";
-import { MdMoreVert, MdRefresh } from "react-icons/md";
+import { MdMoreVert } from "react-icons/md";
 import { LuCirclePlus, LuMail, LuRefreshCw } from "react-icons/lu";
-import { FiClock, FiRefreshCw } from "react-icons/fi";
-import { HiSpeakerphone, HiBell, HiRefresh } from "react-icons/hi";
+import { FiClock } from "react-icons/fi";
+import { HiSpeakerphone, HiBell } from "react-icons/hi";
 
 // Context & Store Imports
 import { useModal } from "../../contexts/ModalProvider";
@@ -672,8 +672,7 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                   <option value="changes submitted">Changes Submitted</option>
                   <option value="advertised">Advertised</option>
                   <option value="full">Full</option>
-                  <option value="undergrad full">Undergrad Full</option>
-                  <option value="getting-documents">Getting Documents</option>
+                  <option value="getting documents">Getting Documents</option>
                   <option value="closed">Closed</option>
                 </select>
               </div>
@@ -694,7 +693,7 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                 className="h-6 w-6 bg-bg-card text-text-secondary hover:text-primary hover:bg-primary-light/10 rounded-sm outline outline-1 outline-text-secondary/50 flex items-center justify-center transition-colors duration-200"
                 title="Refresh modules"
               >
-                <FiRefreshCw className="h-4 w-4" />
+                <LuRefreshCw className="h-4 w-4" />
               </button>
             </div>
             {/* <div className="px-3 w-full flex justify-start items-center">
