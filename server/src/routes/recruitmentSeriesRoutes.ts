@@ -19,6 +19,6 @@ router.put("/:seriesId/close", protectedMiddleware, authorize(["admin"]), recrui
 router.put("/:seriesId/archive", protectedMiddleware, authorize(["admin"]), recruitmentController.archiveRecruitmentRound);
 router.post("/:seriesId/notify-modules", protectedMiddleware, authorize(["admin"]), recruitmentController.notifyModules);
 router.post("/:seriesId/advertise-modules", protectedMiddleware, authorize(["admin"]), recruitmentController.advertiseModules);
-router.delete("/:seriesId", protectedMiddleware, authorize(["admin"]), recruitmentController.deleteRecruitmentRound);
+router.delete("/:seriesId", protectedMiddleware, authorize(["admin"]), recruitmentController.deleteRecruitmentRoundById);
 
 module.exports = router;

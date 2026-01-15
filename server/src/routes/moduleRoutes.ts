@@ -11,5 +11,6 @@ router.put("/:moduleId/notify", authMiddleware.protected, authMiddleware.authori
 router.put("/:moduleId", authMiddleware.protected, authMiddleware.authorize(["admin"]), moduleController.updateModule);
 router.post("/:moduleId/add-applicants", authMiddleware.protected, authMiddleware.authorize(["admin"]), moduleController.addApplicants);
 router.get("/:moduleId/applications", authMiddleware.protected, authMiddleware.authorize(["admin"]), moduleController.getModuleApplications);
+router.delete("/:moduleId", authMiddleware.protected, authMiddleware.authorize(["admin"]), moduleController.deleteModuleById);
 
 module.exports = router;

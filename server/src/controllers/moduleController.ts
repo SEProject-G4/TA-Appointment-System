@@ -8,6 +8,7 @@ const AppliedModule = require("../models/AppliedModules");
 const { EmailService } = require("../services/emailService");
 const config = require("../config/index");
 import mongoose = require("mongoose");
+import { deleteModule as deleteModuleService } from "../services/deletionService";
 
 const changeModuleStatus = async (req: Request, res: Response): Promise<Response> => {
   try {
@@ -833,6 +834,29 @@ const getModuleApplications = async (req: Request, res: Response): Promise<Respo
   }
 };
 
+const deleteModuleById = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { moduleId } = req.params;
+    
+    if (!moduleId) {
+      return res.status(400).json({ message: "Module ID is required" });
+    }
+    
+    const result = await deleteModuleService(moduleId);
+    
+    if (!result.success) {
+      // Distinguish between not found (404) and validation errors (400)
+      const statusCode = result.message.includes("not found") ? 404 : 400;
+      return res.status(statusCode).json({ message: result.message });
+    }
+    
+    return res.status(200).json({ message: result.message });
+  } catch (error) {
+    console.error("Error deleting module:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   getModuleDetailsById,
   changeModuleStatus,
@@ -841,4 +865,5 @@ module.exports = {
   updateModule,
   addApplicants,
   getModuleApplications,
+  deleteModuleById,
 };

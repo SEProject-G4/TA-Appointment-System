@@ -6,6 +6,7 @@ const User = require("../models/User");
 const mongoose = require("mongoose");
 const { EmailService } = require("../services/emailService");
 const config = require("../config/index");
+import { deleteRecruitmentRound as deleteRecruitmentRoundService } from "../services/deletionService";
 
 const createRecruitmentRound = async (
   req: Request,
@@ -477,48 +478,6 @@ const copyRecruitmentRound = async (
   } catch (error) {
     await session.abortTransaction();
     console.error("Error copying recruitment round:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  } finally {
-    session.endSession();
-  }
-};
-
-// xxxxx
-const deleteRecruitmentRound = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { seriesId } = req.params;
-
-    // Find the recruitment series
-    const recruitmentSeries = await RecruitmentRound.findById(seriesId).session(
-      session
-    );
-    if (!recruitmentSeries) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({ error: "Recruitment round not found" });
-    }
-
-    // Delete associated modules
-    await ModuleDetails.deleteMany({ recruitmentSeriesId: seriesId }).session(
-      session
-    );
-
-    // Delete the recruitment series
-    await RecruitmentRound.findByIdAndDelete(seriesId).session(session);
-
-    await session.commitTransaction();
-    return res
-      .status(200)
-      .json({ message: "Recruitment round deleted successfully" });
-  } catch (error) {
-    await session.abortTransaction();
-    console.error("Error deleting recruitment round:", error);
     return res.status(500).json({ error: "Internal server error" });
   } finally {
     session.endSession();
@@ -1277,6 +1236,32 @@ const archiveRecruitmentRound = async (
   }
 };
 
+const deleteRecruitmentRoundById = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const { seriesId } = req.params;
+    
+    if (!seriesId) {
+      return res.status(400).json({ message: "Recruitment round ID is required" });
+    }
+    
+    const result = await deleteRecruitmentRoundService(seriesId);
+    
+    if (!result.success) {
+      // Distinguish between not found (404) and validation errors (400)
+      const statusCode = result.message.includes("not found") ? 404 : 400;
+      return res.status(statusCode).json({ message: result.message });
+    }
+    
+    return res.status(200).json({ message: result.message });
+  } catch (error) {
+    console.error("Error deleting recruitment round:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   createRecruitmentRound,
   getAllRecruitmentRounds,
@@ -1286,7 +1271,6 @@ module.exports = {
   getEligibleUndergraduates,
   getEligiblePostgraduates,
   copyRecruitmentRound,
-  deleteRecruitmentRound,
   updateRecruitmentRound,
   updateRecruitmentRoundDeadlines,
   updateRecruitmentRoundHourLimits,
@@ -1294,4 +1278,5 @@ module.exports = {
   advertiseModules,
   closeRecruitmentRound,
   archiveRecruitmentRound,
+  deleteRecruitmentRoundById,
 };
