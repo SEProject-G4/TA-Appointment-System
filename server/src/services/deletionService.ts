@@ -166,8 +166,58 @@ const removeLecturerFromModules = async (
   }
 };
 
-/**
- * Delete a single student user and all associated data
+/** * Delete multiple users in bulk
+ * @param userIds - Array of user IDs to delete
+ * @returns Success status with count
+ */
+export const deleteUsers = async (
+  userIds: string[]
+): Promise<{ success: boolean; message: string; deletedCount: number }> => {
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return {
+      success: false,
+      message: "No user IDs provided for deletion",
+      deletedCount: 0,
+    };
+  }
+
+  let deletedCount = 0;
+  const errors: string[] = [];
+
+  // Process each user deletion
+  for (const userId of userIds) {
+    try {
+      const result = await deleteUser(userId);
+      if (result.success) {
+        deletedCount++;
+      } else {
+        errors.push(`${userId}: ${result.message}`);
+      }
+    } catch (error) {
+      errors.push(`${userId}: ${(error as Error).message}`);
+      console.error(`Failed to delete user ${userId}:`, error);
+    }
+  }
+
+  if (errors.length > 0 && deletedCount === 0) {
+    return {
+      success: false,
+      message: `Failed to delete any users. Errors: ${errors.join("; ")}`,
+      deletedCount: 0,
+    };
+  }
+
+  return {
+    success: true,
+    message:
+      errors.length > 0
+        ? `Deleted ${deletedCount} users with ${errors.length} errors`
+        : `Successfully deleted ${deletedCount} users`,
+    deletedCount,
+  };
+};
+
+/** * Delete a single user and all associated data
  * @param userId - The ID of the user to delete
  * @returns Success status
  */
@@ -189,31 +239,33 @@ export const deleteUser = async (
       return { success: false, message: "User not found" };
     }
 
-    // Validate user is a student
-    if (!["undergraduate", "postgraduate"].includes(user.role)) {
-      await session.abortTransaction();
-      return {
-        success: false,
-        message:
-          "Can only delete student users (undergraduate or postgraduate)",
-      };
+    // Handle student-specific deletions
+    if (["undergraduate", "postgraduate"].includes(user.role)) {
+      // Delete user's documents and Google Drive folders (outside transaction for external API)
+      await deleteUserDocuments(objectId);
+
+      // Delete user's applied modules records
+      await deleteUserAppliedModules(objectId);
+
+      // Delete user's applications and update module counts
+      await deleteUserApplications(objectId, user.role);
     }
 
-    // Delete user's documents and Google Drive folders (outside transaction for external API)
-    await deleteUserDocuments(objectId);
+    // Handle lecturer-specific deletions
+    if (["lecturer"].includes(user.role)) {
+      // Remove lecturer from all modules they coordinate
+      await removeLecturerFromModules(objectId);
+    }
 
-    // Delete user's applied modules records
-    await deleteUserAppliedModules(objectId);
-
-    // Delete user's applications and update module counts
-    await deleteUserApplications(objectId, user.role);
-
-    // Decrease user count in user group
-    await UserGroup.findByIdAndUpdate(
-      user.userGroup,
-      { $inc: { userCount: -1 } },
-      { session }
-    );
+    // Decrease user count in user group (validate >= 0)
+    const userGroup = await UserGroup.findById(user.userGroup).session(session);
+    if (userGroup) {
+      await UserGroup.findByIdAndUpdate(
+        user.userGroup,
+        { userCount: Math.max(0, userGroup.userCount - 1) },
+        { session }
+      );
+    }
 
     // Delete the user
     await User.findByIdAndDelete(objectId).session(session);
@@ -230,7 +282,7 @@ export const deleteUser = async (
 };
 
 /**
- * Delete a student user group and all associated users and data
+ * Delete a user group and all associated users and data
  * @param userGroupId - The ID of the user group to delete
  * @returns Success status
  */
@@ -254,42 +306,53 @@ export const deleteUserGroup = async (
       return { success: false, message: "User group not found" };
     }
 
-    // Validate user group is for students
-    if (!["undergraduate", "postgraduate"].includes(userGroup.groupType)) {
-      await session.abortTransaction();
-      return {
-        success: false,
-        message:
-          "Can only delete student user groups (undergraduate or postgraduate)",
-      };
-    }
-
     // Get all users in this group
     const users = await User.find({ userGroup: objectId }).session(session);
 
     if (users.length > 0) {
       const userIds = users.map((user: any) => user._id);
 
-      // Collect all document folder IDs for Google Drive deletion
-      const documents = await Document.find({ userId: { $in: userIds } });
-      const driveFolderIds = documents
-        .map((doc: any) => doc.driveFolderId)
-        .filter((id: string) => id);
+      // Handle student-specific deletions
+      const studentUsers = users.filter((user: any) => 
+        ["undergraduate", "postgraduate"].includes(user.role)
+      );
+      
+      if (studentUsers.length > 0) {
+        const studentIds = studentUsers.map((user: any) => user._id);
+        
+        // Collect all document folder IDs for Google Drive deletion
+        const documents = await Document.find({ userId: { $in: studentIds } });
+        const driveFolderIds = documents
+          .map((doc: any) => doc.driveFolderId)
+          .filter((id: string) => id);
 
-      // Delete Google Drive folders (outside transaction for external API)
-      if (driveFolderIds.length > 0) {
-        await deleteGoogleDriveFolders(driveFolderIds);
+        // Delete Google Drive folders (outside transaction for external API)
+        if (driveFolderIds.length > 0) {
+          await deleteGoogleDriveFolders(driveFolderIds);
+        }
+
+        // Delete all documents
+        await Document.deleteMany({ userId: { $in: studentIds } });
+
+        // Delete all applied modules records
+        await AppliedModules.deleteMany({ userId: { $in: studentIds } });
+
+        // Delete all applications and update module counts for each student
+        for (const user of studentUsers) {
+          await deleteUserApplications(user._id, user.role);
+        }
       }
 
-      // Delete all documents
-      await Document.deleteMany({ userId: { $in: userIds } });
-
-      // Delete all applied modules records
-      await AppliedModules.deleteMany({ userId: { $in: userIds } });
-
-      // Delete all applications and update module counts for each user
-      for (const user of users) {
-        await deleteUserApplications(user._id, user.role);
+      // Handle lecturer-specific deletions
+      const lecturerUsers = users.filter((user: any) => 
+        ["lecturer", "hod"].includes(user.role)
+      );
+      
+      if (lecturerUsers.length > 0) {
+        // Remove all lecturers from module coordinators
+        for (const user of lecturerUsers) {
+          await removeLecturerFromModules(user._id);
+        }
       }
 
       // Delete all users
@@ -525,123 +588,4 @@ export const deleteRecruitmentRound = async (
   }
 };
 
-/**
- * Delete a single lecturer user and remove from all module coordinators
- * @param userId - The ID of the lecturer to delete
- * @returns Success status
- */
-export const deleteLecturer = async (
-  userId: string | mongoose.Types.ObjectId
-): Promise<{ success: boolean; message: string }> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
 
-  try {
-    const objectId =
-      typeof userId === "string" ? new mongoose.Types.ObjectId(userId) : userId;
-
-    // Get the user
-    const user = await User.findById(objectId).session(session);
-
-    if (!user) {
-      await session.abortTransaction();
-      return { success: false, message: "User not found" };
-    }
-
-    // Validate user is a lecturer or hod
-    if (!["lecturer", "hod"].includes(user.role)) {
-      await session.abortTransaction();
-      return {
-        success: false,
-        message: "Can only delete lecturer or hod users",
-      };
-    }
-
-    // Remove lecturer from all modules they coordinate
-    await removeLecturerFromModules(objectId);
-
-    // Decrease user count in user group
-    await UserGroup.findByIdAndUpdate(
-      user.userGroup,
-      { $inc: { userCount: -1 } },
-      { session }
-    );
-
-    // Delete the user
-    await User.findByIdAndDelete(objectId).session(session);
-
-    await session.commitTransaction();
-    return { success: true, message: "Lecturer deleted successfully" };
-  } catch (error) {
-    await session.abortTransaction();
-    console.error("Error deleting lecturer:", error);
-    throw error;
-  } finally {
-    session.endSession();
-  }
-};
-
-/**
- * Delete a lecturer user group and all associated lecturers
- * @param userGroupId - The ID of the user group to delete
- * @returns Success status
- */
-export const deleteLecturerGroup = async (
-  userGroupId: string | mongoose.Types.ObjectId
-): Promise<{ success: boolean; message: string }> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const objectId =
-      typeof userGroupId === "string"
-        ? new mongoose.Types.ObjectId(userGroupId)
-        : userGroupId;
-
-    // Get the user group
-    const userGroup = await UserGroup.findById(objectId).session(session);
-
-    if (!userGroup) {
-      await session.abortTransaction();
-      return { success: false, message: "User group not found" };
-    }
-
-    // Validate user group is for lecturers or hod
-    if (!["lecturer", "hod"].includes(userGroup.groupType)) {
-      await session.abortTransaction();
-      return {
-        success: false,
-        message: "Can only delete lecturer or hod user groups",
-      };
-    }
-
-    // Get all users in this group
-    const users = await User.find({ userGroup: objectId }).session(session);
-
-    if (users.length > 0) {
-      // Remove all lecturers from module coordinators
-      for (const user of users) {
-        await removeLecturerFromModules(user._id);
-      }
-
-      // Delete all users
-      const userIds = users.map((user: any) => user._id);
-      await User.deleteMany({ _id: { $in: userIds } }).session(session);
-    }
-
-    // Delete the user group
-    await UserGroup.findByIdAndDelete(objectId).session(session);
-
-    await session.commitTransaction();
-    return {
-      success: true,
-      message: `Lecturer group deleted successfully with ${users.length} lecturers`,
-    };
-  } catch (error) {
-    await session.abortTransaction();
-    console.error("Error deleting lecturer group:", error);
-    throw error;
-  } finally {
-    session.endSession();
-  }
-};

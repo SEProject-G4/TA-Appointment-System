@@ -3,10 +3,9 @@ const User = require("../models/User");
 const UserGroup = require("../models/UserGroup");
 import type { IUserGroup } from "../models/UserGroup";
 import {
-  deleteUser as deleteStudentUser,
-  deleteUserGroup as deleteStudentUserGroup,
-  deleteLecturer as deleteLecturerService,
-  deleteLecturerGroup as deleteLecturerGroupService,
+  deleteUser,
+  deleteUsers as deleteBulkUsers,
+  deleteUserGroup,
 } from "../services/deletionService";
 
 const defaultUserGroups = [
@@ -48,6 +47,9 @@ const createNewUsers = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
+  const session = await User.startSession();
+  session.startTransaction();
+  
   try {
     const { users, userRole, groupId } = req.body;
     let assignedGroupId: string;
@@ -56,8 +58,10 @@ const createNewUsers = async (
       const ungrouped: IUserGroup | null = await UserGroup.findOne({
         name: "Ungrouped",
         groupType: userRole,
-      });
+      }).session(session);
       if (!ungrouped) {
+        await session.abortTransaction();
+        session.endSession();
         return res
           .status(500)
           .json({ message: "Ungrouped user group not found." });
@@ -70,6 +74,8 @@ const createNewUsers = async (
     if (userRole === "undergraduate" || userRole === "postgraduate") {
       for (const user of users) {
         if (!user.indexNumber) {
+          await session.abortTransaction();
+          session.endSession();
           return res
             .status(400)
             .json({ message: "Index Number is required for this user type." });
@@ -78,6 +84,8 @@ const createNewUsers = async (
     } else if (userRole === "lecturer" || userRole === "hod") {
       for (const user of users) {
         if (!user.displayName) {
+          await session.abortTransaction();
+          session.endSession();
           return res
             .status(400)
             .json({ message: "Display Name is required for this user type." });
@@ -92,11 +100,25 @@ const createNewUsers = async (
       userGroup: assignedGroupId,
     }));
 
-    await User.insertMany(newUsers);
+    const insertedUsers = await User.insertMany(newUsers, { session });
+    const createdUserCount = insertedUsers.length;
+
+    // Update the userGroup's userCount
+    await UserGroup.findByIdAndUpdate(
+      assignedGroupId,
+      { $inc: { userCount: createdUserCount } },
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
     return res.status(201).json({
-      message: `${users.length} ${userRole} users successfully created and added to the group.`,
+      message: `${createdUserCount} ${userRole} users successfully created and added to the group.`,
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("Error creating users:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
@@ -149,33 +171,15 @@ const deleteUserById = async (
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    if (user.role === "undergraduate" || user.role === "postgraduate") {
-      const result = await deleteStudentUser(userId);
-      if (!result.success) {
-        // Distinguish between not found (404) and validation errors (400)
-        const statusCode = result.message.includes("not found") ? 404 : 400;
-        return res.status(statusCode).json({ message: result.message });
-      }
-      return res.status(200).json({ message: result.message });
-    } else if (user.role === "lecturer") {
-      const result = await deleteLecturerService(userId);
-      if (!result.success) {
-        // Distinguish between not found (404) and validation errors (400)
-        const statusCode = result.message.includes("not found") ? 404 : 400;
-        return res.status(statusCode).json({ message: result.message });
-      }
-      return res.status(200).json({ message: result.message });
-    }
-    const deletedUser = await User.findByIdAndDelete(userId);
 
-    if (!deletedUser) {
-      return res.status(404).json({ message: "User not found" });
+    const result = await deleteUser(userId);
+    
+    if (!result.success) {
+      const statusCode = result.message.includes("not found") ? 404 : 500;
+      return res.status(statusCode).json({ message: result.message });
     }
-    return res.status(200).json({ message: "User deleted successfully" });
+    
+    return res.status(200).json({ message: result.message });
   } catch (error) {
     console.error("Error deleting user:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -185,38 +189,17 @@ const deleteUserById = async (
 const deleteUsers = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { userIds } = req.body;
-    if (!Array.isArray(userIds) || userIds.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "No user IDs provided for deletion" });
+    
+    const result = await deleteBulkUsers(userIds);
+    
+    if (!result.success) {
+      return res.status(500).json({ message: result.message });
     }
-    const users = await User.find({ _id: { $in: userIds } });
-    const nonStudentUsers: string[] = [];
-    let deletedStudentsCount: number = 0;
-    for (const user of users) {
-      if (user.role === "undergraduate" || user.role === "postgraduate") {
-        const result = await deleteStudentUser(String(user._id));
-        if (result.success) {
-          deletedStudentsCount += 1;
-        }
-      } else if (user.role === "lecturer") {
-        const result = await deleteLecturerService(String(user._id));
-        if (result.success) {
-          deletedStudentsCount += 1;
-        }
-      } else {
-        nonStudentUsers.push(String(user._id));
-      }
-    }
-    const deletedUsers = await User.deleteMany({
-      _id: { $in: nonStudentUsers },
+    
+    return res.status(200).json({
+      message: result.message,
+      deletedCount: result.deletedCount,
     });
-    return res
-      .status(200)
-      .json({
-        message: "Users deleted successfully",
-        deletedCount: deletedUsers.deletedCount + deletedStudentsCount,
-      });
   } catch (error) {
     console.error("Error deleting users:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -234,59 +217,14 @@ const deleteWholeUserGroup = async (
       return res.status(400).json({ message: "User group ID is required" });
     }
 
-    // First check if group exists
-    const userGroup = await UserGroup.findById(groupId);
+    const result = await deleteUserGroup(groupId);
 
-    if (!userGroup) {
-      return res.status(404).json({ message: "User group not found" });
+    if (!result.success) {
+      const statusCode = result.message.includes("not found") ? 404 : 500;
+      return res.status(statusCode).json({ message: result.message });
     }
-
-    // For student groups, use the deletion service (it has its own transaction)
-    if (["undergraduate", "postgraduate"].includes(userGroup.groupType)) {
-      const result = await deleteStudentUserGroup(groupId);
-
-      if (!result.success) {
-        // Distinguish between not found (404) and validation errors (400)
-        const statusCode = result.message.includes("not found") ? 404 : 400;
-        return res.status(statusCode).json({ message: result.message });
-      }
-      return res.status(200).json({ message: result.message });
-    } else if (userGroup.groupType === "lecturer") {
-      const result = await deleteLecturerGroupService(groupId);
-      if (!result.success) {
-        // Distinguish between not found (404) and validation errors (400)
-        const statusCode = result.message.includes("not found") ? 404 : 400;
-        return res.status(statusCode).json({ message: result.message });
-      }
-      return res.status(200).json({ message: result.message });
-    }
-
-    // For non-student groups, use a transaction for simple deletion
-    const session = await User.startSession();
-    session.startTransaction();
-    try {
-      const deletedUsers = await User.deleteMany({
-        userGroup: groupId,
-      }).session(session);
-      const deletedGroup = await UserGroup.findByIdAndDelete(groupId).session(
-        session
-      );
-      if (!deletedGroup) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(404).json({ message: "User group not found" });
-      }
-      await session.commitTransaction();
-      session.endSession();
-      return res.status(200).json({
-        message: "User group and all its users deleted successfully",
-        deletedUsersCount: deletedUsers.deletedCount,
-      });
-    } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
-      throw error;
-    }
+    
+    return res.status(200).json({ message: result.message });
   } catch (error) {
     console.error("Error deleting user group and its users:", error);
     return res.status(500).json({ message: "Internal server error" });
