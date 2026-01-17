@@ -33,6 +33,7 @@ interface RoundsState {
   deleteModuleFromRound: (roundId: string, moduleId: string) => void;
   hasModulesWithStatusInRound: (roundId: string, status: string) => boolean;
   refreshModule: (roundId: string, moduleId: string) => Promise<void>;
+  clearStore: () => void;
 }
 
 export const useRoundsStore = create<RoundsState>((set, get) => ({
@@ -308,5 +309,12 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
     } catch (error) {
       console.error(`Error refreshing module ${moduleId} in round ${roundId}:`, error);
     }
+  },
+  clearStore: () => {
+    set({
+      rounds: {},
+      isInitiallyFetched: false,
+      isFetching: false,
+    });
   },
 }));
