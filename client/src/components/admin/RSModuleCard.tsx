@@ -332,6 +332,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
     (state) => state.updateModuleInRound
   );
   const updateRound = useRoundsStore((state) => state.updateRound);
+  const deleteModule = useRoundsStore((state) => state.deleteModuleFromRound);
 
   // If module not found in store, return early
   if (!moduleData) {
@@ -447,7 +448,51 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
   };
 
   const handleDeleteModule = (moduleData: ModuleDetails) => {
-    // Implementation for deleting a module
+    openModal(
+      <div className="flex flex-col items-center py-4 px-6">
+        <h2 className="text-lg font-semibold mb-4">Delete Module</h2>
+        <p className="text-warning font-semibold mb-2">
+          This action will delete all associated 
+          applications, and any other related data.
+        </p>
+        <p>Are you sure you want to delete this module from the recruitment round?</p>
+        <div className="flex gap-x-4 mt-4">
+          <button
+            className="rounded-md outline outline-1 outline-warning hover:bg-warning text-warning hover:text-text-inverted px-5 py-2 font-semibold"
+            onClick={async () => {
+              try {
+                const response = await axiosInstance.delete(
+                  `/modules/${moduleData._id}`
+                );
+                console.log("Delete Module Response:", response);
+                if (response.status === 200) {
+                  showToast(
+                    "Module deleted successfully with all its associated data.",
+                    "success"
+                  );
+                  closeModal();
+                  deleteModule(moduleData.recruitmentSeriesId, moduleData._id);
+                }
+                // Optionally refresh the list or provide feedback
+              } catch (error) {
+                console.error("Error deleting module:", error);
+              } finally {
+                closeModal();
+              }
+            }}
+          >
+            Delete
+          </button>
+          <button
+            className="rounded-md outline outline-1 outline-text-secondary hover:bg-primary/20 text-text-primary px-5 py-2 font-semibold"
+            onClick={() => closeModal()}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>,
+      { showCloseButton: false }
+    );
   };
 
   const handleAdvertiseModule = async (moduleData: ModuleDetails) => {
@@ -669,7 +714,8 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
             >
               Edit Details
             </li>
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
+            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
+            onClick={() => handleDeleteModule(moduleData)}>
               Delete
             </li>
           </ul>
