@@ -10,9 +10,6 @@ export interface IRecruitmentRound extends Document {
   status: "initialised" | "active" | "closed" | "archived";
   undergradMailingList: mongoose.Types.ObjectId[];
   postgradMailingList: mongoose.Types.ObjectId[];
-  moduleCount: number;
-  undergraduateTAPositionsCount: number;
-  postgraduateTAPositionsCount: number;
 }
 
 const recruitmentRoundSchema = new Schema<IRecruitmentRound>({
@@ -28,9 +25,6 @@ const recruitmentRoundSchema = new Schema<IRecruitmentRound>({
   },
   undergradMailingList: [{ type: Schema.Types.ObjectId, ref: "UserGroup" }],
   postgradMailingList: [{ type: Schema.Types.ObjectId, ref: "UserGroup" }],
-  moduleCount: { type: Number, default: 0, min: 0 },
-  undergraduateTAPositionsCount: { type: Number, default: 0, min: 0 },
-  postgraduateTAPositionsCount: { type: Number, default: 0, min: 0 },
 });
 
 const RecruitmentRound: Model<IRecruitmentRound> = mongoose.model<IRecruitmentRound>(

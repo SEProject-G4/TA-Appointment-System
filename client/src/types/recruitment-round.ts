@@ -17,9 +17,6 @@ export interface RecruitmentRound {
   undergradMailingList: UserGroup[];
   postgradMailingList: UserGroup[];
   status: RecruitmentRoundStatus;
-  moduleCount: number;
-  undergraduateTAPositionsCount: number;
-  postgraduateTAPositionsCount: number;
 };
 
 export interface RecruitmentRoundState extends RecruitmentRound {

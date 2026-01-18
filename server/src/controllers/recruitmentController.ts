@@ -410,18 +410,6 @@ const copyRecruitmentRound = async (
           await newModule.save({ session });
         })
       );
-      newSeries.moduleCount = modulesToCopy.length;
-      newSeries.undergraduateTAPositionsCount = modulesToCopy.reduce(
-        (sum: number, mod: any) =>
-          sum +
-          (mod.undergraduateCounts ? mod.undergraduateCounts.required : 0),
-        0
-      );
-      newSeries.postgraduateTAPositionsCount = modulesToCopy.reduce(
-        (sum: number, mod: any) =>
-          sum + (mod.postgraduateCounts ? mod.postgraduateCounts.required : 0),
-        0
-      );
       await newSeries.save({ session });
     }
 

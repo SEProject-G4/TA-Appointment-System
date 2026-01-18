@@ -441,36 +441,6 @@ export const deleteModule = async (
       await TaApplication.deleteMany({ moduleId: objectId }).session(session);
     }
 
-    // Get recruitment round and decrease module count
-    const recruitmentRound = await RecruitmentRound.findById(
-      module.recruitmentSeriesId
-    ).session(session);
-
-    if (recruitmentRound) {
-      recruitmentRound.moduleCount = Math.max(
-        0,
-        recruitmentRound.moduleCount - 1
-      );
-
-      // Decrease TA position counts
-      if (module.openForUndergraduates) {
-        recruitmentRound.undergraduateTAPositionsCount = Math.max(
-          0,
-          recruitmentRound.undergraduateTAPositionsCount -
-            module.undergraduateCounts.required
-        );
-      }
-      if (module.openForPostgraduates) {
-        recruitmentRound.postgraduateTAPositionsCount = Math.max(
-          0,
-          recruitmentRound.postgraduateTAPositionsCount -
-            module.postgraduateCounts.required
-        );
-      }
-
-      await recruitmentRound.save({ session });
-    }
-
     // Delete the module
     await ModuleDetails.findByIdAndDelete(objectId).session(session);
 
