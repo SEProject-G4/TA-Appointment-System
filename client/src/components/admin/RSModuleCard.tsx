@@ -44,10 +44,10 @@ const getClassForStatus = (status: string) => {
   }
 };
 
-export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails, triggerRefreshApplications?:React.Dispatch<React.SetStateAction<boolean>> }> = ({
-  moduleData,
-  triggerRefreshApplications,
-}) => {
+export const AddApplicantsModal: React.FC<{
+  moduleData: ModuleDetails;
+  triggerRefreshApplications?: React.Dispatch<React.SetStateAction<boolean>>;
+}> = ({ moduleData, triggerRefreshApplications }) => {
   const [availableStudents, setAvailableStudents] = useState<Option[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<Option[]>([]);
 
@@ -230,7 +230,10 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails, triggerRe
                     response.data.message || "Applicants processed",
                     "success"
                   );
-                  await refreshModule(moduleData.recruitmentSeriesId, moduleData._id);
+                  await refreshModule(
+                    moduleData.recruitmentSeriesId,
+                    moduleData._id
+                  );
                   if (triggerRefreshApplications) {
                     triggerRefreshApplications(true);
                   }
@@ -452,10 +455,13 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
       <div className="flex flex-col items-center py-4 px-6">
         <h2 className="text-lg font-semibold mb-4">Delete Module</h2>
         <p className="text-warning font-semibold mb-2">
-          This action will delete all associated 
-          applications, and any other related data.
+          This action will delete all associated applications, and any other
+          related data.
         </p>
-        <p>Are you sure you want to delete this module from the recruitment round?</p>
+        <p>
+          Are you sure you want to delete this module from the recruitment
+          round?
+        </p>
         <div className="flex gap-x-4 mt-4">
           <button
             className="rounded-md outline outline-1 outline-warning hover:bg-warning text-warning hover:text-text-inverted px-5 py-2 font-semibold"
@@ -522,7 +528,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
   const handleViewApplications = (moduleData: ModuleDetails) => {
     // Implementation for viewing applications
     navigate(`/module-details/${moduleData._id}`, {
-      state: { roundId:roundId, moduleId:moduleId, selectedTab: 1 },
+      state: { roundId: roundId, moduleId: moduleId, selectedTab: 1 },
     });
   };
 
@@ -714,8 +720,10 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
             >
               Edit Details
             </li>
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
-            onClick={() => handleDeleteModule(moduleData)}>
+            <li
+              className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
+              onClick={() => handleDeleteModule(moduleData)}
+            >
               Delete
             </li>
           </ul>
@@ -807,26 +815,30 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
                   {data.requiredTAHours}hours/week
                 </p>
               </div>
-              <CircularProgress
-                percentage={
-                  ((data.undergraduateCounts.required -
-                    data.undergraduateCounts.remaining) /
-                    data.undergraduateCounts.required) *
-                  100
-                }
-                size="small"
-                color={"blue"}
-              >
-                <p className="text-sm font-semibold">
-                  <span className="text-text-primary text-2xl">
-                    {data.undergraduateCounts.required -
-                      data.undergraduateCounts.remaining}
-                  </span>
-                  <span className="text-text-secondary">
-                    /{data.undergraduateCounts.required}
-                  </span>
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Accepted</p>
+                <p className={`text-sm font-semibold px-2 rounded-sm ${data.undergraduateCounts.accepted === data.undergraduateCounts.required ? "bg-green-500" : "bg-amber-500"}`}>
+                  {data.undergraduateCounts.accepted}
                 </p>
-              </CircularProgress>
+              </div>
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Reviewed</p>
+                <p className="text-sm font-semibold px-2 rounded-sm text-white bg-pink-500">
+                  {data.undergraduateCounts.reviewed}
+                </p>
+              </div>
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Applied</p>
+                <p className="text-sm font-semibold px-2 rounded-sm text-white bg-blue-500">
+                  {data.undergraduateCounts.applied}
+                </p>
+              </div>
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Required</p>
+                <p className="text-sm font-semibold px-2 rounded-sm text-white bg-gray-500">
+                  {data.undergraduateCounts.required}
+                </p>
+              </div>
             </>
           )}
         </div>
@@ -854,18 +866,13 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
                   {data.requiredTAHours}hours/week
                 </p>
               </div>
-              {data.postgraduateCounts ? (
-                <CircularProgress
-                  percentage={
-                    data.postgraduateCounts
-                      ? ((data.postgraduateCounts.required -
-                          data.postgraduateCounts.remaining) /
-                          data.postgraduateCounts.required) *
-                        100
-                      : 0
-                  }
+              {/* <CircularProgress
+                  circles={[
+                    { color: "blue", percentage: ((data.postgraduateCounts.applied) / data.postgraduateCounts.required) * 100 },
+                    { color: "purple", percentage: ((data.postgraduateCounts.reviewed) / data.postgraduateCounts.required) * 100 },
+                    { color: "green", percentage: ((data.postgraduateCounts.accepted) / data.postgraduateCounts.required) * 100 },
+                  ]}
                   size="small"
-                  color={"blue"}
                 >
                   <p className="text-sm font-semibold">
                     <span className="text-text-primary text-2xl">
@@ -876,14 +883,30 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
                       /{data.postgraduateCounts.required}
                     </span>
                   </p>
-                </CircularProgress>
-              ) : (
-                <CircularProgress
-                  percentage={0}
-                  size="small"
-                  color={"blue"}
-                ></CircularProgress>
-              )}
+                </CircularProgress> */}
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Accepted</p>
+                <p className={`text-sm font-semibold px-2 rounded-sm ${data.postgraduateCounts.accepted === data.postgraduateCounts.required ? "bg-green-500" : "bg-amber-500"}`}>
+                  {data.postgraduateCounts.accepted}
+                </p>
+              </div>
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Reviewed</p>
+                <p className="text-sm font-semibold px-2 rounded-sm text-white bg-pink-500">
+                  {data.postgraduateCounts.reviewed}
+                </p>
+              </div>
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Applied</p>
+                <p className="text-sm font-semibold px-2 rounded-sm text-white bg-blue-500">
+                  {data.postgraduateCounts.applied}
+                </p>
+              </div><div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Required</p>
+                <p className="text-sm font-semibold px-2 rounded-sm text-white bg-gray-500">
+                  {data.postgraduateCounts.required}
+                </p>
+              </div>
             </>
           )}
         </div>
