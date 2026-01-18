@@ -6,8 +6,6 @@ import ApplicationsTab from "../../components/admin/ApplicationsTab";
 import { useRoundsStore } from "../../stores/useRoundsStore";
 import axiosInstance from "../../api/axiosConfig";
 
-import type { ModuleDetails } from "../../types/module";
-
 import { Tab, TabGroup, TabPanel, TabPanels, TabList } from "@headlessui/react";
 import { LuRefreshCw } from "react-icons/lu";
 import Loader from "../../components/common/Loader";
@@ -48,7 +46,7 @@ const getClassForStatus = (status: string) => {
   }
 };
 
-const ModuleDetails = () => {
+const ModuleInfoPage = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -170,4 +168,4 @@ const ModuleDetails = () => {
   );
 };
 
-export default ModuleDetails;
+export default ModuleInfoPage;
