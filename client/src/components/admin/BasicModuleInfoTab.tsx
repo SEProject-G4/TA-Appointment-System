@@ -251,13 +251,13 @@ const BasicModuleInfoTab = ({ moduleData }: { moduleData: ModuleDetails }) => {
                   requiredValue={moduleData.undergraduateCounts.required}
                 />
 
-                <ProgressBar
+                {/* <ProgressBar
                   label="Document submitted"
                   value={moduleData.undergraduateCounts.docSubmitted}
                   maxValue={moduleData.undergraduateCounts.accepted}
                   upperLimit={undergradUpperLimit}
                   requiredValue={moduleData.undergraduateCounts.required}
-                />
+                /> */}
 
                 {/* <ProgressBar
               label="Appointed"
@@ -313,13 +313,13 @@ const BasicModuleInfoTab = ({ moduleData }: { moduleData: ModuleDetails }) => {
                   requiredValue={moduleData.postgraduateCounts.required}
                 />
 
-                <ProgressBar
+                {/* <ProgressBar
                   label="Document submitted"
                   value={moduleData.postgraduateCounts.docSubmitted}
                   maxValue={moduleData.postgraduateCounts.accepted}
                   upperLimit={postgradUpperLimit}
                   requiredValue={moduleData.postgraduateCounts.required}
-                />
+                /> */}
 
                 {/* <ProgressBar
               label="Appointed"

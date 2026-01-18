@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useAuth } from "../contexts/AuthContext";
 import RoleSelector from "../components/RoleSelector";
 import LoginBgImage from "../assets/images/sumanadasa.jpg";
+import Loader from "../components/common/Loader";
 
 declare global {
   interface Window {
@@ -227,8 +228,8 @@ const LoginPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-bg-page text-text-primary">
-        Loading...
+      <div className="flex items-center justify-center min-h-screen-minusnav bg-bg-page text-text-primary">
+        <Loader />
       </div>
     );
   }

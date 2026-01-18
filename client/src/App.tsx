@@ -19,7 +19,7 @@ import UndergraduateUsers from "./pages/admin/UndergraduateUsers";
 import PostgraduateUsers from "./pages/admin/PostgraduateUsers";
 import LecturerUsers from "./pages/admin/LecturerUsers";
 import AdminUsers from "./pages/admin/AdminUsers";
-import ModuleDetails from "./pages/admin/ModuleDetails";
+import ModuleInfoPage from "./pages/admin/ModuleInfoPage";
 
 import ProfilePage from "./pages/ProfilePage";
 
@@ -170,7 +170,16 @@ function App() {
                     path="/module-details/:moduleId"
                     element={
                       <ProtectedRoute roles="admin">
-                        <ModuleDetails />
+                        <ModuleInfoPage />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/doc-submissions"
+                    element={
+                      <ProtectedRoute roles="admin">
+                        <CSEofficeDashboard />
                       </ProtectedRoute>
                     }
                   />

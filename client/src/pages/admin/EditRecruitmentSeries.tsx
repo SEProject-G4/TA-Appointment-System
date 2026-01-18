@@ -13,6 +13,7 @@ import { MdClose } from "react-icons/md";
 import { FaChevronDown } from "react-icons/fa";
 import axiosInstance from "../../api/axiosConfig";
 import { useToast } from "../../contexts/ToastContext";
+import Loader from "../../components/common/Loader";
 
 interface UserGroup {
   _id: string;
@@ -399,8 +400,8 @@ function EditRecruitmentSeries() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-screen-minusnav">
+        <Loader />
       </div>
     );
   }
