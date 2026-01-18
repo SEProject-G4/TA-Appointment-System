@@ -43,6 +43,13 @@ const EditModule: React.FC = () => {
     docDueDate: "",
     specialNotes: "",
   });
+  const [originalDates, setOriginalDates] = useState<{
+    appDueDate: string;
+    docDueDate: string;
+  }>({
+    appDueDate: "",
+    docDueDate: "",
+  });
   const [inputErrors, setInputErrors] = useState<{ [key: string]: string }>({});
   const [availableLecturers, setAvailableLecturers] = useState<Option[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -128,43 +135,62 @@ const EditModule: React.FC = () => {
   };
 
   // Validation functions
-  const validateField = (name: string, value: any) => {
+  const validateFieldAndUpdateErrors = (name: string, value: any) => {
+    let errorMsgs: { [key: string]: string } = {};
+    
+    // Helper function to check if two dates are effectively the same (within 60 seconds tolerance)
+    const areDatesEffectivelySame = (date1Str: string, date2Str: string): boolean => {
+      if (!date1Str || !date2Str) return false;
+      const date1 = new Date(date1Str).getTime();
+      const date2 = new Date(date2Str).getTime();
+      const tolerance = 60000; // 60 seconds in milliseconds
+      return Math.abs(date1 - date2) <= tolerance;
+    };
+    
     switch (name) {
       case "moduleCode":
-        if (!value) return "Module code is required.";
-        // if (!/^([A-Za-z]{2,4}\d{3,4})$/.test(value))
-        //   return "Invalid module code format.";
-        return "";
+        errorMsgs.moduleCode = !value ? "Module code is required." : "";
+        break;
       case "moduleName":
-        if (!value) return "Module name is required.";
-        return "";
+        errorMsgs.moduleName = !value ? "Module name is required." : "";
+        break;  
       case "taHours":
-        if (value <= 0) return "TA hours should be greater than 0.";
-        return "";
+        errorMsgs.taHours = value <= 0 ? "TA hours should be greater than 0." : "";
+        break;
       case "undergraduateTAsRequired":
         if (
           value <= 0 &&
           (!formData.postgraduateTAsRequired ||
             formData.postgraduateTAsRequired <= 0)
         ) {
-          return "At least one TA (undergraduate or postgraduate) is required.";
+          errorMsgs.undergraduateTAsRequired = "At least one TA (undergraduate or postgraduate) is required.";
+        } else {
+          errorMsgs.undergraduateTAsRequired = "";
         }
-        return "";
+        break;
       case "postgraduateTAsRequired":
         if (
           value <= 0 &&
           (!formData.undergraduateTAsRequired ||
             formData.undergraduateTAsRequired <= 0)
         ) {
-          return "At least one TA (undergraduate or postgraduate) is required.";
+          errorMsgs.postgraduateTAsRequired = "At least one TA (undergraduate or postgraduate) is required.";
+        } else {
+          errorMsgs.postgraduateTAsRequired = "";
         }
-        return "";
+        break;
       case "appDueDate":
-        if (!value) return "Application due date is required.";
+        if (!value) {
+          errorMsgs.appDueDate = "Application due date is required.";
+          break;
+        }
         const appDate = new Date(value);
         const now = new Date();
-        if (appDate <= now) {
-          return "Application due date must be after the current date and time.";
+        // Only check if date is after now if the date has been changed (with tolerance)
+        const appDateChanged = !areDatesEffectivelySame(value, originalDates.appDueDate);
+        if (appDateChanged && appDate <= now) {
+          errorMsgs.appDueDate = "New application due date must be after the current date and time.";
+          break;
         }
         // If docDueDate is set, check order
         if (
@@ -172,27 +198,40 @@ const EditModule: React.FC = () => {
           value &&
           new Date(formData.docDueDate) <= new Date(value)
         ) {
-          return "Document submission deadline must be after application due date.";
+          errorMsgs.appDueDate = "New application due date must be before document submission deadline..";
+          errorMsgs.docDueDate = "New document submission deadline must be after application due date.";
+          break;
         }
-        return "";
+        errorMsgs.appDueDate = "";
+        break;
       case "docDueDate":
-        if (!value) return "Document submission deadline is required.";
+        if (!value) {
+          errorMsgs.docDueDate = "Document submission deadline is required.";
+          break;
+        }
         const docDate = new Date(value);
         const nowDoc = new Date();
-        if (docDate <= nowDoc) {
-          return "Document due date must be after the current date and time.";
+        // Only check if date is after now if the date has been changed (with tolerance)
+        const docDateChanged = !areDatesEffectivelySame(value, originalDates.docDueDate);
+        if (docDateChanged && docDate <= nowDoc) {
+          errorMsgs.docDueDate = "Document due date must be after the current date and time.";
+          break;
         }
         if (
           formData.appDueDate &&
           value &&
           new Date(value) <= new Date(formData.appDueDate)
         ) {
-          return "Document submission deadline must be after application due date.";
+          errorMsgs.appDueDate = "New application due date must be before document submission deadline.";
+          errorMsgs.docDueDate = "New document submission deadline must be after application due date.";
+          break;
         }
-        return "";
+        errorMsgs.docDueDate = "";
+        break;
       default:
-        return "";
+        return;
     }
+    setInputErrors((prev) => ({ ...prev, ...errorMsgs }));
   };
 
   const validateSemester = (semester: Option | null) => {
@@ -241,20 +280,7 @@ const EditModule: React.FC = () => {
     }));
 
     // Validate on change
-    if (
-      name === "undergraduateTAsRequired" ||
-      name === "postgraduateTAsRequired"
-    ) {
-      setInputErrors((prev) => ({
-        ...prev,
-        tasRequired: validateField(name, Number(newValue)),
-      }));
-    } else {
-      setInputErrors((prev) => ({
-        ...prev,
-        [name]: validateField(name, newValue),
-      }));
-    }
+    validateFieldAndUpdateErrors(name, newValue);
   };
 
   const handleCoordinatorChange = (value: Option | null) => {
@@ -309,29 +335,12 @@ const EditModule: React.FC = () => {
 
   const validateForm = () => {
     Object.keys(formData).forEach((key) => {
-      if (
-        key === "undergraduateTAsRequired" ||
-        key === "postgraduateTAsRequired"
-      ) {
-        setInputErrors((prev) => ({
-          ...prev,
-          tasRequired: validateField(
-            key as keyof FormData,
-            formData[key as keyof FormData]
-          ),
-        }));
-      } else if (key === "semester") {
+      if (key === "semester") {
         validateSemester(formData.semester);
       } else if (key === "coordinators") {
         validateCoordinators(formData.coordinators);
       } else {
-        setInputErrors((prev) => ({
-          ...prev,
-          [key]: validateField(
-            key as keyof FormData,
-            formData[key as keyof FormData]
-          ),
-        }));
+        validateFieldAndUpdateErrors(key, (formData as any)[key]);
       }
     });
   };
@@ -362,9 +371,14 @@ const EditModule: React.FC = () => {
   useEffect(() => {
     if (state && state.roundId && state.moduleId) {
       const modData = getModuleById(state.roundId, state.moduleId);
-      console.log("Editing module data:", modData);
-
       if (modData) {
+        const appDueDateValue = toLocalDatetimeInputValue(
+          new Date(modData.applicationDueDate)
+        );
+        const docDueDateValue = toLocalDatetimeInputValue(
+          new Date(modData.documentDueDate)
+        );
+        
         setFormData({
           moduleCode: modData.moduleCode,
           moduleName: modData.moduleName,
@@ -386,12 +400,14 @@ const EditModule: React.FC = () => {
             ? modData.postgraduateCounts.required
             : 0,
           specialNotes: modData.requirements,
-          docDueDate: toLocalDatetimeInputValue(
-            new Date(modData.documentDueDate)
-          ),
-          appDueDate: toLocalDatetimeInputValue(
-            new Date(modData.applicationDueDate)
-          ),
+          docDueDate: docDueDateValue,
+          appDueDate: appDueDateValue,
+        });
+
+        // Store original dates for validation comparison
+        setOriginalDates({
+          appDueDate: appDueDateValue,
+          docDueDate: docDueDateValue
         });
 
         fetchLecturers().then(() => {
@@ -405,8 +421,6 @@ const EditModule: React.FC = () => {
       } else {
         showToast("Module data not found.", "error");
       }
-    } else {
-      fetchLecturers();
     }
   }, []);
 
@@ -549,20 +563,15 @@ const EditModule: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      const newValue = Math.max(0, formData.undergraduateTAsRequired - 1);
                       setFormData((prev) => ({
                         ...prev,
-                        undergraduateTAsRequired: Math.max(
-                          0,
-                          prev.undergraduateTAsRequired - 1
-                        ),
+                        undergraduateTAsRequired: newValue
                       }));
-                      setInputErrors((prev) => ({
-                        ...prev,
-                        tasRequired: validateField(
-                          "undergraduateTAsRequired",
-                          formData.undergraduateTAsRequired - 1
-                        ),
-                      }));
+                      validateFieldAndUpdateErrors(
+                        "undergraduateTAsRequired",
+                        newValue
+                      );
                     }}
                     className="hover:text-primary-light hover:outline-primary-light hover:outline-2 focus:outline-2 focus:outline-primary-light focus:text-primary-light rounded-sm p-2 text-sm outline-1 outline-text-secondary outline text-text-secondary"
                   >
@@ -580,18 +589,15 @@ const EditModule: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      const newValue = Math.min(20, formData.undergraduateTAsRequired + 1);
                       setFormData((prev) => ({
                         ...prev,
-                        undergraduateTAsRequired:
-                          prev.undergraduateTAsRequired + 1,
+                        undergraduateTAsRequired: newValue
                       }));
-                      setInputErrors((prev) => ({
-                        ...prev,
-                        tasRequired: validateField(
-                          "undergraduateTAsRequired",
-                          formData.undergraduateTAsRequired + 1
-                        ),
-                      }));
+                      validateFieldAndUpdateErrors(
+                        "undergraduateTAsRequired",
+                        newValue
+                      );
                     }}
                     className="hover:text-primary-light hover:outline-primary-light hover:outline-2 focus:outline-2 focus:outline-primary-light focus:text-primary-light rounded-sm p-2 text-sm outline-1 outline-text-secondary outline text-text-secondary"
                   >
@@ -609,20 +615,15 @@ const EditModule: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      const newValue = Math.max(0, formData.postgraduateTAsRequired - 1);
                       setFormData((prev) => ({
                         ...prev,
-                        postgraduateTAsRequired: Math.max(
-                          0,
-                          prev.postgraduateTAsRequired - 1
-                        ),
+                        postgraduateTAsRequired: newValue,
                       }));
-                      setInputErrors((prev) => ({
-                        ...prev,
-                        tasRequired: validateField(
-                          "postgraduateTAsRequired",
-                          formData.postgraduateTAsRequired - 1
-                        ),
-                      }));
+                      validateFieldAndUpdateErrors(
+                        "postgraduateTAsRequired",
+                        newValue
+                      );
                     }}
                     className="hover:text-primary-light hover:outline-primary-light hover:outline-2 focus:outline-2 focus:outline-primary-light focus:text-primary-light rounded-sm p-2 text-sm outline-1 outline-text-secondary outline text-text-secondary"
                   >
@@ -640,18 +641,15 @@ const EditModule: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      const newValue = Math.min(20, formData.postgraduateTAsRequired + 1);
                       setFormData((prev) => ({
                         ...prev,
-                        postgraduateTAsRequired:
-                          prev.postgraduateTAsRequired + 1,
+                        postgraduateTAsRequired: newValue,
                       }));
-                      setInputErrors((prev) => ({
-                        ...prev,
-                        tasRequired: validateField(
-                          "postgraduateTAsRequired",
-                          formData.postgraduateTAsRequired + 1
-                        ),
-                      }));
+                      validateFieldAndUpdateErrors(
+                        "postgraduateTAsRequired",
+                        newValue
+                      );
                     }}
                     className="hover:text-primary-light hover:outline-primary-light hover:outline-2 focus:outline-2 focus:outline-primary-light focus:text-primary-light rounded-sm p-2 text-sm outline-1 outline-text-secondary outline text-text-secondary"
                   >
