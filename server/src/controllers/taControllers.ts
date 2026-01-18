@@ -181,6 +181,7 @@ const applyForTA = async (req: Request, res: Response): Promise<Response> => {
       
       if (undergradRemaining === 0 && postgradRemaining === 0) {
       updateModule.moduleStatus = "full";
+      await updateModule.save({ session });
       }
     }
     if (!updateModule) {
