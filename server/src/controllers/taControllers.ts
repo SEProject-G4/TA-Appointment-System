@@ -5,6 +5,7 @@ const TaApplication = require("../models/TaApplication");
 const User = require("../models/User");
 const RecruitmentSeries = require("../models/RecruitmentRound");
 const AppliedModules = require("../models/AppliedModules");
+const documentModel = require("../models/documentModel");
 
 const getAllRequests = async (req: Request, res: Response): Promise<Response> => {
   const userId = req.query.userId as string;
@@ -323,10 +324,16 @@ const getAcceptedModules = async (req: Request, res: Response): Promise<Response
     });
 
     const currentRecSeriesId = activeRecSeries[0]?._id;
+
+    const appliedModulesDoc = await AppliedModules.findOne({
+      userId,
+      recSeriesId: currentRecSeriesId,
+    });
+    const docSubmissionStatus = appliedModulesDoc?.isDocSubmitted || false;
     
     // Filter acceptedApplications to only include those that actually have accepted applications
     // (The match filter in populate filters the array, but the parent document is still returned)
-    const appliedModulesWithAccepted = acceptedApplications.filter((app: any) => 
+    /*const appliedModulesWithAccepted = acceptedApplications.filter((app: any) => 
       app.appliedModules && app.appliedModules.length > 0
     );
     
@@ -408,13 +415,17 @@ const getAcceptedModules = async (req: Request, res: Response): Promise<Response
         driveFiles: am.Documents.driveFiles,
         createdAt: am.Documents.createdAt,
         isCurrentRound: false,
-      }));
+      })); */
+      let previousDocuments = null;
+      previousDocuments = await documentModel.find(
+        {userId}
+      )
+      
 
     return res.status(200).json({
-      acceptedApplications: appliedModulesWithAccepted, // Only return AppliedModules that have accepted applications
+      acceptedApplications, // Only return AppliedModules that have accepted applications
       docSubmissionStatus,
-      currentRecSeriesId: currentRecSeriesId?.toString(),
-      currentRoundDocument, // Current round's document if submitted
+      currentRecSeriesId: currentRecSeriesId?.toString(), // Current round's document if submitted
       previousDocuments,
     });
   } catch (error) {

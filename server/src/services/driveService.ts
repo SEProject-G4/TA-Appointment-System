@@ -26,7 +26,7 @@ const SHARED_DRIVE_ID = process.env.SHARED_DRIVE_ID;
 const PARENT_FOLDER_ID = process.env.PARENT_FOLDER_ID || null; // For regular Drive
 
 const auth = new google.auth.GoogleAuth({
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  keyFilename: process.env.GOOGLE_SERVICE_ACCOUNT,
   scopes: ["https://www.googleapis.com/auth/drive"],
 });
 
