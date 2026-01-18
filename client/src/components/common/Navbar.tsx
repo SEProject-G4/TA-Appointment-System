@@ -88,7 +88,8 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((_, ref) => {
     {
       role: "admin",
       links: [
-        { subMenu:false, to: "/admin-dashboard", label: "Admin Dashboard" },
+        { subMenu:false, to: "/admin-dashboard", label: "Dashboard" },
+        { subMenu:false, to: "/doc-submissions", label: "Documents" },
         { subMenu:true, to: "/manage-users/add-user", label: "Manage Users",
           subNavs: [
             // { to: "/manage-users/overview", label: "Overview" },
