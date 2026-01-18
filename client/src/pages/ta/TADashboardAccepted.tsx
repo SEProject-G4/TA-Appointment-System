@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Trophy,
   FileIcon,
@@ -14,9 +14,9 @@ import { Button } from "../../components/ui/Button";
 import TADocumentCard from "../../components/ta/TADocumentCard";
 import ViewToggle from "../../components/ta/ViewToggle";
 import { useAuth } from "../../contexts/AuthContext";
-import axios from "axios";
+// import axios from "axios";
 import axiosInstance from "../../api/axiosConfig";
-import { data } from "react-router-dom";
+// import { data } from "react-router-dom";
 
 function TADashboardAccepted() {
   const { user } = useAuth();
@@ -33,8 +33,8 @@ function TADashboardAccepted() {
   const userId = user?.id; //check weather this correct------------------------------
   const modules = applications.flatMap(app =>
   app.appliedModules
-    .filter(mod => mod?.moduleId) // safeguard
-    .map(mod => ({
+    .filter((mod: any) => mod?.moduleId) // safeguard
+    .map((mod: any) => ({
       moduleCode: mod.moduleId.moduleCode,
       moduleName: mod.moduleId.moduleName,
       requiredTAHours: mod.moduleId.requiredTAHours || 0,
@@ -210,13 +210,13 @@ const latestDocumentDueDate = modules.length > 0
               }
             >
               {applications.flatMap((app) =>
-                app.appliedModules.map((appModule) => (
+                app.appliedModules.map((appModule: any) => (
                   <TAAppliedCard
                     key={appModule._id}
                     moduleCode={appModule.moduleId.moduleCode}
                     moduleName={appModule.moduleId.moduleName}
                     coordinators={appModule.moduleId.coordinators.map(
-                      (c) => c.name
+                      (c: any) => c.name
                     )}
                     requiredTAHours={appModule.moduleId.requiredTAHours}
                     requiredTANumber={
