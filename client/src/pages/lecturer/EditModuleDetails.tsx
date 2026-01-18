@@ -87,8 +87,8 @@ const EditModuleDetails: React.FC = () => {
   const areAllFieldsEdited = (moduleId: string): boolean => {
     const moduleData = moduleEdits[moduleId];
     if (!moduleData) return false;
-    // Only require the 'requirements' field to be filled; other fields are optional
-    return moduleData.requirements.trim().length > 0;
+    // All fields are now optional - form can be submitted as long as module data exists
+    return true;
   };
 
   const handleSortChange = (option: string) => {
