@@ -9,6 +9,7 @@ const { EmailService } = require("../services/emailService");
 const config = require("../config/index");
 import mongoose = require("mongoose");
 import { deleteModule as deleteModuleService } from "../services/deletionService";
+const { enqueueApproveTARequestsForModuleEmail } = require("../services/emailService");
 
 const changeModuleStatus = async (
   req: Request,
@@ -1069,6 +1070,53 @@ const deleteModuleById = async (
   }
 };
 
+const sendForApproval = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const { moduleId } = req.params;
+    if (!moduleId) {
+      return res.status(400).json({ message: "Module ID is required" });
+    }
+    const module = await ModuleDetails.findById(moduleId).populate("coordinators", "name email");
+    if (!module) {
+      return res.status(404).json({ message: "Module not found" });
+    }
+    let shouldSendEmail4 = false;
+    if (module.openForUndergraduates) {
+      shouldSendEmail4 =
+        module.undergraduateCounts.applied >
+        module.undergraduateCounts.reviewed;
+    }
+    if (!shouldSendEmail4 && module.openForPostgraduates) {
+      shouldSendEmail4 =
+        module.postgraduateCounts.applied >
+        module.postgraduateCounts.reviewed;
+    }
+    if (!shouldSendEmail4) {
+      return res.status(400).json({
+        message:
+          "All applications have already been reviewed. No new applications to send for approval.",
+      });
+    }
+    for (const coordinator of module.coordinators as any[]) {
+      await enqueueApproveTARequestsForModuleEmail( [coordinator.email], {
+        moduleCode: module.moduleCode,
+        moduleName: module.moduleName,
+        semester: module.semester,
+        coordName: coordinator.name,
+      });
+    }
+    module.sentEmail4 = (module.sentEmail4 || 0) + 1;
+    await module.save();
+    return res.status(200).json({ message: "Approval request emails sent to coordinators." });
+  } catch (error) {
+    console.error("Error sending approval request emails:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   getModuleDetailsById,
   changeModuleStatus,
@@ -1078,4 +1126,5 @@ module.exports = {
   addApplicants,
   getModuleApplications,
   deleteModuleById,
+  sendForApproval,
 };

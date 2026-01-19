@@ -27,6 +27,7 @@ export interface IModuleDetails extends Document {
   requirements: string;
   moduleStatus: "initialised" | "pending changes" | "changes submitted" | "advertised" | "full" | "getting documents" | "closed";
   hasEmail3Sent: boolean;
+  sentEmail4: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -125,6 +126,11 @@ const moduleDetailsSchema = new Schema<IModuleDetails>(
           appointed: 0,
         };
       },
+    },
+    sentEmail4: {
+      type: Number,
+      required: true,
+      default: 0,
     },
     requirements: {
       type: String,

@@ -362,6 +362,8 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
     requirements,
     documentDueDate,
     applicationDueDate,
+    hasEmail3Sent,
+    sentEmail4,
   } = moduleData;
 
   const fetchModuleDetails = async (_id: string) => {
@@ -533,17 +535,70 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
   };
 
   const handleSendforApproval = async (moduleData: ModuleDetails) => {
-    // Implementation for sending module for approval
-    try {
-      await axiosInstance.put(`/modules/${moduleData._id}/send-for-approval`);
-      showToast(
-        "Module coordinators were notified successfully to review the applications",
-        "success"
+    // Check if emails have been sent before
+    if ((moduleData.sentEmail4 || 0) > 0) {
+      // Show confirmation modal
+      openModal(
+        <div className="flex flex-col items-center py-4 px-6">
+          <h2 className="text-lg font-semibold mb-4">Confirm Sending Reminder</h2>
+          <p className="text-text-primary mb-2 text-center">
+            We have already sent <span className="font-semibold text-warning">{moduleData.sentEmail4}</span> email
+            {moduleData.sentEmail4 === 1 ? '' : 's'} reminding coordinators to review applications for this module.
+          </p>
+          <p className="text-text-secondary mb-4 text-center">
+            Are you sure you want to send another reminder email?
+          </p>
+          <div className="flex gap-x-4 mt-4">
+            <button
+              className="rounded-md outline outline-1 outline-text-secondary hover:bg-text-secondary/10 text-text-primary px-5 py-2 font-semibold"
+              onClick={() => closeModal()}
+            >
+              Cancel
+            </button>
+            <button
+              className="rounded-md outline outline-1 outline-primary bg-primary hover:bg-primary-light text-text-inverted px-5 py-2 font-semibold"
+              onClick={async () => {
+                closeModal();
+                try {
+                  await axiosInstance.put(`/modules/${moduleData._id}/send-for-approval`);
+                  showToast(
+                    "Module coordinators were notified successfully to review the applications",
+                    "success"
+                  );
+                  // Update the sentEmail4 count in the store
+                  updateModuleInStore(roundId, moduleId, {
+                    sentEmail4: (moduleData.sentEmail4 || 0) + 1
+                  });
+                  await fetchModuleDetails(moduleData._id);
+                } catch (error) {
+                  console.error("Error sending module for approval:", error);
+                  showToast("Failed to send module for approval", "error");
+                }
+              }}
+            >
+              Yes, Send
+            </button>
+          </div>
+        </div>,
+        { showCloseButton: false }
       );
-      await fetchModuleDetails(moduleData._id);
-    } catch (error) {
-      console.error("Error sending module for approval:", error);
-      showToast("Failed to send module for approval", "error");
+    } else {
+      // First time sending, no confirmation needed
+      try {
+        await axiosInstance.put(`/modules/${moduleData._id}/send-for-approval`);
+        showToast(
+          "Module coordinators were notified successfully to review the applications",
+          "success"
+        );
+        // Update the sentEmail4 count in the store
+        updateModuleInStore(roundId, moduleId, {
+          sentEmail4: 1
+        });
+        await fetchModuleDetails(moduleData._id);
+      } catch (error) {
+        console.error("Error sending module for approval:", error);
+        showToast("Failed to send module for approval", "error");
+      }
     }
   };
 
@@ -630,6 +685,12 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
             className:
               "outline-primary-dark text-text-primary hover:bg-primary/10 hover:text-primary-dark",
           },
+          {
+            label: "Send for Approval",
+            action: handleSendforApproval,
+            className:
+              "outline-primary text-text-inverted bg-primary hover:bg-primary-light",
+          },
         ];
       case "closed":
         return [
@@ -661,6 +722,8 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
     requirements,
     documentDueDate: new Date(documentDueDate),
     applicationDueDate: new Date(applicationDueDate),
+    hasEmail3Sent,
+    sentEmail4,
   };
 
   return (
