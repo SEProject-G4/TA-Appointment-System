@@ -10,6 +10,7 @@ import axiosInstance from "../../api/axiosConfig";
 import { useRoundsStore } from "../../stores/useRoundsStore";
 
 import "./NewModule.css";
+import { areDatesEffectivelySame } from "../../utils/DateTime";
 
 interface FormData {
   moduleCode: string;
@@ -138,15 +139,6 @@ const EditModule: React.FC = () => {
   const validateFieldAndUpdateErrors = (name: string, value: any) => {
     let errorMsgs: { [key: string]: string } = {};
     
-    // Helper function to check if two dates are effectively the same (within 60 seconds tolerance)
-    const areDatesEffectivelySame = (date1Str: string, date2Str: string): boolean => {
-      if (!date1Str || !date2Str) return false;
-      const date1 = new Date(date1Str).getTime();
-      const date2 = new Date(date2Str).getTime();
-      const tolerance = 60000; // 60 seconds in milliseconds
-      return Math.abs(date1 - date2) <= tolerance;
-    };
-    
     switch (name) {
       case "moduleCode":
         errorMsgs.moduleCode = !value ? "Module code is required." : "";
@@ -189,7 +181,7 @@ const EditModule: React.FC = () => {
         // Only check if date is after now if the date has been changed (with tolerance)
         const appDateChanged = !areDatesEffectivelySame(value, originalDates.appDueDate);
         if (appDateChanged && appDate <= now) {
-          errorMsgs.appDueDate = "New application due date must be after the current date and time.";
+          errorMsgs.appDueDate = "New application due date must be in future.";
           break;
         }
         // If docDueDate is set, check order
@@ -203,6 +195,7 @@ const EditModule: React.FC = () => {
           break;
         }
         errorMsgs.appDueDate = "";
+        errorMsgs.docDueDate = "";
         break;
       case "docDueDate":
         if (!value) {
@@ -214,7 +207,7 @@ const EditModule: React.FC = () => {
         // Only check if date is after now if the date has been changed (with tolerance)
         const docDateChanged = !areDatesEffectivelySame(value, originalDates.docDueDate);
         if (docDateChanged && docDate <= nowDoc) {
-          errorMsgs.docDueDate = "Document due date must be after the current date and time.";
+          errorMsgs.docDueDate = "Document due date must be in future.";
           break;
         }
         if (
@@ -227,6 +220,7 @@ const EditModule: React.FC = () => {
           break;
         }
         errorMsgs.docDueDate = "";
+        errorMsgs.appDueDate = "";
         break;
       default:
         return;
@@ -448,7 +442,7 @@ const EditModule: React.FC = () => {
               value={formData.moduleCode}
               onChange={handleChange}
               maxLength={10}
-              className="ml-8 new-module-input w-32"
+              className="ml-8 max-w-[150px] new-module-input w-32"
             />
             {inputErrors.moduleCode && (
               <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
@@ -469,7 +463,7 @@ const EditModule: React.FC = () => {
               value={formData.moduleName}
               onChange={handleChange}
               maxLength={100}
-              className="ml-8 max-w-full w-96 new-module-input"
+              className="ml-8 min-w-[400px] w-96 new-module-input"
             />
             {inputErrors.moduleName && (
               <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
@@ -701,7 +695,7 @@ const EditModule: React.FC = () => {
                 name="appDueDate"
                 value={formData.appDueDate}
                 onChange={handleChange}
-                className="ml-5 input input-bordered"
+                className="ml-5 max-w-[200px] input input-bordered"
               />
             </div>
             {inputErrors.appDueDate && (
@@ -722,7 +716,7 @@ const EditModule: React.FC = () => {
                 name="docDueDate"
                 value={formData.docDueDate}
                 onChange={handleChange}
-                className="ml-5 input input-bordered"
+                className="ml-5 max-w-[200px] input input-bordered"
               />
             </div>
             {inputErrors.docDueDate && (

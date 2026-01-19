@@ -13,7 +13,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import NewModule from "./pages/admin/NewModule";
 import EditModule from "./pages/admin/EditModule";
 import NewRecruitmentSeries from "./pages/admin/NewRecruitmentSeries";
-import EditRecruitmentSeries from "./pages/admin/EditRecruitmentSeries";
+import EditRecruitmentRound from "./pages/admin/EditRecruitmentRound";
 import AddUser from "./pages/admin/AddUser";
 import UndergraduateUsers from "./pages/admin/UndergraduateUsers";
 import PostgraduateUsers from "./pages/admin/PostgraduateUsers";
@@ -152,7 +152,7 @@ function App() {
                     path="/recruitment-series/:seriesId/edit"
                     element={
                       <ProtectedRoute roles="admin">
-                        <EditRecruitmentSeries />
+                        <EditRecruitmentRound />
                       </ProtectedRoute>
                     }
                   />

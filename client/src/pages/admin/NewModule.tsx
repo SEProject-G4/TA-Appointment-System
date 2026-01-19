@@ -1,20 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaPlus, FaMinus } from "react-icons/fa";
-import { FaCircleCheck } from "react-icons/fa6";
 import { MdClose, MdOutlineErrorOutline } from "react-icons/md";
-import {
-  Field,
-  Label,
-  Switch,
-  Checkbox,
-  Button,
-  Tab,
-  TabGroup,
-  TabList,
-  TabPanel,
-  TabPanels,
-} from "@headlessui/react";
 import AutoSelect, { type Option } from "../../components/common/AutoSelect";
 // import { HiOutlineLink } from "react-icons/hi";
 
@@ -215,6 +202,7 @@ const NewModule: React.FC = () => {
           break;
         }
         errorMsgs.appDueDate = "";
+        errorMsgs.docDueDate = "";
         break;
       case "docDueDate":
         if (!value) {
@@ -237,6 +225,7 @@ const NewModule: React.FC = () => {
           break;
         }
         errorMsgs.docDueDate = "";
+        errorMsgs.appDueDate = "";
         break;
       default:
         return;
@@ -412,7 +401,7 @@ const NewModule: React.FC = () => {
               value={formData.moduleCode}
               onChange={handleChange}
               maxLength={10}
-              className="ml-8 new-module-input"
+              className="ml-8 max-w-[150px] new-module-input"
             />
             {inputErrors.moduleCode && (
               <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
@@ -432,7 +421,7 @@ const NewModule: React.FC = () => {
               placeholder="e.g. Program Construction"
               value={formData.moduleName}
               onChange={handleChange}
-              className="ml-8 max-w-full w-96 new-module-input"
+              className="ml-8 min-w-[400px] new-module-input"
             />
             {inputErrors.moduleName && (
               <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
@@ -664,7 +653,7 @@ const NewModule: React.FC = () => {
                 name="appDueDate"
                 value={formData.appDueDate}
                 onChange={handleChange}
-                className="ml-5 input input-bordered"
+                className="ml-5 max-w-[200px] input input-bordered"
               />
             </div>
             {inputErrors.appDueDate && (
@@ -685,7 +674,7 @@ const NewModule: React.FC = () => {
                 name="docDueDate"
                 value={formData.docDueDate}
                 onChange={handleChange}
-                className="ml-5 input input-bordered"
+                className="ml-5 max-w-[200px] input input-bordered"
               />
             </div>
             {inputErrors.docDueDate && (

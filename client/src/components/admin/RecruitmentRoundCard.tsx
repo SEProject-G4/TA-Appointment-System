@@ -413,20 +413,10 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
       },
     ];
 
-    switch (status) {
+    switch (round.status) {
       case "initialised":
       case "active":
         return [
-          {
-            label: "Change deadlines",
-            onClick: handleChangeDeadlines,
-            show: true,
-          },
-          {
-            label: "Change hour limits",
-            onClick: handleChangeHourLimits,
-            show: true,
-          },
           {
             label: "Edit",
             onClick: () => {

@@ -1,116 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Combobox,
-  ComboboxInput,
-  ComboboxOption,
-  ComboboxOptions,
-  ComboboxButton,
-  Transition,
-} from "@headlessui/react";
-
 import { MdClose } from "react-icons/md";
-import { FaChevronDown } from "react-icons/fa";
 import axiosInstance from "../../api/axiosConfig";
 import { useToast } from "../../contexts/ToastContext";
 import { useRoundsStore } from "../../stores/useRoundsStore";
+import GroupSelect from "../../components/admin/GroupSelect";
 
 interface UserGroup {
   _id: string;
   name: string;
   userCount: number;
 }
-
-interface UserSelectProps {
-  options: UserGroup[];
-  className?: string;
-  selectedOption: UserGroup | null;
-  onSelect: (selected: UserGroup | null) => void;
-}
-
-const GroupSelect: React.FC<UserSelectProps> = ({
-  options,
-  onSelect,
-  className,
-  selectedOption,
-}) => {
-  const [query, setQuery] = useState("");
-
-  const filteredOptions =
-    query === ""
-      ? options
-      : options.filter((option) =>
-          option.name.toString().toLowerCase().includes(query.toLowerCase())
-        );
-
-  return (
-    <div className={`${className}`}>
-      <Combobox
-        disabled={options.length === 0}
-        value={selectedOption}
-        onChange={onSelect}
-        onClose={() => setQuery("")}
-      >
-        <div className="relative mt-1">
-          <ComboboxInput
-            className="w-full py-1 px-2 rounded-md outline outline-1 outline-text-secondary focus:outline-primary-light focus:outline-offset-1 focus:outline-2"
-            displayValue={(option: UserGroup | null) =>
-              option ? option.name.toString() : ""
-            }
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={
-              "Select a User Group to add its users to the mailing list"
-            }
-          />
-          <ComboboxButton className="absolute group inset-y-0 right-0 flex items-center px-2.5">
-            <FaChevronDown
-              className="size-5 text-text-secondary group-data-hover:text-text-primary"
-              aria-hidden="true"
-            />
-          </ComboboxButton>
-          <Transition
-            enter="transition duration-100 ease-out"
-            enterFrom="transform scale-95 opacity-0"
-            enterTo="transform scale-100 opacity-100"
-            leave="transition duration-75 ease-out"
-            leaveFrom="transform scale-100 opacity-100"
-            leaveTo="transform scale-95 opacity-0"
-          >
-            <ComboboxOptions
-              anchor="bottom"
-              className="absolute mt-1 max-h-60 w-(--input-width) overflow-auto rounded-md bg-bg-card py-1 shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-50"
-            >
-              {filteredOptions.length === 0 && query !== "" ? (
-                <div className="relative cursor-default select-none py-2 px-4 text-text-secondary">
-                  Nothing found.
-                </div>
-              ) : (
-                filteredOptions.map((option) => (
-                  <ComboboxOption
-                    key={option._id}
-                    className={`relative cursor-pointer select-none py-2 w-full px-5
-                            bg-bg-card/80 text-text-primary 
-                            data-[active]:bg-primary-dark/70 data-[active]:text-text-inverted
-                            data-[selected]:bg-primary-dark/20 data-[selected]:text-text-primary
-                          `}
-                    value={option}
-                  >
-                    <div className="flex flex-col">
-                      <span className="block truncate">{option.name}</span>
-                      <span className="block truncate text-sm font-semibold">
-                        {option.userCount} users
-                      </span>
-                    </div>
-                  </ComboboxOption>
-                ))
-              )}
-            </ComboboxOptions>
-          </Transition>
-        </div>
-      </Combobox>
-    </div>
-  );
-};
 
 interface RecruitmentSeriesFormData {
   name: string;
@@ -140,87 +40,131 @@ function NewRecruitmentSeries() {
   const [availablePostgradGroups, setAvailablePostgradGroups] = useState<
     UserGroup[]
   >([]);
-  const [usrsCount, setUsersCount] = useState<{ under: number; post: number }>({
-    under: 0,
-    post: 0,
-  });
+  const [usersCount, setUsersCount] = useState<{ under: number; post: number }>(
+    {
+      under: 0,
+      post: 0,
+    },
+  );
 
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const addRound = useRoundsStore(state => state.addRound);
+  const addRound = useRoundsStore((state) => state.addRound);
 
   const handleUndergradGroupSelect = (group: UserGroup | null) => {
+    if (!group) return;
+    const newGroupsArr = [...formData.undergradMailingList, group];
+    validateField("undergradMailingList", newGroupsArr);
     setFormData((prevData) => ({
       ...prevData,
-      undergradMailingList: group
-        ? [...prevData.undergradMailingList, group]
-        : [...prevData.undergradMailingList],
+      undergradMailingList: newGroupsArr,
     }));
-    if (group) {
-      setUsersCount((prev) => ({
-        ...prev,
-        under: prev.under + group.userCount,
-      }));
-      setAvailableUndergradGroups((prev) =>
-        prev.length > 0 ? prev.filter((g) => g._id !== group._id) : []
-      );
-    }
+    setUsersCount((prev) => ({
+      ...prev,
+      under: prev.under + group.userCount,
+    }));
+    setAvailableUndergradGroups((prev) =>
+      prev.length > 0 ? prev.filter((g) => g._id !== group._id) : [],
+    );
   };
 
   const handlePostgradGroupSelect = (group: UserGroup | null) => {
+    if (!group) return;
+    const newGroupsArr = [...formData.postgradMailingList, group];
+    validateField("postgradMailingList", newGroupsArr);
     setFormData((prevData) => ({
       ...prevData,
-      postgradMailingList: group
-        ? [...prevData.postgradMailingList, group]
-        : [...prevData.postgradMailingList],
+      postgradMailingList: newGroupsArr,
     }));
-    if (group) {
-      setUsersCount((prev) => ({ ...prev, post: prev.post + group.userCount }));
-      setAvailablePostgradGroups((prev) =>
-        prev.length > 0 ? prev.filter((g) => g._id !== group._id) : []
-      );
-    }
+    setUsersCount((prev) => ({ ...prev, post: prev.post + group.userCount }));
+    setAvailablePostgradGroups((prev) =>
+      prev.length > 0 ? prev.filter((g) => g._id !== group._id) : [],
+    );
   };
 
   const validateField = (fieldName: string, value: any) => {
-    let error = "";
+    let errorMsgs: { [key: string]: string } = {};
+
     switch (fieldName) {
       case "name":
-        if (!value) error = "Name is required";
+        errorMsgs.name = !value ? "Name is required" : "";
         break;
       case "applicationDueDate":
-        if (!value) error = "Application due date is required.";
-        else if (
+        if (!value) {
+          errorMsgs.applicationDueDate = "Application due date is required.";
+          break;
+        }
+        const appDate = new Date(value);
+        const now = new Date();
+        if (appDate <= now) {
+          errorMsgs.applicationDueDate =
+            "New application due date must be in future.";
+          break;
+        }
+        if (
           formData.documentDueDate &&
           value &&
           new Date(formData.documentDueDate) < new Date(value)
         ) {
-          error =
-            "Application due date must be on or before document submission deadline.";
+          errorMsgs.applicationDueDate =
+            "New application due date must be on or before document submission deadline.";
+          errorMsgs.documentDueDate =
+            "New document submission deadline must be after application due date.";
+          break;
         }
+        errorMsgs.documentDueDate = "";
+        errorMsgs.applicationDueDate = "";
         break;
       case "documentDueDate":
-        if (!value) error = "Document due date is required.";
-        else if (
+        if (!value) {
+          errorMsgs.documentDueDate =
+            "Document submission deadline is required.";
+          break;
+        }
+        const docDate = new Date(value);
+        const nowDoc = new Date();
+        if (docDate <= nowDoc) {
+          errorMsgs.documentDueDate = "Document due date must be in future.";
+          break;
+        }
+        if (
           formData.applicationDueDate &&
           value &&
           new Date(formData.applicationDueDate) > new Date(value)
         ) {
-          error = "Document due date must be on or after application due date.";
+          errorMsgs.applicationDueDate =
+            "New application due date must be before document submission deadline.";
+          errorMsgs.documentDueDate =
+            "New document submission deadline must be after application due date.";
+          break;
         }
+        errorMsgs.applicationDueDate = "";
+        errorMsgs.documentDueDate = "";
         break;
       case "undergradHourLimit":
+        errorMsgs.undergradHourLimit =
+          value <= 0 ? "Hour limit must be positive" : "";
+        break;
       case "postgradHourLimit":
-        if (value <= 0) error = "Hour limit must be positive";
+        errorMsgs.postgradHourLimit =
+          value <= 0 ? "Hour limit must be positive" : "";
         break;
       case "undergradMailingList":
+        errorMsgs.undergradMailingList =
+          Array.isArray(value) && value.length > 0
+            ? ""
+            : "At least one undergraduate mailing list is required.";
+        break;
       case "postgradMailingList":
-        if (!Array.isArray(value)) error = "Invalid mailing list";
+        errorMsgs.postgradMailingList =
+          Array.isArray(value) && value.length > 0
+            ? ""
+            : "At least one postgraduate mailing list is required.";
         break;
       default:
         break;
     }
-    setInputErrors((prev) => ({ ...prev, [fieldName]: error }));
+    setInputErrors((prevErrors) => ({ ...prevErrors, ...errorMsgs }));
   };
 
   const isFormValid = () => {
@@ -243,7 +187,7 @@ function NewRecruitmentSeries() {
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    >,
   ) => {
     const { name, value, type } = e.target;
     let newValue: any = value;
@@ -264,14 +208,20 @@ function NewRecruitmentSeries() {
   const fetchUndergradGroups = async () => {
     try {
       const response = await axiosInstance.get(
-        "/user-management/groups/undergraduate"
+        "/user-management/groups/undergraduate",
       );
       if (response.status === 200) {
-        setFormData((prevData) => ({
-          ...prevData,
-          undergradMailingList: response.data,
-        }));
-        // console.log(response.data);
+        if(response.data?.length > 0){
+          setFormData((prevData) => ({
+            ...prevData,
+            undergradMailingList: response.data,
+          }));
+          setUsersCount((prev) => ({
+            ...prev,
+            under: response.data.reduce((acc: number, group: UserGroup) => acc + group.userCount, 0),
+          }));
+        }
+          // console.log(response.data);
       } else {
         console.error("Failed to fetch undergraduate groups");
       }
@@ -283,13 +233,19 @@ function NewRecruitmentSeries() {
   const fetchPostgradGroups = async () => {
     try {
       const response = await axiosInstance.get(
-        "/user-management/groups/postgraduate"
+        "/user-management/groups/postgraduate",
       );
       if (response.status === 200) {
-        setFormData((prevData) => ({
-          ...prevData,
-          postgradMailingList: response.data,
-        }));
+        if(response.data?.length > 0){
+          setFormData((prevData) => ({
+            ...prevData,
+            postgradMailingList: response.data,
+          }));
+          setUsersCount((prev) => ({
+            ...prev,
+            post: response.data.reduce((acc: number, group: UserGroup) => acc + group.userCount, 0),
+          }));
+        }
         // console.log(response.data);
       } else {
         console.error("Failed to fetch postgraduate groups");
@@ -310,7 +266,7 @@ function NewRecruitmentSeries() {
       try {
         const response = await axiosInstance.post(
           "/recruitment-series/create",
-          RSData
+          RSData,
         );
         if (response.status === 201) {
           // Handle successful creation
@@ -331,9 +287,11 @@ function NewRecruitmentSeries() {
         showToast("Error creating recruitment round", "error");
         console.error("Error creating recruitment round:", error);
       }
-    }else{
+    } else {
       showToast("Please fix errors in the form, before submitting", "error");
-      Object.keys(formData).forEach((key) => validateField(key, (formData as any)[key]));
+      Object.keys(formData).forEach((key) =>
+        validateField(key, (formData as any)[key]),
+      );
     }
   };
 
@@ -361,8 +319,7 @@ function NewRecruitmentSeries() {
               placeholder="e.g. 2026 - 2, 4, 8 Semesters"
               value={formData.name}
               onChange={handleChange}
-              className="ml-8 new-module-input"
-              style={{ width: "300px" }}
+              className="ml-8 new-module-input min-w-[400px]"
             />
             {inputErrors.name && (
               <span className="text-warning text-sm ml-8 bg-warning/10 py-1 px-3 w-fit rounded-sm">
@@ -383,7 +340,7 @@ function NewRecruitmentSeries() {
               name="applicationDueDate"
               value={formData.applicationDueDate}
               onChange={handleChange}
-              className="ml-5 input input-bordered"
+              className="ml-5 max-w-[200px] input input-bordered"
             />
           </div>
           {inputErrors.applicationDueDate && (
@@ -404,7 +361,7 @@ function NewRecruitmentSeries() {
               name="documentDueDate"
               value={formData.documentDueDate}
               onChange={handleChange}
-              className="ml-5 input input-bordered"
+              className="ml-5 max-w-[200px] input input-bordered"
             />
           </div>
           {inputErrors.documentDueDate && (
@@ -472,7 +429,7 @@ function NewRecruitmentSeries() {
 
         {/* Undergraduate mailing list */}
         <p className="text-text-secondary mt-6 mb-2 label-text">
-          Potential TAs - Undergraduates
+          Potential TAs - <b>Undergraduates</b>
         </p>
         <div className="flex flex-col rounded-md outline outline-text-secondary/80 outline-1 h-[30vh] overflow-hidden mx-2">
           <div className="flex py-1 px-3 items-start shadow-md w-full gap-x-3">
@@ -483,9 +440,11 @@ function NewRecruitmentSeries() {
                 selectedOption={null}
                 onSelect={handleUndergradGroupSelect}
                 className="w-full"
+                placeholder="Select a User Group to add its users to the mailing list"
+                width=""
               />
               {availableUndergradGroups.length === 0 && (
-                <p className="text-text-secondary text-xs mt-1">
+                <p className="text-orange-500 font-semibold text-xs mt-1">
                   All available undergraduate groups are already added to the
                   mailing list.
                 </p>
@@ -512,7 +471,7 @@ function NewRecruitmentSeries() {
                       ...prev,
                       undergradMailingList:
                         formData.undergradMailingList.filter(
-                          (item) => item._id !== group._id
+                          (item) => item._id !== group._id,
                         ),
                     }));
                     setAvailableUndergradGroups((prev) => prev.concat(group));
@@ -528,7 +487,7 @@ function NewRecruitmentSeries() {
 
           <p className="px-2 py-1 text-text-secondary text-sm border-t-[1px] border-solid border-text-secondary/80">
             Total User Count:
-            <span className="font-semibold">{` ${usrsCount.under}`}</span>
+            <span className="font-semibold text-text-primary">{` ${usersCount.under}`}</span>
           </p>
         </div>
         {inputErrors.undergradMailingList && (
@@ -539,7 +498,7 @@ function NewRecruitmentSeries() {
 
         {/* Postgraduate mailing list */}
         <p className="text-text-secondary mt-6 mb-2 label-text">
-          Potential TAs - Postgraduates
+          Potential TAs - <b>Postgraduates</b>
         </p>
         <div className="flex flex-col rounded-md outline outline-text-secondary/80 outline-1 h-[30vh] overflow-hidden mx-2">
           <div className="flex py-1 px-3 items-start shadow-md w-full gap-x-3">
@@ -550,9 +509,11 @@ function NewRecruitmentSeries() {
                 selectedOption={null}
                 onSelect={handlePostgradGroupSelect}
                 className="w-full"
+                placeholder="Select a User Group to add its users to the mailing list"
+                width=""
               />
               {availablePostgradGroups.length === 0 && (
-                <p className="text-text-secondary text-xs mt-1">
+                <p className="text-orange-500 font-semibold text-xs mt-1">
                   All available postgraduate groups are already added to the
                   mailing list.
                 </p>
@@ -578,7 +539,7 @@ function NewRecruitmentSeries() {
                     setFormData((prev) => ({
                       ...prev,
                       postgradMailingList: formData.postgradMailingList.filter(
-                        (item) => item._id !== group._id
+                        (item) => item._id !== group._id,
                       ),
                     }));
                     setAvailablePostgradGroups((prev) => prev.concat(group));
@@ -594,7 +555,7 @@ function NewRecruitmentSeries() {
 
           <p className="px-2 py-1 text-text-secondary text-sm border-t-[1px] border-solid border-text-secondary/80">
             Total User Count:
-            <span className="font-semibold">{` ${usrsCount.post}`}</span>
+            <span className="text-text-primary font-semibold">{` ${usersCount.post}`}</span>
           </p>
         </div>
         {inputErrors.postgradMailingList && (
