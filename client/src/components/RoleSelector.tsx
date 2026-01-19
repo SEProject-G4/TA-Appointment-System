@@ -2,11 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { FaUser, FaGraduationCap, FaUserTie, FaCog, FaUserGraduate, FaUserShield } from "react-icons/fa";
 
-interface RoleSelectorProps {
-  onCancel?: () => void;
-}
-
-const RoleSelector: React.FC<RoleSelectorProps> = ({ onCancel }) => {
+const RoleSelector: React.FC = () => {
   const { availableRoles, selectUserRole, loading } = useAuth();
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [isSelecting, setIsSelecting] = useState(false);
@@ -60,12 +56,12 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({ onCancel }) => {
     }
   };
 
-  const handleRoleSelect = async () => {
-    if (!selectedRole) return;
-    
+  const handleRoleSelect = async (role: string) => {
+    if (!role) return;
+    setSelectedRole(role);
     setIsSelecting(true);
     try {
-      await selectUserRole(selectedRole);
+      await selectUserRole(role);
     } catch (error) {
       console.error('Role selection failed:', error);
       // You could show an error message here
@@ -106,7 +102,7 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({ onCancel }) => {
                   ? 'border-primary bg-primary/5'
                   : 'border-border-default hover:border-primary/50 hover:bg-bg-page'
               }`}
-              onClick={() => setSelectedRole(roleData.role)}
+              onClick={() => handleRoleSelect(roleData.role)}
             >
               <div className="flex items-center space-x-4">
                 <div className={`${selectedRole === roleData.role ? 'text-primary' : 'text-text-secondary'}`}>
@@ -142,28 +138,6 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({ onCancel }) => {
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="flex space-x-4 justify-end">
-          {onCancel && (
-            <button
-              onClick={onCancel}
-              className="px-6 py-2 border border-border-default text-text-secondary rounded-lg hover:bg-bg-page transition-colors duration-200"
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            onClick={handleRoleSelect}
-            disabled={!selectedRole}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors duration-200 ${
-              selectedRole
-                ? 'bg-primary text-white hover:bg-primary-dark'
-                : 'bg-bg-page text-text-secondary cursor-not-allowed'
-            }`}
-          >
-            Continue as {selectedRole ? getRoleDisplayName(selectedRole) : 'Selected Role'}
-          </button>
         </div>
       </div>
     </div>

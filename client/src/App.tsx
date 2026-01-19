@@ -73,7 +73,16 @@ function App() {
                   <Route
                     path="profile"
                     element={
-                      <ProtectedRoute roles={["admin", "undergraduate", "postgraduate", "lecturer", "hod", "cse office"]}>
+                      <ProtectedRoute
+                        roles={[
+                          "admin",
+                          "undergraduate",
+                          "postgraduate",
+                          "lecturer",
+                          "hod",
+                          "cse-office",
+                        ]}
+                      >
                         <ProfilePage />
                       </ProtectedRoute>
                     }
@@ -188,25 +197,25 @@ function App() {
                   <Route
                     path="ta-dashboard"
                     element={
-                    //  <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
-                        <TADashboard />
-                    //  </ProtectedRoute>
+                       <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
+                      <TADashboard />
+                       </ProtectedRoute>
                     }
                   />
                   <Route
                     path="ta-applied"
                     element={
-                      // <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
-                        <TADashboardApplied />
-                      // </ProtectedRoute>
+                      <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
+                      <TADashboardApplied />
+                      </ProtectedRoute>
                     }
                   />
                   <Route
                     path="ta-accepted"
                     element={
-                      // <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
-                        <TADashboardAccepted />
-                      // </ProtectedRoute>
+                      <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
+                      <TADashboardAccepted />
+                      </ProtectedRoute>
                     }
                   />
 
@@ -221,21 +230,37 @@ function App() {
               /> */}
                   <Route
                     path="lec-view-module-details"
-                    element={<ViewModuleDetails />}
+                    element={
+                      <ProtectedRoute roles="lecturer">
+                        <ViewModuleDetails />
+                      </ProtectedRoute>
+                    }
                   />
                   <Route
                     path="lec-edit-module-details"
-                    element={<EditModuleDetails />}
+                    element={
+                      <ProtectedRoute roles="lecturer">
+                        <EditModuleDetails />
+                      </ProtectedRoute>
+                    }
                   />
                   <Route
                     path="lec-handle-ta-requests"
-                    element={<HandleTARequests />}
+                    element={
+                      <ProtectedRoute roles="lecturer">
+                        <HandleTARequests />
+                      </ProtectedRoute>
+                    }
                   />
 
                   {/* CSE Office Routes */}
                   <Route
                     path="cse-office-dashboard"
-                    element={<CSEofficeDashboard />}
+                    element={
+                      <ProtectedRoute roles="cse-office">
+                        <CSEofficeDashboard />
+                      </ProtectedRoute>
+                    }
                   />
 
                   {/* Fallback redirect */}
