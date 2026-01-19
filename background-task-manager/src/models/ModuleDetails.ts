@@ -154,30 +154,6 @@ const moduleDetailsSchema = new Schema<IModuleDetails>(
   { timestamps: true }
 );
 
-// Pre-validate hook to check all coordinators are lecturers
-moduleDetailsSchema.pre("validate", async function (next) {
-  if (Array.isArray(this.coordinators) && this.coordinators.length > 0) {
-    const User = mongoose.model("User");
-    const users = await User.find({
-      _id: { $in: this.coordinators },
-      role: "lecturer",
-    }).select("_id");
-    if (users.length !== this.coordinators.length) {
-      const error = new mongoose.Error.ValidationError();
-      error.addError(
-        "coordinators",
-        new mongoose.Error.ValidatorError({
-          message: "All coordinators must be users with the lecturer role.",
-          path: "coordinators",
-          value: this.coordinators,
-        })
-      );
-      return next(error);
-    }
-  }
-  next();
-});
-
 const ModuleDetails: Model<IModuleDetails> = mongoose.model<IModuleDetails>(
   "ModuleDetails",
   moduleDetailsSchema,

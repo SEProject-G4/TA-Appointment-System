@@ -193,21 +193,22 @@ interface ModuleReadyForApproval {
   moduleCode: string;
   semester: number;
   coordinators: string[];
-  type: "undergraduate" | "postgraduate";
 }
 
-interface ModuleReadyForApprovalEmailParams {
+interface ModulesReadyForApprovalEmailParams {
+  isApplicationDueDatePassed?: boolean;
   modules: ModuleReadyForApproval[];
 }
 
 const getModulesReadyForApprovalEmail = (
-  params: ModuleReadyForApprovalEmailParams
+  params: ModulesReadyForApprovalEmailParams
 ): EmailContent => {
   const subject = `Modules: Ready for Approval`;
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #007bff;">Modules Ready for Approval</h2>
-        <p>The following modules have been submitted and are ready for your approval:</p>
+        <p>Dear Admin,</p>
+        <p>The following modules ${params.isApplicationDueDatePassed ? "<b>with passed application deadlines</b>" : ""} have unreviewed applications</p>
         
         <div style="margin: 20px 0;">
             ${params.modules
@@ -225,12 +226,7 @@ const getModulesReadyForApprovalEmail = (
                         }</span><br>
                         <span style="display: inline-block; margin-right: 15px;"><strong>Coordinators:</strong> ${module.coordinators.join(
                           ", "
-                        )}</span><br>
-                        <span style="display: inline-block;">🎓 <strong>Type:</strong> ${
-                          module.type === "undergraduate"
-                            ? "Undergraduate"
-                            : "Postgraduate"
-                        }</span>
+                        )}</span>
                     </div>
                 </div>
             `

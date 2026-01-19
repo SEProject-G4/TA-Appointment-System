@@ -1,16 +1,29 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import mongoose from "mongoose";
 import { Worker } from "bullmq";
-import nodemailer from "nodemailer";
 import * as EmailTemplates from "./emails";
+import { startScheduler } from "./scheduler";
+import { transporter } from "./transporter";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
+// Connect to MongoDB
+const connectDB = async () => {
+  try {
+    const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/ta-appointment";
+    await mongoose.connect(mongoUri);
+    console.log("✅ MongoDB connected successfully");
+  } catch (error) {
+    console.error("❌ MongoDB connection error:", error);
+    process.exit(1);
+  }
+};
+
+// Initialize database connection
+connectDB().then(() => {
+  // Start the scheduler after DB connection
+  startScheduler();
+  console.log("✅ Background task manager initialized");
 });
 
 const TemplateMap: Record<string, Function> = {
@@ -59,3 +72,12 @@ worker.on("completed", (job) => console.log(`Job ${job.id} done!`));
 worker.on("failed", (job, err) =>
   console.error(`Job ${job?.id} failed: ${err.message}`)
 );
+
+// Graceful shutdown
+process.on("SIGINT", async () => {
+  console.log("\n🛑 Shutting down gracefully...");
+  await worker.close();
+  await mongoose.connection.close();
+  console.log("✅ Shutdown complete");
+  process.exit(0);
+});
