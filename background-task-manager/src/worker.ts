@@ -62,7 +62,7 @@ const worker = new Worker(
     connection: {
       host: process.env.REDDIS_HOST,
       port: process.env.REDDIS_PORT ? parseInt(process.env.REDDIS_PORT) : 6379,
-      // password: process.env.REDDIS_PASSWORD,
+      password: process.env.REDDIS_PASSWORD,
     },
     concurrency: 5,
   }

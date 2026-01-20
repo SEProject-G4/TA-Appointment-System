@@ -2,7 +2,8 @@ import { Queue } from 'bullmq';
 
 const connection = {
   host: process.env.REDDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDDIS_PORT || '6379')
+  port: parseInt(process.env.REDDIS_PORT || '6379'),
+  password: process.env.REDDIS_PASSWORD || '',
 };
 
 const emailQueue = new Queue('email-queue', { connection });
