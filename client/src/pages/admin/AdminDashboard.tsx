@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
 import RSCard from "../../components/admin/RecruitmentRoundCard";
 import { LuCirclePlus } from "react-icons/lu";
 import { FaBoxOpen } from "react-icons/fa";
@@ -8,7 +7,6 @@ import { FaBoxOpen } from "react-icons/fa";
 import { useRoundsStore } from "../../stores/useRoundsStore";
 
 const AdminDashboard: React.FC = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   const { isInitiallyFetched, rounds, fetchRounds, fetchInitialModules } = useRoundsStore();

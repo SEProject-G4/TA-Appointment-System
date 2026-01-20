@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import TARequestCard from "../../components/ta/TARequestCard";
 import TAStatCard from "../../components/ta/TAStatCard";
 import ViewToggle from "../../components/ta/ViewToggle";
@@ -85,7 +85,7 @@ function TADashboard() {
 
     // Coordinators are array of strings
     const coordinators = Array.isArray(mod.coordinators)
-      ? mod.coordinators.map((c) => c.toLowerCase()).join(" ")
+      ? mod.coordinators.map((c: string) => c.toLowerCase()).join(" ")
       : "";
 
     return (

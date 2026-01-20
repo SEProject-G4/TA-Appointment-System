@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { FaChevronRight, FaBoxOpen } from "react-icons/fa";
 import { MdMoreVert } from "react-icons/md";
 import { Checkbox } from "@headlessui/react";
@@ -7,8 +6,7 @@ import { BiEdit } from "react-icons/bi";
 import { AiOutlineDelete } from "react-icons/ai";
 
 import axiosInstance from "../api/axiosConfig";
-import Loader from "./Loader";
-import { useToast } from "../contexts/ToastContext";
+import Loader from "./common/Loader";
 
 interface UndergraduateUser {
   _id: string;
@@ -20,53 +18,18 @@ interface UndergraduateUser {
 }
 
 interface UserRowProps extends UndergraduateUser {
-  role: string;
-  setSelectedUsers: React.Dispatch<React.SetStateAction<string[]>>;
   selectedAll: boolean;
-  setSelectedAll: React.Dispatch<React.SetStateAction<boolean>>;
-  setRefreshFlag: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const UserRow: React.FC<UserRowProps> = ({
-  _id,
   email,
   name,
-  role,
   dateAdded,
   indexNumber,
   profilePicUrl,
-  setSelectedUsers,
   selectedAll,
-  setSelectedAll,
-  setRefreshFlag,
 }) => {
   const [marked, setMarked] = React.useState(false);
-  const { showToast } = useToast();
-
-  const handleRowCheckboxChange = (checked: boolean) => {
-    setMarked(checked);
-    if (checked) {
-      setSelectedUsers((prev) => [...prev, _id]);
-    } else {
-      if (selectedAll) {
-        setSelectedAll(false);
-      }
-      setSelectedUsers((prev) => prev.filter((user) => user !== _id));
-    }
-  };
-
-  const handleDeleteUser = async () => {
-    try {
-      await axiosInstance.delete(`/user-management/users/${_id}`);
-      showToast("User deleted successfully", "success");
-      setRefreshFlag(true);
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      showToast("Failed to delete user", "error");
-    }
-  };
-
-  const handleEditUser = () => {
 
   useEffect(() => {
     setMarked(selectedAll);
@@ -137,16 +100,11 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedAll, setSelectedAll] = useState(false);
   const [refreshFlag, setRefreshFlag] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [users, setUsers] = useState<UndergraduateUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
 
   const handleHeaderCheckboxChange = (checked: boolean) => {
-    setSelectedUsers([]);
-    if (checked) {
-      setSelectedUsers(users.map((user: any) => user.id));
-    }
     setSelectedAll(checked);
   };
 
@@ -283,11 +241,7 @@ const UsersGroupCard: React.FC<UsersGroupCardProps> = ({
                       })
                       .replace(/(\w{3}) (\d{4})/, "$1, $2")}
                     profilePicUrl={user.profilePicUrl}
-                    role="undergraduate"
-                    setSelectedUsers={setSelectedUsers}
                     selectedAll={selectedAll}
-                    setSelectedAll={setSelectedAll}
-                    setRefreshFlag={setRefreshFlag}
                   />
                 ))}
               </tbody>

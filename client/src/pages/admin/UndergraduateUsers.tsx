@@ -5,7 +5,6 @@ import { FaBoxOpen } from "react-icons/fa";
 
 import axiosInstance from "../../api/axiosConfig";
 import Loader from "../../components/common/Loader";
-import { useToast } from "../../contexts/ToastContext";
 
 interface UserGroup {
   _id: string;

@@ -236,23 +236,6 @@ const CopyRSModal: React.FC<CopyRSModalProps> = ({
     );
   };
 
-  const isFormValid = () => {
-    return (
-      !formData.name ||
-      !!inputErrors.name ||
-      !formData.undergradHourLimit ||
-      !!inputErrors.undergradHourLimit ||
-      !formData.postgradHourLimit ||
-      !!inputErrors.postgradHourLimit ||
-      !formData.applicationDueDate ||
-      !!inputErrors.applicationDueDate ||
-      !formData.documentDueDate ||
-      !!inputErrors.documentDueDate ||
-      (formData.undergradMailingList.length === 0 &&
-        formData.postgradMailingList.length === 0)
-    );
-  };
-
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BookOpen, Eye, Calendar } from "lucide-react";
+import { BookOpen, Calendar } from "lucide-react";
 import { Button } from "../ui/Button";
 import TADetailedCard from "./TADetailedCard";
 

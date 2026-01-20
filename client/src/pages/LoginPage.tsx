@@ -43,7 +43,6 @@ const LoginPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [isGisScriptLoaded, setIsGisScriptLoaded] = useState(false);
-  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
   const [autoLoginStatus, setAutoLoginStatus] = useState<string>('');
 
   const showAlert = (message: string) => {
@@ -130,14 +129,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  // Manual trigger for Google sign-in
-  const triggerGoogleSignIn = () => {
-    if (window.google?.accounts?.id) {
-      console.log('Manually triggering Google sign-in...');
-      window.google.accounts.id.prompt();
-    }
-  };
-
   // Helper function to get default route based on user role
   const getDefaultRouteForRole = (role: string): string => {
     switch (role) {
@@ -193,7 +184,6 @@ const LoginPage: React.FC = () => {
 
         console.log('Google auth initialized, attempting auto-login...');
         setAutoLoginStatus('Checking for existing Google session...');
-        setAutoLoginAttempted(true);
 
         // Attempt One Tap auto-login with notification handler
         window.google.accounts.id.prompt(handlePromptNotification);

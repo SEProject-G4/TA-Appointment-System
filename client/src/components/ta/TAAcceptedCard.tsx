@@ -113,6 +113,7 @@ const TAAppliedCard: React.FC<AppliedRequestProps> = ({
         <TADocumentCard
           isDocOpen={isDocOpen}
           onClose={() => setIsDocOpen(false)}
+          isDocSubmitted={status === "document submitted"}
           position={{
             modules: [{
               moduleCode,

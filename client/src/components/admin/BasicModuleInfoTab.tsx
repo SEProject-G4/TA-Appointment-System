@@ -1,7 +1,6 @@
 import CommonAvatar from "../../assets/images/common_avatar.jpg";
 
 import type { ModuleDetails } from "../../types/module";
-import { LuRefreshCw } from "react-icons/lu";
 
 const ProgressBar = ({
   label,

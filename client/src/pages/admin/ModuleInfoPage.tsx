@@ -1,4 +1,4 @@
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 import BasicModuleInfoTab from "../../components/admin/BasicModuleInfoTab";

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaUser, FaSignOutAlt, FaBars, FaTimes, FaExchangeAlt, FaUserTie, FaGraduationCap, FaUserShield, FaCog, FaUserGraduate } from "react-icons/fa";
+import { FaUser, FaSignOutAlt, FaBars, FaTimes, FaUserTie, FaGraduationCap, FaUserShield, FaCog, FaUserGraduate } from "react-icons/fa";
 import CSELogo from "../../assets/images/cse-logo.png";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLocation, Link } from "react-router-dom";

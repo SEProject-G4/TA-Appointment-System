@@ -5,7 +5,6 @@ import CommonAvatar from "../../assets/images/common_avatar.jpg";
 import { FiClock } from "react-icons/fi";
 import { FaUserGraduate } from "react-icons/fa";
 
-import CircularProgress from "../common/CircularProgressBar";
 import { useNavigate } from "react-router-dom";
 
 import AutoSelect, { type Option } from "../../components/common/AutoSelect";
@@ -509,7 +508,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
       const response = await axiosInstance.put(
         `/modules/${moduleData._id}/advertise`
       );
-      const { wasRRStatusChanged, message } = response.data;
+      const { wasRRStatusChanged } = response.data;
       showToast(
         `${moduleData.moduleCode} - ${moduleData.moduleName} advertised successfully`,
         "success"

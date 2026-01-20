@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../contexts/AuthContext";
 import { getUserProfile } from "../api/authApi";
 import type { UserProfile } from "../api/authApi";
 import { FaUser, FaEnvelope, FaIdBadge, FaGraduationCap, FaCalendarAlt, FaUsers, FaClock, FaSpinner } from "react-icons/fa";

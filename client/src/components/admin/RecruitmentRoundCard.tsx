@@ -26,8 +26,6 @@ import { useRoundsStore } from "../../stores/useRoundsStore";
 
 // Component Imports
 import CopyRSModal from "./CopyRSModal";
-import ChangeDeadlineModal from "./ChangeDeadlineModal";
-import ChangeHourLimitsModal from "./ChangeHourLimitsModal";
 import RSModuleCard from "./RSModuleCard";
 import Loader from "../common/Loader";
 
@@ -455,32 +453,6 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
       default:
         return baseItems;
     }
-  };
-
-  const handleChangeDeadlines = () => {
-    openModal(
-      <ChangeDeadlineModal
-        recruitmentSeriesId={_id}
-        recruitmentSeriesName={round.name}
-        currentApplicationDueDate={round.applicationDueDate}
-        currentDocumentDueDate={round.documentDueDate}
-        onSuccess={refreshModuleDetails}
-      />,
-      { showCloseButton: false }
-    );
-  };
-
-  const handleChangeHourLimits = () => {
-    openModal(
-      <ChangeHourLimitsModal
-        recruitmentSeriesId={_id}
-        recruitmentSeriesName={round.name}
-        currentUndergradHourLimit={round.undergradHourLimit}
-        currentPostgradHourLimit={round.postgradHourLimit}
-        onSuccess={refreshModuleDetails}
-      />,
-      { showCloseButton: false }
-    );
   };
 
   const handleCopyRS = () => {
