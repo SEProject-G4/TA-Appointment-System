@@ -1,5 +1,6 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
+import Loader from "./Loader";
 import { useAuth } from "../../contexts/AuthContext";
 
 const ProtectedRoute: React.FC<{
@@ -10,8 +11,8 @@ const ProtectedRoute: React.FC<{
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-page text-text-primary">
-        Loading...
+      <div className="min-h-screen-minusnav flex items-center justify-center bg-bg-page text-text-primary">
+        <Loader />
       </div>
     );
   }

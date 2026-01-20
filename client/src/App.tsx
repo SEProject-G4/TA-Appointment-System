@@ -13,13 +13,13 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import NewModule from "./pages/admin/NewModule";
 import EditModule from "./pages/admin/EditModule";
 import NewRecruitmentSeries from "./pages/admin/NewRecruitmentSeries";
-import EditRecruitmentSeries from "./pages/admin/EditRecruitmentSeries";
+import EditRecruitmentRound from "./pages/admin/EditRecruitmentRound";
 import AddUser from "./pages/admin/AddUser";
 import UndergraduateUsers from "./pages/admin/UndergraduateUsers";
 import PostgraduateUsers from "./pages/admin/PostgraduateUsers";
 import LecturerUsers from "./pages/admin/LecturerUsers";
 import AdminUsers from "./pages/admin/AdminUsers";
-import ModuleDetails from "./pages/admin/ModuleDetails";
+import ModuleInfoPage from "./pages/admin/ModuleInfoPage";
 
 import ProfilePage from "./pages/ProfilePage";
 
@@ -73,7 +73,16 @@ function App() {
                   <Route
                     path="profile"
                     element={
-                      <ProtectedRoute roles={["admin", "undergraduate", "postgraduate", "lecturer", "hod", "cse office"]}>
+                      <ProtectedRoute
+                        roles={[
+                          "admin",
+                          "undergraduate",
+                          "postgraduate",
+                          "lecturer",
+                          "hod",
+                          "cse-office",
+                        ]}
+                      >
                         <ProfilePage />
                       </ProtectedRoute>
                     }
@@ -152,7 +161,7 @@ function App() {
                     path="/recruitment-series/:seriesId/edit"
                     element={
                       <ProtectedRoute roles="admin">
-                        <EditRecruitmentSeries />
+                        <EditRecruitmentRound />
                       </ProtectedRoute>
                     }
                   />
@@ -170,7 +179,16 @@ function App() {
                     path="/module-details/:moduleId"
                     element={
                       <ProtectedRoute roles="admin">
-                        <ModuleDetails />
+                        <ModuleInfoPage />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/doc-submissions"
+                    element={
+                      <ProtectedRoute roles="admin">
+                        <CSEofficeDashboard />
                       </ProtectedRoute>
                     }
                   />
@@ -179,25 +197,25 @@ function App() {
                   <Route
                     path="ta-dashboard"
                     element={
-                    //  <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
-                        <TADashboard />
-                    //  </ProtectedRoute>
+                       <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
+                      <TADashboard />
+                       </ProtectedRoute>
                     }
                   />
                   <Route
                     path="ta-applied"
                     element={
-                      // <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
-                        <TADashboardApplied />
-                      // </ProtectedRoute>
+                      <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
+                      <TADashboardApplied />
+                      </ProtectedRoute>
                     }
                   />
                   <Route
                     path="ta-accepted"
                     element={
-                      // <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
-                        <TADashboardAccepted />
-                      // </ProtectedRoute>
+                      <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
+                      <TADashboardAccepted />
+                      </ProtectedRoute>
                     }
                   />
 
@@ -212,21 +230,37 @@ function App() {
               /> */}
                   <Route
                     path="lec-view-module-details"
-                    element={<ViewModuleDetails />}
+                    element={
+                      <ProtectedRoute roles="lecturer">
+                        <ViewModuleDetails />
+                      </ProtectedRoute>
+                    }
                   />
                   <Route
                     path="lec-edit-module-details"
-                    element={<EditModuleDetails />}
+                    element={
+                      <ProtectedRoute roles="lecturer">
+                        <EditModuleDetails />
+                      </ProtectedRoute>
+                    }
                   />
                   <Route
                     path="lec-handle-ta-requests"
-                    element={<HandleTARequests />}
+                    element={
+                      <ProtectedRoute roles="lecturer">
+                        <HandleTARequests />
+                      </ProtectedRoute>
+                    }
                   />
 
                   {/* CSE Office Routes */}
                   <Route
                     path="cse-office-dashboard"
-                    element={<CSEofficeDashboard />}
+                    element={
+                      <ProtectedRoute roles="cse-office">
+                        <CSEofficeDashboard />
+                      </ProtectedRoute>
+                    }
                   />
 
                   {/* Fallback redirect */}

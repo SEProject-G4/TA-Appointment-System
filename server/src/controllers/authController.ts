@@ -312,10 +312,7 @@ const logout = (req: Request, res: Response): void => {
       logSecurityEvent("AUTH_LOGOUT", { userId }, req);
     }
 
-    // Only send response if headers haven't been sent
-    if (!res.headersSent) {
-      return res.status(200).json({ message: "Logout successful" });
-    }
+    res.status(200).json({ message: "Logout successful" });
   });
 };
 
@@ -336,7 +333,7 @@ const getAllSessions = async (req: Request, res: Response): Promise<Response> =>
   return res.json(sessionInfo);
 };
 
-const revokeSession = async (req: Request, res: Response): Promise<Response> => {
+const revokeSession = async (req: Request, res: Response): Promise<void> => {
   const { sessionId } = req.params;
 
   // In a production system, you'd need to implement session revocation
@@ -345,11 +342,11 @@ const revokeSession = async (req: Request, res: Response): Promise<Response> => 
   if (sessionId === req.sessionID) {
     // Revoking current session - redirect to logout
     logout(req, res);
-    return res; // logout handles the response asynchronously
+    return;
   }
 
   // For other sessions, you'd need to implement store-specific revocation
-  return res.json({ message: "Session revocation not implemented yet" });
+  res.json({ message: "Session revocation not implemented yet" });
 };
 
 const selectRole = async (req: Request, res: Response): Promise<Response> => {

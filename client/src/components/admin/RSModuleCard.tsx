@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import { MdMoreVert, MdClose } from "react-icons/md";
 import CommonAvatar from "../../assets/images/common_avatar.jpg";
 import { FiClock } from "react-icons/fi";
 import { FaUserGraduate } from "react-icons/fa";
 
-import { Checkbox } from "@headlessui/react";
 import CircularProgress from "../common/CircularProgressBar";
 import { useNavigate } from "react-router-dom";
 
@@ -16,50 +15,12 @@ import axiosInstance from "../../api/axiosConfig";
 import { useToast } from "../../contexts/ToastContext";
 import { useModal } from "../../contexts/ModalProvider";
 import Loader from "../common/Loader";
+import { useRoundsStore } from "../../stores/useRoundsStore";
+import type { ModuleDetails } from "../../types/module";
 
-interface ModuleDetails {
-  _id: string;
-  recruitmentSeriesId: string;
-  moduleCode: string;
-  moduleName: string;
-  semester: number;
-  moduleStatus: string;
-  coordinators: {
-    id: string;
-    displayName: string;
-    email: string;
-    profilePicture: string;
-  }[];
-  applicationDueDate: Date;
-  documentDueDate: Date;
-  requiredTAHours: number;
-  openForUndergraduates: boolean;
-  openForPostgraduates: boolean;
-
-  undergraduateCounts: {
-    required: number;
-    remaining: number;
-    applied: number;
-    reviewed: number;
-    accepted: number;
-    docSubmitted: number;
-    appointed: number;
-  };
-
-  postgraduateCounts: {
-    required: number;
-    remaining: number;
-    applied: number;
-    reviewed: number;
-    accepted: number;
-    docSubmitted: number;
-    appointed: number;
-  };
-  requirements: string;
-}
-
-interface RSModuleCardProps extends ModuleDetails {
-  refreshPage: () => void;
+interface RSModuleCardProps {
+  roundId: string;
+  moduleId: string;
 }
 
 const getClassForStatus = (status: string) => {
@@ -74,7 +35,7 @@ const getClassForStatus = (status: string) => {
       return "bg-purple-100 text-purple-800";
     case "full":
       return "bg-green-100 text-green-800";
-    case "getting-documents":
+    case "getting documents":
       return "bg-pink-100 text-pink-800";
     case "closed":
       return "bg-black text-white";
@@ -83,9 +44,10 @@ const getClassForStatus = (status: string) => {
   }
 };
 
-export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
-  moduleData,
-}) => {
+export const AddApplicantsModal: React.FC<{
+  moduleData: ModuleDetails;
+  triggerRefreshApplications?: React.Dispatch<React.SetStateAction<boolean>>;
+}> = ({ moduleData, triggerRefreshApplications }) => {
   const [availableStudents, setAvailableStudents] = useState<Option[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<Option[]>([]);
 
@@ -103,6 +65,7 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiResults, setApiResults] = useState<Array<any> | null>(null);
+  const refreshModule = useRoundsStore((state) => state.refreshModule);
 
   const fetchEligibleStudents = async (
     type: "undergraduate" | "postgraduate"
@@ -141,6 +104,12 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
     setAvailableStudents((prev) => [...prev, student]);
   };
 
+  useEffect(() => {
+    if (taType) {
+      fetchEligibleStudents(taType);
+    }
+  }, [taType]);
+
   return (
     <div className="p-4">
       <h2 className="text-lg font-semibold mb-2">
@@ -159,7 +128,6 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
                   : "bg-white text-primary"
               }`}
               onClick={() => {
-                fetchEligibleStudents("undergraduate");
                 setTaType("undergraduate");
               }}
             >
@@ -172,7 +140,6 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
                   : "bg-white text-primary"
               }`}
               onClick={() => {
-                fetchEligibleStudents("postgraduate");
                 setTaType("postgraduate");
               }}
             >
@@ -259,11 +226,24 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
                   );
                   // show results in modal
                   setApiResults(response.data.results || []);
-                  showToast(response.data.message || "Applicants processed", "success");
+                  showToast(
+                    response.data.message || "Applicants processed",
+                    "success"
+                  );
+                  await refreshModule(
+                    moduleData.recruitmentSeriesId,
+                    moduleData._id
+                  );
+                  if (triggerRefreshApplications) {
+                    triggerRefreshApplications(true);
+                  }
                 } catch (error: any) {
                   console.error("Error adding selected students:", error);
                   showToast("Failed to add selected students", "error");
-                  const reason = error?.response?.data?.error || error?.message || "Request failed";
+                  const reason =
+                    error?.response?.data?.error ||
+                    error?.message ||
+                    "Request failed";
                   setApiResults([{ name: "", status: "failed", reason }]);
                 } finally {
                   setIsSubmitting(false);
@@ -279,7 +259,9 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
       {isSubmitting && (
         <div className="w-full py-8 flex flex-col items-center">
           <Loader className="my-6 w-full" />
-          <p className="text-sm text-text-secondary mt-4 font-semibold">Processing...</p>
+          <p className="text-sm text-text-secondary mt-4 font-semibold">
+            Processing...
+          </p>
         </div>
       )}
       {/* Show results after submission */}
@@ -287,7 +269,8 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
         <div className="mt-4 w-full">
           <h3 className="text-sm font-semibold mb-2">Results summary</h3>
           <p className="text-sm text-text-secondary mb-2">
-            {apiResults.filter((r) => r.status === "success").length} succeeded, {apiResults.filter((r) => r.status !== "success").length} failed
+            {apiResults.filter((r) => r.status === "success").length} succeeded,{" "}
+            {apiResults.filter((r) => r.status !== "success").length} failed
           </p>
           <div className="max-h-48 overflow-y-auto">
             <ul className="space-y-2">
@@ -295,13 +278,23 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
                 <li key={idx} className="p-2 bg-bg-page rounded-md">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="font-semibold text-sm">{r.name || "Unknown"}</p>
+                      <p className="font-semibold text-sm">
+                        {r.name || "Unknown"}
+                      </p>
                       {r.reason && (
-                        <p className="text-xs text-text-secondary">{r.reason}</p>
+                        <p className="text-xs text-text-secondary">
+                          {r.reason}
+                        </p>
                       )}
                     </div>
                     <div>
-                      <span className={`text-xs font-semibold ${r.status === "success" ? "text-green-600" : "text-red-600"}`}>
+                      <span
+                        className={`text-xs font-semibold ${
+                          r.status === "success"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
                         {r.status}
                       </span>
                     </div>
@@ -326,31 +319,52 @@ export const AddApplicantsModal: React.FC<{ moduleData: ModuleDetails }> = ({
   );
 };
 
-const RSModuleCard: React.FC<RSModuleCardProps> = ({
-  _id,
-  recruitmentSeriesId,
-  moduleCode,
-  moduleName,
-  semester,
-  moduleStatus,
-  coordinators,
-  requiredTAHours,
-  openForUndergraduates,
-  openForPostgraduates,
-  undergraduateCounts,
-  postgraduateCounts,
-  requirements,
-  documentDueDate,
-  applicationDueDate,
-  refreshPage,
-}) => {
-  const [marked, setMarked] = useState(false);
+const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
   const [fetchedModuleData, setFetchedModuleData] =
     useState<ModuleDetails | null>(null);
 
   const navigate = useNavigate();
   const { openModal, closeModal } = useModal();
   const { showToast } = useToast();
+
+  // Get module data from store
+  const moduleData = useRoundsStore((state) =>
+    state.getModuleById(roundId, moduleId)
+  );
+  const updateModuleInStore = useRoundsStore(
+    (state) => state.updateModuleInRound
+  );
+  const updateRound = useRoundsStore((state) => state.updateRound);
+  const deleteModule = useRoundsStore((state) => state.deleteModuleFromRound);
+
+  // If module not found in store, return early
+  if (!moduleData) {
+    return (
+      <div className="hover:shadow-xl flex flex-col p-3 gap-y-2 rounded-md drop-shadow-xl bg-bg-card w-[400px]">
+        <p className="text-text-secondary">Module not found</p>
+      </div>
+    );
+  }
+
+  const {
+    _id,
+    recruitmentSeriesId,
+    moduleCode,
+    moduleName,
+    semester,
+    moduleStatus,
+    coordinators,
+    requiredTAHours,
+    openForUndergraduates,
+    openForPostgraduates,
+    undergraduateCounts,
+    postgraduateCounts,
+    requirements,
+    documentDueDate,
+    applicationDueDate,
+    hasEmail3Sent,
+    sentEmail4,
+  } = moduleData;
 
   const fetchModuleDetails = async (_id: string) => {
     try {
@@ -386,37 +400,48 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
         data = response.data;
       }
       setFetchedModuleData(data);
+      // Update store with fresh data
+      updateModuleInStore(roundId, moduleId, data);
     } catch (error) {
       console.error("Error fetching module details:", error);
       showToast("Failed to fetch module details", "error");
     }
   };
 
-  const updateModuleStatus = async (id: string, newStatus: string) => {
-    console.log(`Updating module ${id} status to ${newStatus}`);
-    try {
-      await axiosInstance.put(`/modules/${id}/change-status`, {
-        status: newStatus,
-      });
-      showToast("Module status updated successfully", "success");
-    } catch (error) {
-      console.error("Error updating module status:", error);
-      showToast("Failed to update module status", "error");
-    }
-  };
+  // const updateModuleStatus = async (id: string, newStatus: string) => {
+  //   console.log(`Updating module ${id} status to ${newStatus}`);
+  //   try {
+  //     await axiosInstance.put(`/modules/${id}/change-status`, {
+  //       status: newStatus,
+  //     });
+  //     showToast("Module status updated successfully", "success");
+  //   } catch (error) {
+  //     console.error("Error updating module status:", error);
+  //     showToast("Failed to update module status", "error");
+  //   }
+  // };
 
   const handleEditModule = (moduleData: ModuleDetails) => {
-    navigate(`/edit-module/${moduleData._id}`, { state: { moduleData } });
+    navigate(`/edit-module/${moduleData._id}`, {
+      state: { roundId: roundId, moduleId: moduleData._id },
+    });
   };
 
   const notifyCoordinators = async (moduleData: ModuleDetails) => {
     // Implementation for notifying coordinators
     try {
-      await axiosInstance.put(`/modules/${moduleData._id}/notify`);
-      showToast(
-        `Coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName} are notified successfully`,
-        "success"
+      const response = await axiosInstance.put(
+        `/modules/${moduleData._id}/notify`
       );
+      if (response.status === 200) {
+        showToast(
+          `Coordinators of ${moduleData.moduleCode} - ${moduleData.moduleName} are notified successfully`,
+          "success"
+        );
+        updateModuleInStore(roundId, moduleId, {
+          moduleStatus: "pending changes",
+        });
+      }
       await fetchModuleDetails(moduleData._id);
     } catch (error) {
       console.error("Error notifying coordinators:", error);
@@ -428,18 +453,71 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
   };
 
   const handleDeleteModule = (moduleData: ModuleDetails) => {
-    // Implementation for deleting a module
+    openModal(
+      <div className="flex flex-col items-center py-4 px-6">
+        <h2 className="text-lg font-semibold mb-4">Delete Module</h2>
+        <p className="text-warning font-semibold mb-2">
+          This action will delete all associated applications, and any other
+          related data.
+        </p>
+        <p>
+          Are you sure you want to delete this module from the recruitment
+          round?
+        </p>
+        <div className="flex gap-x-4 mt-4">
+          <button
+            className="rounded-md outline outline-1 outline-warning hover:bg-warning text-warning hover:text-text-inverted px-5 py-2 font-semibold"
+            onClick={async () => {
+              try {
+                const response = await axiosInstance.delete(
+                  `/modules/${moduleData._id}`
+                );
+                console.log("Delete Module Response:", response);
+                if (response.status === 200) {
+                  showToast(
+                    "Module deleted successfully with all its associated data.",
+                    "success"
+                  );
+                  closeModal();
+                  deleteModule(moduleData.recruitmentSeriesId, moduleData._id);
+                }
+                // Optionally refresh the list or provide feedback
+              } catch (error) {
+                console.error("Error deleting module:", error);
+              } finally {
+                closeModal();
+              }
+            }}
+          >
+            Delete
+          </button>
+          <button
+            className="rounded-md outline outline-1 outline-text-secondary hover:bg-primary/20 text-text-primary px-5 py-2 font-semibold"
+            onClick={() => closeModal()}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>,
+      { showCloseButton: false }
+    );
   };
 
   const handleAdvertiseModule = async (moduleData: ModuleDetails) => {
     // Implementation for advertising a module
     try {
-      await axiosInstance.put(`/modules/${moduleData._id}/advertise`);
+      const response = await axiosInstance.put(
+        `/modules/${moduleData._id}/advertise`
+      );
+      const { wasRRStatusChanged, message } = response.data;
       showToast(
         `${moduleData.moduleCode} - ${moduleData.moduleName} advertised successfully`,
         "success"
       );
-      await fetchModuleDetails(moduleData._id);
+      updateModuleInStore(roundId, moduleId, { moduleStatus: "advertised" });
+      if (wasRRStatusChanged) {
+        updateRound(roundId, { status: "active" });
+      }
     } catch (error) {
       console.error("Error advertising module:", error);
       showToast(
@@ -451,26 +529,77 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
 
   const handleViewApplications = (moduleData: ModuleDetails) => {
     // Implementation for viewing applications
-    navigate(`/module-details/${moduleData._id}`, { state: { moduleData, selectedTab: 1 } });
+    navigate(`/module-details/${moduleData._id}`, {
+      state: { roundId: roundId, moduleId: moduleId, selectedTab: 1 },
+    });
   };
 
   const handleSendforApproval = async (moduleData: ModuleDetails) => {
-    // Implementation for sending module for approval
-    try {
-      await axiosInstance.put(`/modules/${moduleData._id}/send-for-approval`);
-      showToast(
-        "Module coordinators were notified successfully to review the applications",
-        "success"
+    // Check if emails have been sent before
+    if ((moduleData.sentEmail4 || 0) > 0) {
+      // Show confirmation modal
+      openModal(
+        <div className="flex flex-col items-center py-4 px-6">
+          <h2 className="text-lg font-semibold mb-4">Confirm Sending Reminder</h2>
+          <p className="text-text-primary mb-2 text-center">
+            We have already sent <span className="font-semibold text-warning">{moduleData.sentEmail4}</span> email
+            {moduleData.sentEmail4 === 1 ? '' : 's'} reminding coordinators to review applications for this module.
+          </p>
+          <p className="text-text-secondary mb-4 text-center">
+            Are you sure you want to send another reminder email?
+          </p>
+          <div className="flex gap-x-4 mt-4">
+            <button
+              className="rounded-md outline outline-1 outline-text-secondary hover:bg-text-secondary/10 text-text-primary px-5 py-2 font-semibold"
+              onClick={() => closeModal()}
+            >
+              Cancel
+            </button>
+            <button
+              className="rounded-md outline outline-1 outline-primary bg-primary hover:bg-primary-light text-text-inverted px-5 py-2 font-semibold"
+              onClick={async () => {
+                closeModal();
+                try {
+                  await axiosInstance.put(`/modules/${moduleData._id}/send-for-approval`);
+                  showToast(
+                    "Module coordinators were notified successfully to review the applications",
+                    "success"
+                  );
+                  // Update the sentEmail4 count in the store
+                  updateModuleInStore(roundId, moduleId, {
+                    sentEmail4: (moduleData.sentEmail4 || 0) + 1
+                  });
+                  await fetchModuleDetails(moduleData._id);
+                } catch (error) {
+                  console.error("Error sending module for approval:", error);
+                  showToast("Failed to send module for approval", "error");
+                }
+              }}
+            >
+              Yes, Send
+            </button>
+          </div>
+        </div>,
+        { showCloseButton: false }
       );
-      await fetchModuleDetails(moduleData._id);
-    } catch (error) {
-      console.error("Error sending module for approval:", error);
-      showToast("Failed to send module for approval", "error");
+    } else {
+      // First time sending, no confirmation needed
+      try {
+        await axiosInstance.put(`/modules/${moduleData._id}/send-for-approval`);
+        showToast(
+          "Module coordinators were notified successfully to review the applications",
+          "success"
+        );
+        // Update the sentEmail4 count in the store
+        updateModuleInStore(roundId, moduleId, {
+          sentEmail4: 1
+        });
+        await fetchModuleDetails(moduleData._id);
+      } catch (error) {
+        console.error("Error sending module for approval:", error);
+        showToast("Failed to send module for approval", "error");
+      }
     }
-  };
-
-  const handleCopyModule = (moduleData: ModuleDetails) => {
-    // Implementation for copying a module
   };
 
   const getActionButtonsOnStatus = (status: string) => {
@@ -548,7 +677,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
               "outline-primary text-text-inverted bg-primary hover:bg-primary-light",
           },
         ];
-      case "getting-documents":
+      case "getting documents":
         return [
           {
             label: "View Applications",
@@ -556,15 +685,15 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
             className:
               "outline-primary-dark text-text-primary hover:bg-primary/10 hover:text-primary-dark",
           },
-        ];
-      case "closed":
-        return [
           {
-            label: "Copy Module",
-            action: handleCopyModule,
+            label: "Send for Approval",
+            action: handleSendforApproval,
             className:
               "outline-primary text-text-inverted bg-primary hover:bg-primary-light",
           },
+        ];
+      case "closed":
+        return [
           {
             label: "Delete",
             action: handleDeleteModule,
@@ -577,53 +706,34 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
     }
   };
 
-  const data: ModuleDetails = fetchedModuleData
-    ? fetchedModuleData
-    : {
-        _id,
-        recruitmentSeriesId,
-        moduleCode,
-        moduleName,
-        semester,
-        moduleStatus,
-        coordinators,
-        requiredTAHours,
-        openForUndergraduates,
-        openForPostgraduates,
-        undergraduateCounts,
-        postgraduateCounts,
-        requirements,
-        documentDueDate: new Date(documentDueDate),
-        applicationDueDate: new Date(applicationDueDate),
-      };
+  const data: ModuleDetails = fetchedModuleData || {
+    _id,
+    recruitmentSeriesId,
+    moduleCode,
+    moduleName,
+    semester,
+    moduleStatus,
+    coordinators,
+    requiredTAHours,
+    openForUndergraduates,
+    openForPostgraduates,
+    undergraduateCounts,
+    postgraduateCounts,
+    requirements,
+    documentDueDate: new Date(documentDueDate),
+    applicationDueDate: new Date(applicationDueDate),
+    hasEmail3Sent,
+    sentEmail4,
+  };
 
   return (
     <div className="hover:shadow-xl flex flex-col p-3 gap-y-2 rounded-md drop-shadow-xl bg-bg-card w-[400px]">
       <div className="flex items-start w-full gap-x-2">
-        <Checkbox
-          checked={marked}
-          onChange={setMarked}
-          className="cursor-pointer group block size-4 rounded border bg-primary-light/10 transition data-[checked]:bg-primary"
-        >
-          <svg
-            className="stroke-bg-card opacity-0 transition group-data-[checked]:opacity-100"
-            viewBox="0 0 14 14"
-            fill="none"
-          >
-            <path
-              d="M3 8L6 11L11 3.5"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </Checkbox>
-
         <p
           className="text-sm text-text-primary text-wrap flex-1 font-semibold flex items-center hover:underline cursor-pointer"
           onClick={() => {
             navigate(`/module-details/${data._id}`, {
-              state: { moduleData: data },
+              state: { roundId: roundId, moduleId: moduleId, selectedTab: 0 },
             });
           }}
         >
@@ -663,19 +773,20 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
             tabIndex={0}
             className="menu outline outline-text-secondary/20 outline-1 gap-y-1 mt-1 z-[10] p-2 shadow dropdown-content bg-bg-card rounded-box w-52 flex"
           >
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
-              Change deadlines
+            <li
+              className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
+              onClick={() =>
+                navigate("/edit-module/" + _id, {
+                  state: { roundId: roundId, moduleId: _id },
+                })
+              }
+            >
+              Edit Details
             </li>
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
-              Change hour limits
-            </li>
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted" onClick={() => navigate("/edit-module/"+_id)}>
-              Edit
-            </li>
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
-              Make a copy
-            </li>
-            <li className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted">
+            <li
+              className="px-2 text-text-secondary hover:bg-primary/80 py-1 cursor-pointer rounded-sm hover:text-text-inverted"
+              onClick={() => handleDeleteModule(moduleData)}
+            >
               Delete
             </li>
           </ul>
@@ -767,26 +878,30 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
                   {data.requiredTAHours}hours/week
                 </p>
               </div>
-              <CircularProgress
-                percentage={
-                  ((data.undergraduateCounts.required -
-                    data.undergraduateCounts.remaining) /
-                    data.undergraduateCounts.required) *
-                  100
-                }
-                size="small"
-                color={"blue"}
-              >
-                <p className="text-sm font-semibold">
-                  <span className="text-text-primary text-2xl">
-                    {data.undergraduateCounts.required -
-                      data.undergraduateCounts.remaining}
-                  </span>
-                  <span className="text-text-secondary">
-                    /{data.undergraduateCounts.required}
-                  </span>
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Accepted</p>
+                <p className={`text-sm font-semibold px-2 rounded-sm ${data.undergraduateCounts.accepted === data.undergraduateCounts.required ? "bg-green-500" : "bg-amber-500"}`}>
+                  {data.undergraduateCounts.accepted}
                 </p>
-              </CircularProgress>
+              </div>
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Reviewed</p>
+                <p className="text-sm font-semibold px-2 rounded-sm text-white bg-pink-500">
+                  {data.undergraduateCounts.reviewed}
+                </p>
+              </div>
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Applied</p>
+                <p className="text-sm font-semibold px-2 rounded-sm text-white bg-blue-500">
+                  {data.undergraduateCounts.applied}
+                </p>
+              </div>
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Required</p>
+                <p className="text-sm font-semibold px-2 rounded-sm text-white bg-gray-500">
+                  {data.undergraduateCounts.required}
+                </p>
+              </div>
             </>
           )}
         </div>
@@ -814,18 +929,13 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
                   {data.requiredTAHours}hours/week
                 </p>
               </div>
-              {data.postgraduateCounts ? (
-                <CircularProgress
-                  percentage={
-                    data.postgraduateCounts
-                      ? ((data.postgraduateCounts.required -
-                          data.postgraduateCounts.remaining) /
-                          data.postgraduateCounts.required) *
-                        100
-                      : 0
-                  }
+              {/* <CircularProgress
+                  circles={[
+                    { color: "blue", percentage: ((data.postgraduateCounts.applied) / data.postgraduateCounts.required) * 100 },
+                    { color: "purple", percentage: ((data.postgraduateCounts.reviewed) / data.postgraduateCounts.required) * 100 },
+                    { color: "green", percentage: ((data.postgraduateCounts.accepted) / data.postgraduateCounts.required) * 100 },
+                  ]}
                   size="small"
-                  color={"blue"}
                 >
                   <p className="text-sm font-semibold">
                     <span className="text-text-primary text-2xl">
@@ -836,14 +946,30 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({
                       /{data.postgraduateCounts.required}
                     </span>
                   </p>
-                </CircularProgress>
-              ) : (
-                <CircularProgress
-                  percentage={0}
-                  size="small"
-                  color={"blue"}
-                ></CircularProgress>
-              )}
+                </CircularProgress> */}
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Accepted</p>
+                <p className={`text-sm font-semibold px-2 rounded-sm ${data.postgraduateCounts.accepted === data.postgraduateCounts.required ? "bg-green-500" : "bg-amber-500"}`}>
+                  {data.postgraduateCounts.accepted}
+                </p>
+              </div>
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Reviewed</p>
+                <p className="text-sm font-semibold px-2 rounded-sm text-white bg-pink-500">
+                  {data.postgraduateCounts.reviewed}
+                </p>
+              </div>
+              <div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Applied</p>
+                <p className="text-sm font-semibold px-2 rounded-sm text-white bg-blue-500">
+                  {data.postgraduateCounts.applied}
+                </p>
+              </div><div className="w-full px-5 flex flex-row justify-between items-center">
+                <p className="text-sm text-text-secondary">Required</p>
+                <p className="text-sm font-semibold px-2 rounded-sm text-white bg-gray-500">
+                  {data.postgraduateCounts.required}
+                </p>
+              </div>
             </>
           )}
         </div>

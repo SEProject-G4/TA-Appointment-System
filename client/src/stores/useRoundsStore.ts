@@ -24,6 +24,16 @@ interface RoundsState {
     roundId: string,
     updates: Partial<RecruitmentRoundState>
   ) => void;
+  addModuleToRound: (roundId: string, module: ModuleDetails) => void;
+  updateModuleInRound: (
+    roundId: string,
+    moduleId: string,
+    updates: Partial<ModuleDetails>
+  ) => void;
+  deleteModuleFromRound: (roundId: string, moduleId: string) => void;
+  hasModulesWithStatusInRound: (roundId: string, status: string) => boolean;
+  refreshModule: (roundId: string, moduleId: string) => Promise<void>;
+  clearStore: () => void;
 }
 
 export const useRoundsStore = create<RoundsState>((set, get) => ({
@@ -55,9 +65,6 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
             undergradMailingList: round.undergradMailingList,
             postgradMailingList: round.postgradMailingList,
             status: round.status,
-            moduleCount: round.moduleCount,
-            undergraduateTAPositionsCount: round.undergraduateTAPositionsCount,
-            postgraduateTAPositionsCount: round.postgraduateTAPositionsCount,
             areModulesLoading: round.status === "active" || round.status === "initialised",
             areModulesFetched: false,
             modules: null,
@@ -228,6 +235,83 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
         };
       }
       return { rounds: updatedRounds };
+    });
+  },
+  addModuleToRound: (roundId: string, module: ModuleDetails) => {
+    set((state) => {
+      const updatedRounds = { ...state.rounds }; 
+      if (updatedRounds[roundId]) {
+        const currentModules = updatedRounds[roundId].modules || {};
+        updatedRounds[roundId].modules = {
+          ...currentModules,
+          [module._id]: module,
+        };
+      }
+      return { rounds: updatedRounds };
+    });
+  },
+  updateModuleInRound: (
+    roundId: string,
+    moduleId: string,
+    updates: Partial<ModuleDetails>
+  ) => {
+    set((state) => {
+      const updatedRounds = { ...state.rounds };
+      if (updatedRounds[roundId] && updatedRounds[roundId].modules) {
+        const currentModule = updatedRounds[roundId].modules![moduleId];
+        if (currentModule) {
+          // Create new round and modules objects to trigger React updates
+          updatedRounds[roundId] = {
+            ...updatedRounds[roundId],
+            modules: {
+              ...updatedRounds[roundId].modules,
+              [moduleId]: {
+                ...currentModule,
+                ...updates,
+              },
+            },
+          };
+        }
+      }
+      return { rounds: updatedRounds };
+    });
+  },
+  deleteModuleFromRound: (roundId: string, moduleId: string) => {
+    set((state) => {
+      const updatedRounds = { ...state.rounds };
+      if (updatedRounds[roundId] && updatedRounds[roundId].modules) {
+        const updatedModules = { ...updatedRounds[roundId].modules };
+        delete updatedModules[moduleId];
+        updatedRounds[roundId].modules = updatedModules;
+      }
+      return { rounds: updatedRounds };
+    });
+  },
+  hasModulesWithStatusInRound: (roundId: string, status: string) => { 
+    const rounds = get().rounds;
+    const round = rounds[roundId];
+    if (!round || !round.modules) return false;
+    return Object.values(round.modules).some(
+      (module) => module.moduleStatus === status
+    );
+  },
+  refreshModule: async (roundId: string, moduleId: string): Promise<void> => {
+    try {
+      const response = await axiosInstance.get(
+        `/modules/${moduleId}`
+      );
+      const updatedModule = response.data as ModuleDetails;
+      // Update the module in the store
+      get().updateModuleInRound(roundId, moduleId, updatedModule);
+    } catch (error) {
+      console.error(`Error refreshing module ${moduleId} in round ${roundId}:`, error);
+    }
+  },
+  clearStore: () => {
+    set({
+      rounds: {},
+      isInitiallyFetched: false,
+      isFetching: false,
     });
   },
 }));

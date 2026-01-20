@@ -6,10 +6,12 @@ const User = require("../models/User");
 const mongoose = require("mongoose");
 const { EmailService } = require("../services/emailService");
 const config = require("../config/index");
+import { deleteRecruitmentRound as deleteRecruitmentRoundService } from "../services/deletionService";
+const { areDatesEffectivelySame } = require("../utils/datetime");
 
 const createRecruitmentRound = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const name = req.body.name;
@@ -18,10 +20,10 @@ const createRecruitmentRound = async (
     const undergradHourLimit = req.body.undergradHourLimit;
     const postgradHourLimit = req.body.postgradHourLimit;
     const undergradMailingList = req.body.undergradMailingList.map(
-      (group: any) => group._id
+      (group: any) => group._id,
     );
     const postgradMailingList = req.body.postgradMailingList.map(
-      (group: any) => group._id
+      (group: any) => group._id,
     );
 
     const newRecruitmentRound = new RecruitmentRound({
@@ -36,7 +38,26 @@ const createRecruitmentRound = async (
     });
     console.log("New RecruitmentRound is going to create", newRecruitmentRound);
     const result = await newRecruitmentRound.save();
-    return res.status(201).json(result);
+
+    // Populate user groups before returning
+    const undergradGroups = await Promise.all(
+      result.undergradMailingList.map((group_id: any) =>
+        UserGroup.findById(group_id),
+      ),
+    );
+    const postgradGroups = await Promise.all(
+      result.postgradMailingList.map((group_id: any) =>
+        UserGroup.findById(group_id),
+      ),
+    );
+
+    const responseData = {
+      ...result._doc,
+      undergradMailingList: undergradGroups.filter((group) => group !== null),
+      postgradMailingList: postgradGroups.filter((group) => group !== null),
+    };
+
+    return res.status(201).json(responseData);
   } catch (error) {
     console.error("Error creating recruitment series:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -45,7 +66,7 @@ const createRecruitmentRound = async (
 
 const getAllRecruitmentRounds = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   console.log("Fetching all recruitment series");
   try {
@@ -54,23 +75,23 @@ const getAllRecruitmentRounds = async (
       recruitmentSeriesList.map(async (series: any) => {
         const undergradGroups = await Promise.all(
           series.undergradMailingList.map((group_id: any) =>
-            UserGroup.findById(group_id)
-          )
+            UserGroup.findById(group_id),
+          ),
         );
         const postgradGroups = await Promise.all(
           series.postgradMailingList.map((group_id: any) =>
-            UserGroup.findById(group_id)
-          )
+            UserGroup.findById(group_id),
+          ),
         );
 
         return {
           ...series._doc,
           undergradMailingList: undergradGroups.filter(
-            (group) => group !== null
+            (group) => group !== null,
           ),
           postgradMailingList: postgradGroups.filter((group) => group !== null),
         };
-      })
+      }),
     );
     return res.status(200).json(resDataList);
   } catch (error) {
@@ -81,7 +102,7 @@ const getAllRecruitmentRounds = async (
 
 const addModuleToRecruitmentRound = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const seriesId = req.params.seriesId;
@@ -125,9 +146,33 @@ const addModuleToRecruitmentRound = async (
       moduleStatus: "initialised",
       requirements: moduleData.requirements,
     });
-    await newModule.save();
+    const result = await newModule.save();
 
-    return res.status(200).json(recruitmentSeries);
+    // Populate coordinator details before returning
+    const coordinatorDetails = await Promise.all(
+      result.coordinators.map(async (coordinatorId: any) => {
+        const user = await User.findById(
+          coordinatorId,
+          "displayName email profilePicture",
+        );
+        if (user) {
+          return {
+            id: user._id,
+            displayName: (user as any).displayName,
+            email: user.email,
+            profilePicture: (user as any).profilePicture,
+          };
+        }
+        return null;
+      }),
+    );
+
+    const populatedModule = {
+      ...result._doc,
+      coordinators: coordinatorDetails.filter((c) => c !== null),
+    };
+
+    return res.status(201).json(populatedModule);
   } catch (error) {
     console.error("Error adding module to recruitment series:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -136,7 +181,7 @@ const addModuleToRecruitmentRound = async (
 
 const getModuleDetailsBySeriesId = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const seriesId = req.params.seriesId;
@@ -149,7 +194,7 @@ const getModuleDetailsBySeriesId = async (
           module.coordinators.map(async (coordinatorId: any) => {
             const user = await User.findById(
               coordinatorId,
-              "displayName email profilePicture"
+              "displayName email profilePicture",
             );
             if (user) {
               return {
@@ -160,13 +205,13 @@ const getModuleDetailsBySeriesId = async (
               };
             }
             return null;
-          })
+          }),
         );
         return {
           ...module._doc,
           coordinators: coordinatorDetails.filter((c) => c !== null),
         };
-      })
+      }),
     );
     return res.status(200).json(populatedModuleDetails);
   } catch (error) {
@@ -177,7 +222,7 @@ const getModuleDetailsBySeriesId = async (
 
 const getModulesForRounds = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const { roundIds } = req.body;
@@ -195,7 +240,7 @@ const getModulesForRounds = async (
     });
 
     console.log(
-      `Found ${moduleDetails.length} modules across ${roundIds.length} rounds`
+      `Found ${moduleDetails.length} modules across ${roundIds.length} rounds`,
     );
 
     // Populate coordinator details for all modules
@@ -205,7 +250,7 @@ const getModulesForRounds = async (
           module.coordinators.map(async (coordinatorId: any) => {
             const user = await User.findById(
               coordinatorId,
-              "displayName email profilePicture"
+              "displayName email profilePicture",
             );
             if (user) {
               return {
@@ -216,13 +261,13 @@ const getModulesForRounds = async (
               };
             }
             return null;
-          })
+          }),
         );
         return {
           ...module._doc,
           coordinators: coordinatorDetails.filter((c) => c !== null),
         };
-      })
+      }),
     );
 
     // Group modules by recruitment round ID
@@ -230,7 +275,7 @@ const getModulesForRounds = async (
     roundIds.forEach((roundId: any) => {
       modulesByRound[roundId] = populatedModuleDetails.filter(
         (module: any) =>
-          module.recruitmentSeriesId.toString() === roundId.toString()
+          module.recruitmentSeriesId.toString() === roundId.toString(),
       );
     });
 
@@ -241,9 +286,10 @@ const getModulesForRounds = async (
   }
 };
 
+// xxxxx
 const getEligibleUndergraduates = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const seriesId = req.params.seriesId;
@@ -263,9 +309,10 @@ const getEligibleUndergraduates = async (
   }
 };
 
+// xxxxx
 const getEligiblePostgraduates = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const seriesId = req.params.seriesId;
@@ -287,7 +334,7 @@ const getEligiblePostgraduates = async (
 
 const copyRecruitmentRound = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -303,9 +350,8 @@ const copyRecruitmentRound = async (
       postgradMailingList,
       modules,
     } = req.body;
-    const originalSeries = await RecruitmentRound.findById(seriesId).session(
-      session
-    );
+    const originalSeries =
+      await RecruitmentRound.findById(seriesId).session(session);
     if (!originalSeries) {
       await session.abortTransaction();
       session.endSession();
@@ -362,19 +408,7 @@ const copyRecruitmentRound = async (
             moduleStatus: "initialised",
           });
           await newModule.save({ session });
-        })
-      );
-      newSeries.moduleCount = modulesToCopy.length;
-      newSeries.undergraduateTAPositionsCount = modulesToCopy.reduce(
-        (sum: number, mod: any) =>
-          sum +
-          (mod.undergraduateCounts ? mod.undergraduateCounts.required : 0),
-        0
-      );
-      newSeries.postgraduateTAPositionsCount = modulesToCopy.reduce(
-        (sum: number, mod: any) =>
-          sum + (mod.postgraduateCounts ? mod.postgraduateCounts.required : 0),
-        0
+        }),
       );
       await newSeries.save({ session });
     }
@@ -382,13 +416,13 @@ const copyRecruitmentRound = async (
     await session.commitTransaction();
     const undergradMailingGroups = await Promise.all(
       newSeries.undergradMailingList.map((groupId: any) =>
-        UserGroup.findById(groupId)
-      )
+        UserGroup.findById(groupId),
+      ),
     );
     const postgradMailingGroups = await Promise.all(
       newSeries.postgradMailingList.map((groupId: any) =>
-        UserGroup.findById(groupId)
-      )
+        UserGroup.findById(groupId),
+      ),
     );
     const returningRR = {
       ...(newSeries as any)._doc,
@@ -401,7 +435,7 @@ const copyRecruitmentRound = async (
           module.coordinators.map(async (coordinatorId: any) => {
             const user = await User.findById(
               coordinatorId,
-              "displayName email profilePicture"
+              "displayName email profilePicture",
             );
             if (user) {
               return {
@@ -412,13 +446,13 @@ const copyRecruitmentRound = async (
               };
             }
             return null;
-          })
+          }),
         );
         return {
           ...module._doc,
           coordinators: coordinatorDetails.filter((c) => c !== null),
         };
-      })
+      }),
     );
 
     return res.status(201).json({
@@ -438,50 +472,9 @@ const copyRecruitmentRound = async (
   }
 };
 
-const deleteRecruitmentRound = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { seriesId } = req.params;
-
-    // Find the recruitment series
-    const recruitmentSeries = await RecruitmentRound.findById(seriesId).session(
-      session
-    );
-    if (!recruitmentSeries) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({ error: "Recruitment round not found" });
-    }
-
-    // Delete associated modules
-    await ModuleDetails.deleteMany({ recruitmentSeriesId: seriesId }).session(
-      session
-    );
-
-    // Delete the recruitment series
-    await RecruitmentRound.findByIdAndDelete(seriesId).session(session);
-
-    await session.commitTransaction();
-    return res
-      .status(200)
-      .json({ message: "Recruitment round deleted successfully" });
-  } catch (error) {
-    await session.abortTransaction();
-    console.error("Error deleting recruitment round:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  } finally {
-    session.endSession();
-  }
-};
-
 const updateRecruitmentRound = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -507,9 +500,8 @@ const updateRecruitmentRound = async (
     }
 
     // Find the recruitment series
-    const recruitmentSeries = await RecruitmentRound.findById(seriesId).session(
-      session
-    );
+    const recruitmentSeries =
+      await RecruitmentRound.findById(seriesId).session(session);
     if (!recruitmentSeries) {
       await session.abortTransaction();
       session.endSession();
@@ -527,6 +519,35 @@ const updateRecruitmentRound = async (
         return res.status(400).json({
           error: "Application due date must be on or before document due date",
         });
+      }
+
+      const now = new Date();
+      if (
+        !areDatesEffectivelySame(
+          appDate.toISOString(),
+          recruitmentSeries.applicationDueDate.toISOString(),
+        ) &&
+        appDate <= now
+      ) {
+        await session.abortTransaction();
+        session.endSession();
+        return res
+          .status(400)
+          .json({ error: "New application due date must be in the future" });
+      }
+
+      if (
+        !areDatesEffectivelySame(
+          documentDueDate,
+          recruitmentSeries.documentDueDate.toISOString(),
+        ) &&
+        docDate <= now
+      ) {
+        await session.abortTransaction();
+        session.endSession();
+        return res
+          .status(400)
+          .json({ error: "New document due date must be in the future" });
       }
     }
 
@@ -553,14 +574,6 @@ const updateRecruitmentRound = async (
       });
     }
 
-    // Check if dates are being updated
-    const datesUpdated =
-      (applicationDueDate !== undefined &&
-        applicationDueDate !==
-          recruitmentSeries.applicationDueDate.toISOString()) ||
-      (documentDueDate !== undefined &&
-        documentDueDate !== recruitmentSeries.documentDueDate.toISOString());
-
     // Update fields if provided
     if (name !== undefined) recruitmentSeries.name = name;
     if (applicationDueDate !== undefined)
@@ -578,37 +591,43 @@ const updateRecruitmentRound = async (
 
     await recruitmentSeries.save({ session });
 
-    let modulesUpdated = 0;
+    // let modulesUpdated = 0;
 
     // Update module deadlines if dates were changed and updateModuleDeadlines is true
-    if (datesUpdated && updateModuleDeadlines) {
-      const updateFields: any = {};
-      if (applicationDueDate !== undefined)
-        updateFields.applicationDueDate = new Date(applicationDueDate);
-      if (documentDueDate !== undefined)
-        updateFields.documentDueDate = new Date(documentDueDate);
+    // if (datesUpdated && updateModuleDeadlines) {
+    //   const updateFields: any = {};
+    //   if (applicationDueDate !== undefined)
+    //     updateFields.applicationDueDate = new Date(applicationDueDate);
+    //   if (documentDueDate !== undefined)
+    //     updateFields.documentDueDate = new Date(documentDueDate);
 
-      if (Object.keys(updateFields).length > 0) {
-        const moduleUpdateResult = await ModuleDetails.updateMany(
-          { recruitmentSeriesId: seriesId },
-          { $set: updateFields }
-        ).session(session);
-        modulesUpdated = moduleUpdateResult.modifiedCount || 0;
-      }
-    }
+    //   if (Object.keys(updateFields).length > 0) {
+    //     const moduleUpdateResult = await ModuleDetails.updateMany(
+    //       { recruitmentSeriesId: seriesId },
+    //       { $set: updateFields }
+    //     ).session(session);
+    //     modulesUpdated = moduleUpdateResult.modifiedCount || 0;
+    //   }
+    // }
 
     await session.commitTransaction();
 
-    console.log(
-      `✅ Recruitment round ${seriesId} has been updated. ${modulesUpdated} modules updated.`
+    console.log(`✅ Recruitment round ${seriesId} has been updated.`);
+
+    const undergradGroups = await Promise.all(
+      recruitmentSeries.undergradMailingList.map((group_id: any) =>
+        UserGroup.findById(group_id),
+      ),
+    );
+    const postgradGroups = await Promise.all(
+      recruitmentSeries.postgradMailingList.map((group_id: any) =>
+        UserGroup.findById(group_id),
+      ),
     );
 
     return res.status(200).json({
-      message:
-        datesUpdated && updateModuleDeadlines && modulesUpdated > 0
-          ? `Recruitment round updated successfully. ${modulesUpdated} modules also updated.`
-          : "Recruitment round updated successfully",
-      recruitmentSeries: {
+      message: "Recruitment round updated successfully",
+      recruitmentRound: {
         _id: recruitmentSeries._id,
         name: recruitmentSeries.name,
         status: recruitmentSeries.status,
@@ -616,8 +635,9 @@ const updateRecruitmentRound = async (
         documentDueDate: recruitmentSeries.documentDueDate,
         undergradHourLimit: recruitmentSeries.undergradHourLimit,
         postgradHourLimit: recruitmentSeries.postgradHourLimit,
-      },
-      modulesUpdated: modulesUpdated,
+        undergradMailingList: undergradGroups,
+        postgradMailingList: postgradGroups,
+      }
     });
   } catch (error) {
     await session.abortTransaction();
@@ -628,9 +648,10 @@ const updateRecruitmentRound = async (
   }
 };
 
+// xxxxx
 const updateRecruitmentRoundDeadlines = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -682,9 +703,8 @@ const updateRecruitmentRoundDeadlines = async (
     }
 
     // Find and update the recruitment series
-    const recruitmentSeries = await RecruitmentRound.findById(seriesId).session(
-      session
-    );
+    const recruitmentSeries =
+      await RecruitmentRound.findById(seriesId).session(session);
     if (!recruitmentSeries) {
       await session.abortTransaction();
       session.endSession();
@@ -706,7 +726,7 @@ const updateRecruitmentRoundDeadlines = async (
             applicationDueDate: appDate,
             documentDueDate: docDate,
           },
-        }
+        },
       ).session(session);
       modulesUpdated = moduleUpdateResult;
     }
@@ -714,7 +734,7 @@ const updateRecruitmentRoundDeadlines = async (
     await session.commitTransaction();
 
     console.log(
-      `✅ Recruitment round ${seriesId} deadlines updated. ${modulesUpdated} modules updated.`
+      `✅ Recruitment round ${seriesId} deadlines updated. ${modulesUpdated} modules updated.`,
     );
 
     return res.status(200).json({
@@ -737,9 +757,10 @@ const updateRecruitmentRoundDeadlines = async (
   }
 };
 
+// xxxxx
 const updateRecruitmentRoundHourLimits = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const { seriesId } = req.params;
@@ -801,7 +822,7 @@ const updateRecruitmentRoundHourLimits = async (
 
 const notifyModules = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const { seriesId } = req.params;
@@ -812,12 +833,12 @@ const notifyModules = async (
     }
 
     console.log(
-      `Starting notification process for recruitment series ${seriesId}`
+      `Starting notification process for recruitment series ${seriesId}`,
     );
 
     // Find all initialised modules in the recruitment series
     console.log(
-      `🔍 Searching for modules with seriesId: ${seriesId} and status: "initialised"`
+      `🔍 Searching for modules with seriesId: ${seriesId} and status: "initialised"`,
     );
     const modules = await ModuleDetails.find({
       recruitmentSeriesId: seriesId,
@@ -828,29 +849,27 @@ const notifyModules = async (
 
     if (modules.length === 0) {
       return res.status(404).json({
-        error: "No initialised modules found in this recruitment series",
+        error: "No initialised modules found in this recruitment round",
       });
     }
 
-    // Prepare emails for job queue
-    const emails = [];
     const moduleUpdates = [];
 
     for (const module of modules as any[]) {
       try {
         console.log(
-          `🔍 Processing module: ${module.moduleCode} - ${module.moduleName}`
+          `🔍 Processing module: ${module.moduleCode} - ${module.moduleName}`,
         );
 
         if (!module.coordinators || module.coordinators.length === 0) {
           console.warn(
-            `Module ${module.moduleCode} has no coordinators assigned - skipping`
+            `Module ${module.moduleCode} has no coordinators assigned - skipping`,
           );
           continue;
         }
 
         console.log(
-          `👥 Fetching ${module.coordinators.length} coordinators for ${module.moduleCode}`
+          `👥 Fetching ${module.coordinators.length} coordinators for ${module.moduleCode}`,
         );
         // Fetch coordinators for this module
         const coordinators = await User.find({
@@ -859,12 +878,12 @@ const notifyModules = async (
         }).lean();
 
         console.log(
-          `✅ Found ${coordinators.length} coordinators with valid emails for ${module.moduleCode}`
+          `✅ Found ${coordinators.length} coordinators with valid emails for ${module.moduleCode}`,
         );
 
         if (coordinators.length === 0) {
           console.warn(
-            `Module ${module.moduleCode} has no coordinators with valid email addresses - skipping`
+            `Module ${module.moduleCode} has no coordinators with valid email addresses - skipping`,
           );
           continue;
         }
@@ -878,14 +897,14 @@ const notifyModules = async (
           };
 
           await EmailService.enqueueModuleNotifyingEmail(
-            coord.email,
-            emailParamas
+            [coord.email],
+            emailParamas,
           );
         }
 
         await ModuleDetails.updateOne(
           { _id: module._id },
-          { $set: { moduleStatus: "pending changes" } }
+          { $set: { moduleStatus: "pending changes" } },
         );
 
         // Track modules that will be updated
@@ -893,13 +912,13 @@ const notifyModules = async (
       } catch (moduleError) {
         console.error(
           `Error preparing notification for module ${module.moduleCode}:`,
-          moduleError
+          moduleError,
         );
       }
     }
 
     return res.status(200).json({
-      message: `Notification emails sent successfully`,
+      modulesNotified: moduleUpdates,
     });
   } catch (error) {
     console.error("Error in notifyModules function:", error);
@@ -911,7 +930,7 @@ const notifyModules = async (
 
 const advertiseModules = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const { seriesId } = req.params;
@@ -922,7 +941,7 @@ const advertiseModules = async (
     }
 
     console.log(
-      `Starting advertisement process for recruitment series ${seriesId}`
+      `Starting advertisement process for recruitment series ${seriesId}`,
     );
 
     // Fetch recruitment series and validate
@@ -952,7 +971,7 @@ const advertiseModules = async (
           role: "undergraduate",
           email: { $exists: true, $ne: "" },
         },
-        "email displayName"
+        "email displayName",
       ).lean(),
       User.find(
         {
@@ -960,7 +979,7 @@ const advertiseModules = async (
           role: "postgraduate",
           email: { $exists: true, $ne: "" },
         },
-        "email displayName"
+        "email displayName",
       ).lean(),
     ]);
 
@@ -969,6 +988,7 @@ const advertiseModules = async (
     const postgradModules: any[] = [];
     const underSemesters = new Set();
     const postSemesters = new Set();
+    const advertisedModuleIds: string[] = [];
 
     modules.forEach((module: any) => {
       if (module.openForUndergraduates) {
@@ -984,7 +1004,7 @@ const advertiseModules = async (
     // Prepare undergraduate emails
     if (undergradModules.length > 0 && undergradMailingList.length > 0) {
       const undergradEmails = undergradMailingList.map(
-        (user: any) => user.email
+        (user: any) => user.email,
       );
 
       const advertisingModules = undergradModules.map((mod: any) => {
@@ -1009,16 +1029,14 @@ const advertiseModules = async (
 
       await EmailService.enqueueModulesAdvertisingEmail(
         undergradEmails,
-        emailParams
+        emailParams,
       );
 
-      await ModuleDetails.updateMany(
-        { _id: { $in: undergradModules.map((mod: any) => mod._id) } },
-        { $set: { moduleStatus: "advertised" } }
-      ).then(() => {
-        console.log(
-          `✅ Updated module statuses to 'advertised' for undergraduate modules`
-        );
+      // Collect updated module IDs
+      undergradModules.forEach((mod: any) => {
+        if (!advertisedModuleIds.includes(mod._id.toString())) {
+          advertisedModuleIds.push(mod._id.toString());
+        }
       });
     }
 
@@ -1048,27 +1066,51 @@ const advertiseModules = async (
 
       await EmailService.enqueueModulesAdvertisingEmail(
         postgradEmails,
-        emailParams
+        emailParams,
       );
 
       await ModuleDetails.updateMany(
         { _id: { $in: postgradModules.map((mod: any) => mod._id) } },
-        { $set: { moduleStatus: "advertised" } }
+        { $set: { moduleStatus: "advertised" } },
       ).then(async () => {
         console.log(
-          `✅ Updated module statuses to 'advertised' for postgraduate modules`
+          `✅ Updated module statuses to 'advertised' for postgraduate modules`,
         );
-        if ((recruitmentSeries as any).status !== "active") {
-          // If the recruitment series is not active, we can archive it
-          await RecruitmentRound.updateOne(
-            { _id: seriesId },
-            { $set: { status: "active" } }
-          );
-        }
+        // Collect updated module IDs
+        postgradModules.forEach((mod: any) => {
+          if (!advertisedModuleIds.includes(mod._id.toString())) {
+            advertisedModuleIds.push(mod._id.toString());
+          }
+        });
       });
     }
 
-    return res.status(200).json({ message: "Modules advertised successfully" });
+    let wasRRStatusChanged = false;
+    await ModuleDetails.updateMany(
+      { _id: { $in: advertisedModuleIds } },
+      { $set: { moduleStatus: "advertised" } },
+    ).then(async () => {
+      console.log(
+        `✅ Updated module statuses to 'advertised' for all advertised modules`,
+      );
+
+      if ((recruitmentSeries as any).status !== "active") {
+        // If the recruitment series is not active, we can archive it
+        await RecruitmentRound.updateOne(
+          { _id: seriesId },
+          { $set: { status: "active" } },
+        );
+        wasRRStatusChanged = true;
+        console.log(
+          `✅ Updated recruitment series ${seriesId} status to 'active'`,
+        );
+      }
+    });
+
+    return res.status(200).json({
+      wasRRStatusChanged,
+      advertisedModules: advertisedModuleIds,
+    });
   } catch (error) {
     console.error("Error in advertiseModules function:", error);
     return res
@@ -1079,7 +1121,7 @@ const advertiseModules = async (
 
 const closeRecruitmentRound = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -1095,9 +1137,8 @@ const closeRecruitmentRound = async (
     }
 
     // Find the recruitment series
-    const recruitmentSeries = await RecruitmentRound.findById(seriesId).session(
-      session
-    );
+    const recruitmentSeries =
+      await RecruitmentRound.findById(seriesId).session(session);
     if (!recruitmentSeries) {
       await session.abortTransaction();
       session.endSession();
@@ -1124,7 +1165,7 @@ const closeRecruitmentRound = async (
     // Update all modules in this recruitment series to 'closed' status
     const moduleUpdateResult = await ModuleDetails.updateMany(
       { recruitmentSeriesId: seriesId },
-      { $set: { moduleStatus: "closed" } }
+      { $set: { moduleStatus: "closed" } },
     ).session(session);
 
     // Update the recruitment series status to closed
@@ -1134,7 +1175,7 @@ const closeRecruitmentRound = async (
     await session.commitTransaction();
 
     console.log(
-      `✅ Recruitment round ${seriesId} has been closed. ${moduleUpdateResult.modifiedCount} modules updated to 'closed' status.`
+      `✅ Recruitment round ${seriesId} has been closed. ${moduleUpdateResult.modifiedCount} modules updated to 'closed' status.`,
     );
 
     return res.status(200).json({
@@ -1157,7 +1198,7 @@ const closeRecruitmentRound = async (
 
 const archiveRecruitmentRound = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const { seriesId } = req.params;
@@ -1206,6 +1247,35 @@ const archiveRecruitmentRound = async (
   }
 };
 
+const deleteRecruitmentRoundById = async (
+  req: Request,
+  res: Response,
+): Promise<Response> => {
+  try {
+    const { seriesId } = req.params;
+
+    if (!seriesId) {
+      return res
+        .status(400)
+        .json({ message: "Recruitment round ID is required" });
+    }
+
+    const result = await deleteRecruitmentRoundService(seriesId);
+
+    if (!result.success) {
+      // Distinguish between not found (404) and validation errors (400)
+      const statusCode = result.message.includes("not found") ? 404 : 500;
+      console.log("Error while deleting recruitment round", result.message);
+      return res.status(statusCode).json({ message: result.message });
+    }
+
+    return res.status(200).json({ message: result.message });
+  } catch (error) {
+    console.error("Error deleting recruitment round:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   createRecruitmentRound,
   getAllRecruitmentRounds,
@@ -1215,7 +1285,6 @@ module.exports = {
   getEligibleUndergraduates,
   getEligiblePostgraduates,
   copyRecruitmentRound,
-  deleteRecruitmentRound,
   updateRecruitmentRound,
   updateRecruitmentRoundDeadlines,
   updateRecruitmentRoundHourLimits,
@@ -1223,4 +1292,5 @@ module.exports = {
   advertiseModules,
   closeRecruitmentRound,
   archiveRecruitmentRound,
+  deleteRecruitmentRoundById,
 };

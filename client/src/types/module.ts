@@ -16,6 +16,8 @@ export interface ModuleDetails {
   requiredTAHours: number;
   openForUndergraduates: boolean;
   openForPostgraduates: boolean;
+  hasEmail3Sent: boolean;
+  sentEmail4: number;
 
   undergraduateCounts: {
     required: number;

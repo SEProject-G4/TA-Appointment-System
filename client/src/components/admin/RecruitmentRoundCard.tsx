@@ -1,5 +1,5 @@
 // React Imports
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 // Icon Imports
@@ -14,8 +14,8 @@ import {
   FaSearch,
   FaTimes,
 } from "react-icons/fa";
-import { MdMoreVert, MdRefresh } from "react-icons/md";
-import { LuCirclePlus, LuMail } from "react-icons/lu";
+import { MdMoreVert } from "react-icons/md";
+import { LuCirclePlus, LuMail, LuRefreshCw } from "react-icons/lu";
 import { FiClock } from "react-icons/fi";
 import { HiSpeakerphone, HiBell } from "react-icons/hi";
 
@@ -62,21 +62,36 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
   const {
     round,
     fetchModulesForRound,
+    updateRound,
+    deleteRound,
+    updateModuleInRound,
   }: {
     round: RecruitmentRoundState | undefined;
     fetchModulesForRound: (id: string) => void;
+    updateRound: (
+      roundId: string,
+      updates: Partial<RecruitmentRoundState>
+    ) => void;
+    deleteRound: (roundId: string) => void;
+    updateModuleInRound: (
+      roundId: string,
+      moduleId: string,
+      updates: Partial<ModuleDetails>
+    ) => void;
   } = useRoundsStore(
     useShallow((state) => {
       return {
         round: state.rounds[_id],
         fetchModulesForRound: state.fetchModulesForRound,
+        updateRound: state.updateRound,
+        deleteRound: state.deleteRound,
+        updateModuleInRound: state.updateModuleInRound,
       };
     })
   );
   const [isExpanded, setIsExpanded] = useState(
     round?.status === "initialised" || round?.status === "active"
   );
-  const [moduleDetails, setModuleDetails] = useState<ModuleDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -89,12 +104,21 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
   const areModulesFetched = round?.areModulesFetched;
   const errorInModules = round?.error ?? null;
 
-  const changesSubmittedModules = moduleDetails.filter(
-    (mod) => mod.moduleStatus === "changes submitted"
-  );
-  const initialisedModules = moduleDetails.filter(
-    (mod) => mod.moduleStatus === "initialised"
-  );
+  // Use useMemo to filter modules by status for action buttons
+  const { changesSubmittedModules, initialisedModules } = useMemo(() => {
+    if (!modules)
+      return { changesSubmittedModules: [], initialisedModules: [] };
+
+    const allModules = Object.values(modules);
+    return {
+      changesSubmittedModules: allModules.filter(
+        (mod) => mod.moduleStatus === "changes submitted"
+      ),
+      initialisedModules: allModules.filter(
+        (mod) => mod.moduleStatus === "initialised"
+      ),
+    };
+  }, [modules]);
 
   // Filter modules based on search query and status filter
   const filteredModules = modules
@@ -110,6 +134,22 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
         return matchesSearch && matchesStatus;
       })
     : [];
+  const moduleCount = filteredModules ? filteredModules.length : 0;
+
+  const getTotalTAPositionsCount = (type: "undergraduate" | "postgraduate") => {
+    if (!filteredModules) return 0;
+    return filteredModules.reduce((total, module) => {
+      const count =
+        type === "undergraduate"
+          ? module.undergraduateCounts
+          : module.postgraduateCounts;
+      return total + (count ? count.required : 0);
+    }, 0);
+  };
+
+  const undergraduateTAPositionsCount =
+    getTotalTAPositionsCount("undergraduate");
+  const postgraduateTAPositionsCount = getTotalTAPositionsCount("postgraduate");
 
   const refreshModuleDetails = () => {
     // setHasFetched(false);
@@ -149,46 +189,26 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
       const response = await axiosInstance.post(
         `/recruitment-series/${_id}/notify-modules`
       );
-      const { summary, details } = response.data;
-
-      if (summary.successful > 0) {
-        const successModules = details.filter(
-          (d: any) => d.status === "success"
-        );
-        const moduleNames = successModules
-          .map((d: any) => d.moduleCode)
-          .join(", ");
-        const totalEmails = successModules.reduce(
-          (sum: number, d: any) => sum + (d.recipientCount || 0),
-          0
-        );
-
-        showToast(
-          `Successfully notified ${summary.successful} module(s): ${moduleNames}. ${totalEmails} emails sent to coordinators.`,
-          "success"
-        );
-
-        if (summary.failed > 0) {
-          const failedModules = details.filter(
-            (d: any) => d.status === "failed"
-          );
-          const failedNames = failedModules
-            .map((d: any) => d.moduleCode)
-            .join(", ");
+      // console.log("Notify Modules Response:", response.data);
+      if (response.status === 200) {
+        const { modulesNotified } = response.data;
+        if (modulesNotified && modulesNotified.length > 0) {
           showToast(
-            `Failed to notify ${summary.failed} module(s): ${failedNames}`,
-            "info"
+            `Successfully notified ${modulesNotified.length} module(s).`,
+            "success"
+          );
+          modulesNotified.forEach((modId: any) => {
+            updateModuleInRound(_id, modId, {
+              moduleStatus: "pending changes",
+            });
+          });
+        } else {
+          showToast(
+            "No modules could be notified. Please check module status and coordinator assignments.",
+            "error"
           );
         }
-      } else {
-        showToast(
-          "No modules could be notified. Please check module status and coordinator assignments.",
-          "error"
-        );
       }
-
-      // Refresh module details to update status
-      refreshModuleDetails();
     } catch (error: any) {
       console.error("Error notifying module coordinators:", error);
       if (error.response?.data?.error) {
@@ -204,41 +224,18 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
       const response = await axiosInstance.post(
         `/recruitment-series/${_id}/advertise-modules`
       );
-      const { summary, emailResults } = response.data;
+      const { wasRRStatusChanged, advertisedModules } = response.data;
 
-      if (summary.totalEmailsSent > 0) {
-        let detailMessage = `Successfully advertised ${summary.modulesProcessed} module(s) to ${summary.totalEmailsSent} students`;
-
-        if (summary.undergradModules > 0 && summary.postgradModules > 0) {
-          detailMessage += ` (${summary.undergradModules} undergraduate + ${summary.postgradModules} postgraduate modules)`;
-        } else if (summary.undergradModules > 0) {
-          detailMessage += ` (${summary.undergradModules} undergraduate modules)`;
-        } else if (summary.postgradModules > 0) {
-          detailMessage += ` (${summary.postgradModules} postgraduate modules)`;
-        }
-
-        // Add email group breakdown
-        const emailBreakdown = emailResults
-          .map((result: any) => {
-            return `${result.recipientCount} ${result.type}s`;
-          })
-          .join(" + ");
-
-        if (emailBreakdown) {
-          detailMessage += `. Emails sent to: ${emailBreakdown}`;
-        }
-
-        showToast(detailMessage, "success");
-
-        // Show any failed email groups
-        const failedResults = emailResults.filter(
-          (result: any) => !result.success
+      if (advertisedModules && advertisedModules.length > 0) {
+        showToast(
+          `Successfully advertised ${advertisedModules.length} module(s).`,
+          "success"
         );
-        if (failedResults.length > 0) {
-          const failedGroups = failedResults
-            .map((result: any) => result.type)
-            .join(", ");
-          showToast(`Failed to send emails to: ${failedGroups}`, "info");
+        advertisedModules.forEach((modId: any) => {
+          updateModuleInRound(_id, modId, { moduleStatus: "advertised" });
+        });
+        if (wasRRStatusChanged) {
+          updateRound(_id, { status: "active" });
         }
       } else {
         showToast(
@@ -246,9 +243,6 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
           "error"
         );
       }
-
-      // Refresh module details to update status
-      refreshModuleDetails();
     } catch (error: any) {
       console.error("Error advertising modules:", error);
       if (error.response?.data?.error) {
@@ -276,16 +270,20 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                 const response = await axiosInstance.delete(
                   `/recruitment-series/${_id}`
                 );
+                console.log("Delete Recruitment Series Response:", response);
                 if (response.status === 200) {
                   showToast(
-                    "Recruitment series deleted successfully with all its associated data.",
+                    "Recruitment round deleted successfully with all its associated data.",
                     "success"
                   );
                   closeModal();
+                  deleteRound(_id);
                 }
                 // Optionally refresh the list or provide feedback
               } catch (error) {
                 console.error("Error deleting recruitment series:", error);
+              } finally {
+                closeModal();
               }
             }}
           >
@@ -380,6 +378,7 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                   );
                   closeModal();
                   refreshModuleDetails(); // Refresh to show updated status
+                  updateRound(_id, { status: "archived" });
                 }
               } catch (error: any) {
                 console.error("Error archiving recruitment round:", error);
@@ -414,20 +413,10 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
       },
     ];
 
-    switch (status) {
+    switch (round.status) {
       case "initialised":
       case "active":
         return [
-          {
-            label: "Change deadlines",
-            onClick: handleChangeDeadlines,
-            show: true,
-          },
-          {
-            label: "Change hour limits",
-            onClick: handleChangeHourLimits,
-            show: true,
-          },
           {
             label: "Edit",
             onClick: () => {
@@ -505,18 +494,22 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
           undergradHourLimit: round.undergradHourLimit,
           postgradHourLimit: round.postgradHourLimit,
         }}
-        modules={modules ? Object.values(modules).map((mod) => {
-          return {
-            _id: mod._id,
-            label:
-              mod.moduleCode +
-              " - " +
-              mod.moduleName +
-              " [Semester " +
-              mod.semester +
-              "]",
-          };
-        }) : []}
+        modules={
+          modules
+            ? Object.values(modules).map((mod) => {
+                return {
+                  _id: mod._id,
+                  label:
+                    mod.moduleCode +
+                    " - " +
+                    mod.moduleName +
+                    " [Semester " +
+                    mod.semester +
+                    "]",
+                };
+              })
+            : []
+        }
       />,
       {
         showCloseButton: false,
@@ -525,9 +518,13 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
   };
 
   useEffect(() => {
-    if (isExpanded && round && !round.areModulesFetched && !round.areModulesLoading) {
+    if (
+      isExpanded &&
+      round &&
+      !round.areModulesFetched &&
+      !round.areModulesLoading
+    ) {
       fetchModuleDetails();
-      // setHasFetched(true);
     }
   }, [isExpanded]);
 
@@ -666,7 +663,9 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
         >
           <div
             className={`w-full mt-4 flex ${
-              (isLoading || (!areModulesFetched && !modules)) ? "flex-col items-center" : "flex-row items-start"
+              isLoading || (!areModulesFetched && !modules)
+                ? "flex-col items-center"
+                : "flex-row items-start"
             } flex-wrap relative outline outline-1 outline-text-secondary/80 rounded-sm justify-start content-start`}
           >
             <div className="tool-set mb-2 pt-3 flex p-2 flex-row w-full bg-bg-page drop-shadow gap-x-2 items-center">
@@ -700,8 +699,7 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                   <option value="changes submitted">Changes Submitted</option>
                   <option value="advertised">Advertised</option>
                   <option value="full">Full</option>
-                  <option value="undergrad full">Undergrad Full</option>
-                  <option value="getting-documents">Getting Documents</option>
+                  <option value="getting documents">Getting Documents</option>
                   <option value="closed">Closed</option>
                 </select>
               </div>
@@ -722,7 +720,7 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                 className="h-6 w-6 bg-bg-card text-text-secondary hover:text-primary hover:bg-primary-light/10 rounded-sm outline outline-1 outline-text-secondary/50 flex items-center justify-center transition-colors duration-200"
                 title="Refresh modules"
               >
-                <MdRefresh className="h-4 w-4" />
+                <LuRefreshCw className="h-4 w-4" />
               </button>
             </div>
             {/* <div className="px-3 w-full flex justify-start items-center">
@@ -733,7 +731,9 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
             ) : errorInModules ? (
               <div className="w-full flex flex-col items-center justify-center py-6">
                 <FaTimes className="h-8 w-8 text-warning mb-2" />
-                <p className="text-lg text-warning font-semibold">{errorInModules}</p>
+                <p className="text-lg text-warning font-semibold">
+                  {errorInModules}
+                </p>
                 <p className="text-sm text-text-secondary mt-1">
                   Please try again by refreshing the modules.
                 </p>
@@ -745,8 +745,8 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                     {filteredModules.map((module) => (
                       <RSModuleCard
                         key={module._id}
-                        {...module}
-                        refreshPage={refreshModuleDetails}
+                        roundId={_id}
+                        moduleId={module._id}
                       />
                     ))}
                   </div>
@@ -801,7 +801,8 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
                 )}
 
                 {/* Add new module button - only for initialised and active */}
-                {(round.status === "initialised" || round.status === "active") && (
+                {(round.status === "initialised" ||
+                  round.status === "active") && (
                   <Link
                     to={"/recruitment-series/" + _id + "/add-module"}
                     state={{
@@ -860,10 +861,13 @@ const RecruitmentRoundCard: React.FC<{ _id: string; className?: string }> = ({
             </div>
           </div>
         </div>
-        <p className="mt-3 mr-4 w-full text-right text-sm text-text-secondary font-semibold">
-          {round.moduleCount} modules, {round.undergraduateTAPositionsCount} undergraduate
-          TA positions, {round.postgraduateTAPositionsCount} postgraduate TA positions
-        </p>
+        {round?.areModulesFetched && (<p className="mt-3 mr-4 w-full text-right text-sm text-text-secondary font-semibold">
+          {moduleCount} module{moduleCount !== 1 ? "s" : ""},{" "}
+          {undergraduateTAPositionsCount} undergraduate TA position
+          {undergraduateTAPositionsCount !== 1 ? "s" : ""},{" "}
+          {postgraduateTAPositionsCount} postgraduate TA position
+          {postgraduateTAPositionsCount !== 1 ? "s" : ""}
+        </p>)}
       </div>
     );
   }

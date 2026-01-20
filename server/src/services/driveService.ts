@@ -159,4 +159,56 @@ async function uploadFileToDrive(file: MulterFile, folderId: string): Promise<Up
   };
 }
 
-module.exports = { createOrGetFolderForTA, uploadFileToDrive };
+/**
+ * Delete a folder and all its contents from Google Drive
+ * @param folderId - The ID of the folder to delete
+ */
+async function deleteFolderAndContents(folderId: string): Promise<void> {
+  try {
+    // List all files in the folder
+    const listOptions = {
+      q: `'${folderId}' in parents and trashed=false`,
+      fields: "files(id, name, mimeType)",
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    };
+
+    const list = await drive.files.list(listOptions);
+
+    // Delete all files and subfolders
+    if (list.data.files && list.data.files.length > 0) {
+      const deletePromises = list.data.files.map(async (file: any) => {
+        try {
+          // If it's a folder, recursively delete its contents
+          if (file.mimeType === "application/vnd.google-apps.folder") {
+            await deleteFolderAndContents(file.id);
+          } else {
+            // Delete the file
+            await drive.files.delete({
+              fileId: file.id,
+              supportsAllDrives: true,
+            });
+            console.log(`Deleted file: ${file.name} (${file.id})`);
+          }
+        } catch (error) {
+          console.error(`Failed to delete file ${file.name} (${file.id}):`, error);
+          // Continue with other deletions
+        }
+      });
+
+      await Promise.all(deletePromises);
+    }
+
+    // Delete the folder itself
+    await drive.files.delete({
+      fileId: folderId,
+      supportsAllDrives: true,
+    });
+    console.log(`Deleted folder: ${folderId}`);
+  } catch (error) {
+    console.error(`Failed to delete folder ${folderId}:`, error);
+    throw error;
+  }
+}
+
+module.exports = { createOrGetFolderForTA, uploadFileToDrive, deleteFolderAndContents };

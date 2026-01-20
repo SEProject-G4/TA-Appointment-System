@@ -1,51 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import RSCard from "../../components/admin/RecruitmentRoundCard";
 import { LuCirclePlus } from "react-icons/lu";
 import { FaBoxOpen } from "react-icons/fa";
-import axiosInstance from "../../api/axiosConfig";
 
 import { useRoundsStore } from "../../stores/useRoundsStore";
-
-interface UserGroup {
-  _id: string;
-  name: string;
-  userCount: number;
-}
-
-interface RecruitmentSeriesData {
-  _id: string;
-  name: string;
-  applicationDueDate: string;
-  documentDueDate: string;
-  undergradHourLimit: number;
-  postgradHourLimit: number;
-  undergradMailingList: UserGroup[];
-  postgradMailingList: UserGroup[];
-  status: "initialised" | "active" | "archived" | "closed";
-  moduleCount: number;
-  undergraduateTAPositionsCount: number;
-  postgraduateTAPositionsCount: number;
-}
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  // const [recruitmentSeriesList, setRecruitmentSeriesList] = useState<
-  //   RecruitmentSeriesData[]
-  // >([]);
-
-  // const fetchRecruitmentSeries = async () => {
-  //   try {
-  //     const res = await axiosInstance.get("/recruitment-series");
-  //     if (res.status === 200) {
-  //       setRecruitmentSeriesList(res.data);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching recruitment series:", error);
-  //   }
-  // };
 
   const { isInitiallyFetched, rounds, fetchRounds, fetchInitialModules } = useRoundsStore();
 

@@ -27,7 +27,6 @@ export interface IModuleDetails extends Document {
   requirements: string;
   moduleStatus: "initialised" | "pending changes" | "changes submitted" | "advertised" | "full" | "getting documents" | "closed";
   hasEmail3Sent: boolean;
-  sentEmail4: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -127,11 +126,6 @@ const moduleDetailsSchema = new Schema<IModuleDetails>(
         };
       },
     },
-    sentEmail4: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
     requirements: {
       type: String,
       required: false,
@@ -159,30 +153,6 @@ const moduleDetailsSchema = new Schema<IModuleDetails>(
   },
   { timestamps: true }
 );
-
-// Pre-validate hook to check all coordinators are lecturers
-moduleDetailsSchema.pre("validate", async function (next) {
-  if (Array.isArray(this.coordinators) && this.coordinators.length > 0) {
-    const User = mongoose.model("User");
-    const users = await User.find({
-      _id: { $in: this.coordinators },
-      role: "lecturer",
-    }).select("_id");
-    if (users.length !== this.coordinators.length) {
-      const error = new mongoose.Error.ValidationError();
-      error.addError(
-        "coordinators",
-        new mongoose.Error.ValidatorError({
-          message: "All coordinators must be users with the lecturer role.",
-          path: "coordinators",
-          value: this.coordinators,
-        })
-      );
-      return next(error);
-    }
-  }
-  next();
-});
 
 const ModuleDetails: Model<IModuleDetails> = mongoose.model<IModuleDetails>(
   "ModuleDetails",

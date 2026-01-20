@@ -39,7 +39,6 @@ interface ModuleReadyForApproval {
   moduleCode: string;
   semester: number;
   coordinators: string[];
-  type: "undergraduate" | "postgraduate";
 }
 
 interface ModuleReadyForApprovalEmailParams {
@@ -51,7 +50,6 @@ interface ApproveTARequestsForModuleParams {
   moduleCode: string;
   semester: number;
   coordName: string;
-  type: "undergraduate" | "postgraduate";
 }
 
 interface ProvideNecessaryDetailsForAppointmentParams {

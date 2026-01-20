@@ -1,7 +1,7 @@
 {
-  "name": "email-worker",
+  "name": "background-task-manager",
   "version": "1.0.0",
-  "description": "Independent email worker for sending emails according to the jobs in email queue",
+  "description": "Independent background worker for sending emails according to the jobs in email queue and perform the corn jobs",
   "license": "ISC",
   "author": "",
   "type": "commonjs",
@@ -15,6 +15,8 @@
   "dependencies": {
     "bullmq": "^5.66.2",
     "dotenv": "^17.2.3",
+    "mongoose": "^9.1.4",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.11"
   },
   "devDependencies": {

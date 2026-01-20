@@ -7,6 +7,7 @@ import {
   selectRole,
   switchRole,
 } from "../api/authApi";
+import { useRoundsStore } from "../stores/useRoundsStore";
 import type { User, RoleSelectionResponse, AvailableRole } from "../api/authApi";
 
 interface AuthContextType {
@@ -130,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setRequiresRoleSelection(false);
         setAvailableRoles([]);
         setPendingLoginToken(null);
+        useRoundsStore.getState().clearStore();
         navigate("/"); // Navigate to Home page after logout
       })
       .catch((error) => {

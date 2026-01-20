@@ -44,6 +44,9 @@ export default {
         'raleway': ['Raleway', 'sans-serif'],
         'mercellus': ['Marcellus', 'serif'],
       },
+      minHeight: {
+        'screen-minusnav': 'calc(100vh - 64px)', // Adjust 64px if navbar height changes
+      },
     },
   },
   plugins: [
