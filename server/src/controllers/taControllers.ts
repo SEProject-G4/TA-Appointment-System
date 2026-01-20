@@ -175,6 +175,15 @@ const applyForTA = async (req: Request, res: Response): Promise<Response> => {
         { new: true, session, runValidators: true }
       );
     }
+    if (updateModule) {
+      const undergradRemaining = updateModule.undergraduateCounts.remaining;
+      const postgradRemaining = updateModule.postgraduateCounts.remaining;
+      
+      if (undergradRemaining === 0 && postgradRemaining === 0) {
+      updateModule.moduleStatus = "full";
+      await updateModule.save({ session });
+      }
+    }
     if (!updateModule) {
       throw new Error("TA positions for this module are already filled");
     }
