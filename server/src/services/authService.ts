@@ -112,13 +112,11 @@ const findUserByEmail = async (email: string): Promise<IUser[]> => {
   try {
     // Find all users with this email (multiple roles possible)
     const users = await User.find({ email }).lean();
-    if (!users || users.length === 0) {
-      throw new Error("User not found");
-    }
-    return users; // Return array of users
+    // Return empty array if no users found (let controller handle the "not found" case)
+    return users || [];
   } catch (error) {
     console.error("Error finding user by email:", error);
-    throw error;
+    throw error; // Only throw for actual database errors
   }
 };
 

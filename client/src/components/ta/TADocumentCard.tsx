@@ -8,8 +8,10 @@ import {
   CheckCircle2,
   Download,
   Loader2,
+  ExternalLink,
+  Copy,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "../ui/Button";
 import { useAuth } from "../../contexts/AuthContext";
 import axiosInstance from "../../api/axiosConfig";
@@ -32,6 +34,9 @@ interface DocumentSubmissionModalProps {
     totalTAHours: number;
   };
   isDocSubmitted: boolean;
+  recSeriesId?: string | null;
+  // currentRoundDocument?: any | null;
+  previousDocuments?: any[];
   onSuccess?: () => void; // Add optional success callback
 }
 
@@ -39,11 +44,15 @@ export default function DocumentSubmissionModal({
   isDocOpen,
   onClose,
   position, 
+  recSeriesId,
+  // currentRoundDocument,
+  previousDocuments = [],
   onSuccess, // Add to destructuring
 }: DocumentSubmissionModalProps) {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPreviousDocs, setShowPreviousDocs] = useState(false);
   
   const [formData, setFormData] = useState({
     bankAccountName: "",
@@ -57,6 +66,56 @@ export default function DocumentSubmissionModal({
     degreeCertificate: null as File | null,
     declarationForm: null as File | null,
   });
+
+  // Auto-fill form with current round document if it exists (for editing)
+  useEffect(() => {
+    if (isDocOpen && previousDocuments) {
+      setFormData((prev) => ({
+        ...prev,
+        bankAccountName: prev.bankAccountName ||"" ,
+        address: prev.address || "",
+        nicNumber: prev.nicNumber || "",
+        accountNumber: prev.accountNumber || "",
+        studentType:  prev.studentType || "",
+        // Note: Files cannot be auto-filled, user needs to upload new files
+      }));
+    } else if (isDocOpen) {
+      // Reset form when opening without current document
+      setFormData({
+        bankAccountName: "",
+        address: "",
+        nicNumber: "",
+        accountNumber: "",
+        studentType: "",
+        bankPassbook: null,
+        nicCopy: null,
+        cv: null,
+        degreeCertificate: null,
+        declarationForm: null,
+      });
+    }
+  }, [isDocOpen, previousDocuments]);
+
+  // Auto-show previous documents when modal opens if they exist
+  useEffect(() => {
+    if (isDocOpen && previousDocuments?.length > 0 ) {
+      setShowPreviousDocs(true);
+    }
+  }, [isDocOpen, previousDocuments]);
+
+  // Function to import data from previous submission
+  const handleImportPrevious = (prevDoc: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      bankAccountName: prevDoc.bankAccountName || prev.bankAccountName,
+      address: prevDoc.address || prev.address,
+      nicNumber: prevDoc.nicNumber || prev.nicNumber,
+      accountNumber: prevDoc.accountNumber || prev.accountNumber,
+      studentType: prevDoc.studentType || prev.studentType,
+      // Note: Files cannot be imported, user needs to upload new files
+    }));
+    showToast("Previous document data imported! Please upload new files.", "success");
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -80,6 +139,12 @@ export default function DocumentSubmissionModal({
       return;
     }
 
+    // Declaration form is always required
+    if (!formData.declarationForm) {
+      showToast("Please upload the completed declaration form", "error");
+      return;
+    }
+
     if (!user?.id) {
       showToast("User not authenticated", "error");
       return;
@@ -93,6 +158,9 @@ export default function DocumentSubmissionModal({
       
       // Append text fields
       submitData.append("userId", user.id);
+      if (recSeriesId) {
+        submitData.append("recSeriesId", recSeriesId);
+      }
       submitData.append("bankAccountName", formData.bankAccountName);
       submitData.append("address", formData.address);
       submitData.append("nicNumber", formData.nicNumber);
@@ -124,7 +192,10 @@ export default function DocumentSubmissionModal({
       });
 
       if (response.status === 201) {
-        showToast("Documents submitted successfully!", "success");
+        const message = previousDocuments 
+          ? "Documents updated successfully!" 
+          : "Documents submitted successfully!";
+        showToast(message, "success");
         if (onSuccess) {
           onSuccess(); // Call success callback to refresh parent
         } else {
@@ -145,7 +216,7 @@ export default function DocumentSubmissionModal({
     }
   };
 
-  if (!isDocOpen) return null;
+  if (!isDocOpen) return null; //why
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 bg-black/50 sm:p-4">
@@ -167,6 +238,167 @@ export default function DocumentSubmissionModal({
             <X className="w-4 h-4 text-text-secondary sm:w-5 sm:h-5" />
           </button>
         </div>
+
+
+        {/* Previous Documents Section - Show prominently if exists */}
+        {(previousDocuments && previousDocuments.length > 0) && (
+          <div className="p-4 mb-6 border-2 border-green-300 rounded-lg bg-green-50">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-green-700" />
+                <h3 className="font-semibold text-gray-900">
+                  Previously Submitted Documents ({previousDocuments.length})
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPreviousDocs(!showPreviousDocs)}
+                className="text-sm text-green-700 hover:text-green-800"
+              >
+                {showPreviousDocs ? "Hide" : "Show Details"}
+              </button>
+            </div>
+            
+            {/* Most Recent Document - Prominent Import Option */}
+            {previousDocuments.length > 0 && (
+              <div className="p-3 mb-4 bg-white border border-green-200 rounded">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h4 className="font-medium text-gray-900">
+                      Most Recent: {previousDocuments[0].recSeriesName}
+                    </h4>
+                    <p className="text-xs text-gray-500">
+                      Submitted on {new Date(previousDocuments[0].createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleImportPrevious(previousDocuments[0])}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Import This Data
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-gray-700">
+                  <div>
+                    <span className="font-medium">Bank Account:</span>{" "}
+                    {previousDocuments[0].bankAccountName}
+                  </div>
+                  <div>
+                    <span className="font-medium">NIC:</span> {previousDocuments[0].nicNumber}
+                  </div>
+                  <div>
+                    <span className="font-medium">Account Number:</span>{" "}
+                    {previousDocuments[0].accountNumber}
+                  </div>
+                  <div>
+                    <span className="font-medium">Student Type:</span>{" "}
+                    {previousDocuments[0].studentType}
+                  </div>
+                </div>
+                {previousDocuments[0].driveFiles && (
+                <div className="pt-3 mt-3 border-t border-gray-200">
+                  <p className="mb-2 text-xs font-medium text-gray-600">
+                    Previously Uploaded Files:
+                  </p>
+                  <div className="flex flex-wrap gap-2"> 
+                    {Object.entries(previousDocuments[0].driveFiles).map(
+                      ([key, file]: [string, any]) => (
+                        <a
+                          key={key}
+                          href={file.viewLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-700 bg-blue-100 rounded hover:bg-blue-200"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          {key}
+                        </a>
+                      )
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Note: You can update files by uploading new ones below
+                  </p>
+                </div>
+              )}
+              </div>
+            )}
+
+            {/* All Previous Documents - Expandable */}
+            {showPreviousDocs && previousDocuments.length > 1 && (
+              <div className="mt-4 space-y-3">
+                <h4 className="text-sm font-medium text-gray-700">All Previous Submissions:</h4>
+                {previousDocuments.slice(1).map((prevDoc, idx) => (
+                  <div
+                    key={prevDoc._id || idx}
+                    className="p-3 bg-white border border-green-100 rounded"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h4 className="font-medium text-gray-900">
+                          {prevDoc.recSeriesName}
+                        </h4>
+                        <span className="text-xs text-gray-500">
+                          {new Date(prevDoc.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleImportPrevious(prevDoc)}
+                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-700 transition-colors bg-green-100 rounded hover:bg-green-200"
+                      >
+                        <Copy className="w-3 h-3" />
+                        Import
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
+                      <div>
+                        <span className="font-medium">Bank Account:</span>{" "}
+                        {prevDoc.bankAccountName}
+                      </div>
+                      <div>
+                        <span className="font-medium">NIC:</span> {prevDoc.nicNumber}
+                      </div>
+                      <div>
+                        <span className="font-medium">Account Number:</span>{" "}
+                        {prevDoc.accountNumber}
+                      </div>
+                      <div>
+                        <span className="font-medium">Student Type:</span>{" "}
+                        {prevDoc.studentType}
+                      </div>
+                    </div>
+                    {prevDoc.driveFiles && (
+                      <div className="pt-3 mt-3 border-t border-gray-200">
+                        <p className="mb-2 text-xs font-medium text-gray-600">
+                          Uploaded Files:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(prevDoc.driveFiles).map(
+                            ([key, file]: [string, any]) => (
+                              <a
+                                key={key}
+                                href={file.viewLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-700 bg-blue-100 rounded hover:bg-blue-200"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                {key}
+                              </a>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Position Info */}
@@ -319,11 +551,12 @@ export default function DocumentSubmissionModal({
                   Upload the signed and completed declaration form below.
                 </p>
                 <FileInput
-                  label="Completed Declaration Form"
+                  label="Completed Declaration Form *"
                   name="declarationForm"
                   accept=".pdf,.doc,.docx"
                   value={formData.declarationForm}
                   onChange={handleFileChange}
+                  helperText="Required for every submission"
                 />
               </div>
             </div>
@@ -389,7 +622,9 @@ export default function DocumentSubmissionModal({
               disabled={isSubmitting}
             >
               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isSubmitting ? "Submitting..." : "Submit Documents"}
+              {isSubmitting 
+                ? (previousDocuments ? "Updating..." : "Submitting...") 
+                : (previousDocuments? "Update Documents" : "Submit Documents")}
             </button>
           </div>
         </form>
