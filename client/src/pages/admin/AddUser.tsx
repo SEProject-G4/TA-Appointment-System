@@ -305,23 +305,147 @@ function AddUser() {
       );
 
       const responseData = response.data;
-      if (response.status === 201) {
-        showToast(responseData.message || "Users imported successfully!", "success");
-        // Reset the import state
-        setImportedUsers([]);
-        setImportInputErrors([]);
-        setShowImportedUsers(false);
-        setFile(null);
-        setMessage("");
-        setSelectedUserGroup(null);
-        fetchUserGroups();
+      if (response.status === 201 || response.status === 207) {
+        // Show detailed results modal
+        const { successCount, failureCount, totalUsers, failedUsers } = responseData;
+        
+        openModal(
+          <div className="p-6 max-w-2xl">
+            <h3 className="text-xl font-semibold mb-4">
+              {failureCount === 0 ? "✅ Import Successful" : "⚠️ Partial Import Success"}
+            </h3>
+            <div className="mb-4">
+              <p className="text-lg">{responseData.message}</p>
+              <div className="mt-3 p-3 bg-gray-100 rounded-md">
+                <p className="text-sm"><strong>Total Users:</strong> {totalUsers}</p>
+                <p className="text-sm text-green-700"><strong>✓ Successfully Imported:</strong> {successCount}</p>
+                {failureCount > 0 && (
+                  <p className="text-sm text-red-700"><strong>✗ Failed:</strong> {failureCount}</p>
+                )}
+              </div>
+            </div>
+            
+            {failedUsers && failedUsers.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold text-red-700 mb-2">Failed Users:</h4>
+                <div className="max-h-64 overflow-y-auto border border-red-200 rounded-md">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-50 sticky top-0">
+                      <tr>
+                        <th className="p-2 text-left border-b">Email</th>
+                        {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                          <th className="p-2 text-left border-b">Index Number</th>
+                        )}
+                        {(userRole === "lecturer" || userRole === "hod") && (
+                          <th className="p-2 text-left border-b">Display Name</th>
+                        )}
+                        <th className="p-2 text-left border-b">Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {failedUsers.map((user: any, index: number) => (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          <td className="p-2">{user.email}</td>
+                          {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                            <td className="p-2">{user.indexNumber || "N/A"}</td>
+                          )}
+                          {(userRole === "lecturer" || userRole === "hod") && (
+                            <td className="p-2">{user.displayName || "N/A"}</td>
+                          )}
+                          <td className="p-2 text-red-600">{user.error}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={() => {
+                closeModal();
+                if (successCount > 0) {
+                  setImportedUsers([]);
+                  setImportInputErrors([]);
+                  setShowImportedUsers(false);
+                  setFile(null);
+                  setMessage("");
+                  setSelectedUserGroup(null);
+                  fetchUserGroups();
+                }
+              }}
+              className="mt-6 w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-light"
+            >
+              OK
+            </button>
+          </div>
+        );
+        
+        if (successCount > 0) {
+          showToast(`Successfully imported ${successCount} user(s)`, "success");
+        }
       } else {
         showToast(responseData.message || "Failed to import users.", "error");
       }
     } catch (error: any) {
       console.error("API call failed:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to import users. Please try again.";
-      showToast(errorMessage, "error");
+      const errorData = error.response?.data;
+      
+      if (errorData && errorData.failedUsers) {
+        // Show detailed error modal even for caught errors
+        openModal(
+          <div className="p-6 max-w-2xl">
+            <h3 className="text-xl font-semibold mb-4 text-red-700">❌ Import Failed</h3>
+            <p className="mb-4">{errorData.message || "Failed to import users."}</p>
+            
+            {errorData.failedUsers && errorData.failedUsers.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold text-red-700 mb-2">Failed Users:</h4>
+                <div className="max-h-64 overflow-y-auto border border-red-200 rounded-md">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-50 sticky top-0">
+                      <tr>
+                        <th className="p-2 text-left border-b">Email</th>
+                        {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                          <th className="p-2 text-left border-b">Index Number</th>
+                        )}
+                        {(userRole === "lecturer" || userRole === "hod") && (
+                          <th className="p-2 text-left border-b">Display Name</th>
+                        )}
+                        <th className="p-2 text-left border-b">Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {errorData.failedUsers.map((user: any, index: number) => (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          <td className="p-2">{user.email}</td>
+                          {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                            <td className="p-2">{user.indexNumber || "N/A"}</td>
+                          )}
+                          {(userRole === "lecturer" || userRole === "hod") && (
+                            <td className="p-2">{user.displayName || "N/A"}</td>
+                          )}
+                          <td className="p-2 text-red-600">{user.error}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={closeModal}
+              className="mt-6 w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-light"
+            >
+              OK
+            </button>
+          </div>
+        );
+      } else {
+        const errorMessage = errorData?.message || error.message || "Failed to import users. Please try again.";
+        showToast(errorMessage, "error");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -468,22 +592,144 @@ function AddUser() {
       );
 
       const responseData = response.data;
-      if (response.status === 201) {
-        setDialogMessage(responseData.message);
-        setUsers([{ email: "" }]);
-        setInputErrors([]);
-        setSelectedUserGroup(null);
-        fetchUserGroups();
+      if (response.status === 201 || response.status === 207) {
+        // Show detailed results modal
+        const { successCount, failureCount, totalUsers, failedUsers } = responseData;
+        
+        openModal(
+          <div className="p-6 max-w-2xl">
+            <h3 className="text-xl font-semibold mb-4">
+              {failureCount === 0 ? "✅ Success" : "⚠️ Partial Success"}
+            </h3>
+            <div className="mb-4">
+              <p className="text-lg">{responseData.message}</p>
+              <div className="mt-3 p-3 bg-gray-100 rounded-md">
+                <p className="text-sm"><strong>Total Users:</strong> {totalUsers}</p>
+                <p className="text-sm text-green-700"><strong>✓ Successfully Created:</strong> {successCount}</p>
+                {failureCount > 0 && (
+                  <p className="text-sm text-red-700"><strong>✗ Failed:</strong> {failureCount}</p>
+                )}
+              </div>
+            </div>
+            
+            {failedUsers && failedUsers.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold text-red-700 mb-2">Failed Users:</h4>
+                <div className="max-h-64 overflow-y-auto border border-red-200 rounded-md">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-50 sticky top-0">
+                      <tr>
+                        <th className="p-2 text-left border-b">Email</th>
+                        {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                          <th className="p-2 text-left border-b">Index Number</th>
+                        )}
+                        {(userRole === "lecturer" || userRole === "hod") && (
+                          <th className="p-2 text-left border-b">Display Name</th>
+                        )}
+                        <th className="p-2 text-left border-b">Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {failedUsers.map((user: any, index: number) => (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          <td className="p-2">{user.email}</td>
+                          {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                            <td className="p-2">{user.indexNumber || "N/A"}</td>
+                          )}
+                          {(userRole === "lecturer" || userRole === "hod") && (
+                            <td className="p-2">{user.displayName || "N/A"}</td>
+                          )}
+                          <td className="p-2 text-red-600">{user.error}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={() => {
+                closeModal();
+                if (successCount > 0) {
+                  setUsers([{ email: "" }]);
+                  setInputErrors([]);
+                  setSelectedUserGroup(null);
+                  fetchUserGroups();
+                }
+              }}
+              className="mt-6 w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-light"
+            >
+              OK
+            </button>
+          </div>
+        );
       } else {
         setDialogMessage(responseData.message || "Failed to add users.");
+        setIsDialogOpen(true);
       }
     } catch (error: any) {
       console.error("API call failed:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to add users. Please try again.";
-      setDialogMessage(errorMessage);
+      const errorData = error.response?.data;
+      
+      if (errorData && errorData.failedUsers) {
+        // Show detailed error modal even for caught errors
+        openModal(
+          <div className="p-6 max-w-2xl">
+            <h3 className="text-xl font-semibold mb-4 text-red-700">❌ Error Creating Users</h3>
+            <p className="mb-4">{errorData.message || "Failed to add users."}</p>
+            
+            {errorData.failedUsers && errorData.failedUsers.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold text-red-700 mb-2">Failed Users:</h4>
+                <div className="max-h-64 overflow-y-auto border border-red-200 rounded-md">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-50 sticky top-0">
+                      <tr>
+                        <th className="p-2 text-left border-b">Email</th>
+                        {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                          <th className="p-2 text-left border-b">Index Number</th>
+                        )}
+                        {(userRole === "lecturer" || userRole === "hod") && (
+                          <th className="p-2 text-left border-b">Display Name</th>
+                        )}
+                        <th className="p-2 text-left border-b">Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {errorData.failedUsers.map((user: any, index: number) => (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          <td className="p-2">{user.email}</td>
+                          {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                            <td className="p-2">{user.indexNumber || "N/A"}</td>
+                          )}
+                          {(userRole === "lecturer" || userRole === "hod") && (
+                            <td className="p-2">{user.displayName || "N/A"}</td>
+                          )}
+                          <td className="p-2 text-red-600">{user.error}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={closeModal}
+              className="mt-6 w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-light"
+            >
+              OK
+            </button>
+          </div>
+        );
+      } else {
+        const errorMessage = errorData?.message || error.message || "Failed to add users. Please try again.";
+        setDialogMessage(errorMessage);
+        setIsDialogOpen(true);
+      }
     } finally {
       setIsLoading(false);
-      setIsDialogOpen(true);
     }
   };
 
@@ -891,12 +1137,12 @@ function AddUser() {
                             <button
                               type="submit"
                               disabled={isLoading || importedUsers.length === 0}
-                              className="flex-1 p-3 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center justify-center"
+                              className="flex-1 p-3 bg-blue-500 max-h-12 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center justify-center"
                             >
                               {isLoading ? (
                                 <Loader />
                               ) : (
-                                `Create ${importedUsers.length} User${importedUsers.length !== 1 ? 's' : ''}`
+                                `Add ${importedUsers.length} User${importedUsers.length !== 1 ? 's' : ''}`
                               )}
                             </button>
                           </div>
