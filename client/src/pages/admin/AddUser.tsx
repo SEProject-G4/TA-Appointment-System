@@ -20,6 +20,9 @@ import {
   RadioGroup,
 } from "@headlessui/react";
 import axiosInstance from "../../api/axiosConfig";
+import { useToast } from "../../contexts/ToastContext";
+import { useModal } from "../../contexts/ModalProvider";
+import Loader from "../../components/common/Loader";
 
 interface User {
   email: string;
@@ -34,6 +37,9 @@ interface UserGroup {
 }
 
 function AddUser() {
+  const { showToast } = useToast();
+  const { openModal, closeModal } = useModal();
+  
   // ...existing code...
   const [inputErrors, setInputErrors] = useState<
     { email?: string; indexNumber?: string; displayName?: string }[]
@@ -60,9 +66,15 @@ function AddUser() {
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [groupError, setGroupError] = useState("");
 
+  // CSV Import State
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
-
+  const [hasHeaders, setHasHeaders] = useState(true);
+  const [importedUsers, setImportedUsers] = useState<User[]>([]);
+  const [showImportedUsers, setShowImportedUsers] = useState(false);
+  const [importInputErrors, setImportInputErrors] = useState<
+    { email?: string; indexNumber?: string; displayName?: string }[]
+  >([]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -70,6 +82,8 @@ function AddUser() {
     if (selectedFile) {
       setFile(selectedFile);
       setMessage(`Selected file: ${selectedFile.name}`);
+      setShowImportedUsers(false);
+      setImportedUsers([]);
     } else {
       setFile(null);
       setMessage("No file selected.");
@@ -78,31 +92,363 @@ function AddUser() {
 
   const handleUpload = () => {
     if (!file) {
-      setMessage("Please select a file first.");
+      showToast("Please select a file first.", "error");
       return;
     }
 
     setIsLoading(true);
 
     Papa.parse(file, {
-      header: true,
+      header: hasHeaders,
       skipEmptyLines: true,
       complete: (results) => {
-        const usersArray = results.data;
-        console.log("Parsed data:", usersArray);
+        try {
+          const parsedData = results.data as any[];
+          console.log("Parsed data:", parsedData);
 
-        // Pass the data up to a parent component or directly to an API call
-        // onDataProcessed(usersArray);
+          if (parsedData.length === 0) {
+            showToast("The CSV file is empty.", "error");
+            setIsLoading(false);
+            return;
+          }
 
-        setIsLoading(false);
-        setMessage(`Successfully parsed ${usersArray.length} records.`);
+          const processedUsers: User[] = [];
+          const errors: string[] = [];
+
+          parsedData.forEach((row, index) => {
+            const rowNumber = hasHeaders ? index + 2 : index + 1; // +2 for header row, +1 for 0-index
+            
+            try {
+              if (userRole === "undergraduate" || userRole === "postgraduate") {
+                // Expected columns: indexNumber, email
+                const indexNumber = hasHeaders 
+                  ? (row.indexNumber || row.IndexNumber || row.index_number || "").trim()
+                  : (row[0] || "").trim();
+                const email = hasHeaders 
+                  ? (row.email || row.Email || "").trim()
+                  : (row[1] || "").trim();
+
+                if (!indexNumber && !email) {
+                  return; // Skip empty rows
+                }
+
+                if (!indexNumber || !email) {
+                  errors.push(`Row ${rowNumber}: Missing ${!indexNumber ? "indexNumber" : "email"}`);
+                  return;
+                }
+
+                processedUsers.push({ indexNumber, email });
+              } else if (userRole === "lecturer" || userRole === "hod") {
+                // Expected columns: displayName, email
+                const displayName = hasHeaders 
+                  ? (row.displayName || row.DisplayName || row.display_name || row.name || row.Name || "").trim()
+                  : (row[0] || "").trim();
+                const email = hasHeaders 
+                  ? (row.email || row.Email || "").trim()
+                  : (row[1] || "").trim();
+
+                if (!displayName && !email) {
+                  return; // Skip empty rows
+                }
+
+                if (!displayName || !email) {
+                  errors.push(`Row ${rowNumber}: Missing ${!displayName ? "displayName" : "email"}`);
+                  return;
+                }
+
+                processedUsers.push({ displayName, email });
+              } else {
+                // For admin, cse-office: only email
+                const email = hasHeaders 
+                  ? (row.email || row.Email || "").trim()
+                  : (row[0] || "").trim();
+
+                if (!email) {
+                  return; // Skip empty rows
+                }
+
+                processedUsers.push({ email });
+              }
+            } catch (err) {
+              errors.push(`Row ${rowNumber}: Error processing row`);
+            }
+          });
+
+          if (errors.length > 0) {
+            const errorMessage = errors.slice(0, 5).join("\n") + 
+              (errors.length > 5 ? `\n...and ${errors.length - 5} more errors` : "");
+            openModal(
+              <div className="p-4">
+                <h3 className="text-lg font-semibold mb-2 text-error">CSV Processing Errors</h3>
+                <pre className="text-sm whitespace-pre-wrap bg-gray-100 p-3 rounded max-h-60 overflow-auto">
+                  {errorMessage}
+                </pre>
+                <p className="mt-3 text-sm text-text-secondary">
+                  Successfully processed {processedUsers.length} users. Please fix the errors and try again.
+                </p>
+                <button
+                  onClick={closeModal}
+                  className="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-light"
+                >
+                  OK
+                </button>
+              </div>
+            );
+          }
+
+          if (processedUsers.length === 0) {
+            showToast("No valid users found in the CSV file.", "error");
+            setIsLoading(false);
+            return;
+          }
+
+          setImportedUsers(processedUsers);
+          setImportInputErrors(processedUsers.map(() => ({})));
+          setShowImportedUsers(true);
+          showToast(`Successfully processed ${processedUsers.length} users from CSV.`, "success");
+          setMessage(`${processedUsers.length} users ready for import`);
+        } catch (error: any) {
+          showToast(`Error processing CSV: ${error.message}`, "error");
+          console.error("Error processing CSV:", error);
+        } finally {
+          setIsLoading(false);
+        }
       },
       error: (error) => {
         setIsLoading(false);
-        setMessage(`Error parsing file: ${error.message}`);
+        showToast(`Error parsing file: ${error.message}`, "error");
         console.error("Error parsing CSV:", error);
       },
     });
+  };
+
+  const handleImportedUserChange = (
+    index: number,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value } = event.target;
+    const newUsers = [...importedUsers];
+    newUsers[index] = { ...newUsers[index], [name]: value };
+    setImportedUsers(newUsers);
+  };
+
+  const handleRemoveImportedUser = (index: number) => {
+    const newUsers = importedUsers.filter((_, i) => i !== index);
+    setImportedUsers(newUsers);
+    const newErrors = importInputErrors.filter((_, i) => i !== index);
+    setImportInputErrors(newErrors);
+  };
+
+  const handleImportSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (importedUsers.length === 0) {
+      showToast("No users to import.", "error");
+      return;
+    }
+
+    // Validate all users and collect errors
+    const errors: {
+      email?: string;
+      indexNumber?: string;
+      displayName?: string;
+    }[] = importedUsers.map(() => ({}));
+    let hasError = false;
+    
+    for (let i = 0; i < importedUsers.length; i++) {
+      const user = importedUsers[i];
+      if (user.email === "") {
+        errors[i].email = "Email is required.";
+        hasError = true;
+      } else if (!validateEmail(user.email)) {
+        errors[i].email = "Invalid email address.";
+        hasError = true;
+      }
+      if (userRole === "undergraduate" || userRole === "postgraduate") {
+        if (!user.indexNumber || !validateIndexNumber(user.indexNumber)) {
+          errors[i].indexNumber = "Invalid index number.";
+          hasError = true;
+        }
+      }
+      if (userRole === "lecturer" || userRole === "hod") {
+        if (!user.displayName || user.displayName.trim() === "") {
+          errors[i].displayName = "Display Name is required.";
+          hasError = true;
+        } else if (!validateDisplayName(user.displayName)) {
+          errors[i].displayName = "Display Name must be at least 2 characters.";
+          hasError = true;
+        }
+      }
+    }
+    
+    setImportInputErrors(errors);
+    if (hasError) {
+      showToast("Please fix validation errors before submitting.", "error");
+      return;
+    }
+
+    setIsLoading(true);
+    
+    // Prepare the JSON object to send to the backend
+    const payload = {
+      users: importedUsers,
+      userRole: userRole,
+      groupId: selectedUserGroup ? selectedUserGroup._id : "",
+    };
+
+    console.log("Sending imported users payload to backend:", payload);
+
+    try {
+      const response = await axiosInstance.post(
+        "/user-management/users",
+        payload
+      );
+
+      const responseData = response.data;
+      if (response.status === 201 || response.status === 207) {
+        // Show detailed results modal
+        const { successCount, failureCount, totalUsers, failedUsers } = responseData;
+        
+        openModal(
+          <div className="p-6 max-w-2xl">
+            <h3 className="text-xl font-semibold mb-4">
+              {failureCount === 0 ? "✅ Import Successful" : "⚠️ Partial Import Success"}
+            </h3>
+            <div className="mb-4">
+              <p className="text-lg">{responseData.message}</p>
+              <div className="mt-3 p-3 bg-gray-100 rounded-md">
+                <p className="text-sm"><strong>Total Users:</strong> {totalUsers}</p>
+                <p className="text-sm text-green-700"><strong>✓ Successfully Imported:</strong> {successCount}</p>
+                {failureCount > 0 && (
+                  <p className="text-sm text-red-700"><strong>✗ Failed:</strong> {failureCount}</p>
+                )}
+              </div>
+            </div>
+            
+            {failedUsers && failedUsers.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold text-red-700 mb-2">Failed Users:</h4>
+                <div className="max-h-64 overflow-y-auto border border-red-200 rounded-md">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-50 sticky top-0">
+                      <tr>
+                        <th className="p-2 text-left border-b">Email</th>
+                        {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                          <th className="p-2 text-left border-b">Index Number</th>
+                        )}
+                        {(userRole === "lecturer" || userRole === "hod") && (
+                          <th className="p-2 text-left border-b">Display Name</th>
+                        )}
+                        <th className="p-2 text-left border-b">Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {failedUsers.map((user: any, index: number) => (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          <td className="p-2">{user.email}</td>
+                          {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                            <td className="p-2">{user.indexNumber || "N/A"}</td>
+                          )}
+                          {(userRole === "lecturer" || userRole === "hod") && (
+                            <td className="p-2">{user.displayName || "N/A"}</td>
+                          )}
+                          <td className="p-2 text-red-600">{user.error}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={() => {
+                closeModal();
+                if (successCount > 0) {
+                  setImportedUsers([]);
+                  setImportInputErrors([]);
+                  setShowImportedUsers(false);
+                  setFile(null);
+                  setMessage("");
+                  setSelectedUserGroup(null);
+                  fetchUserGroups();
+                }
+              }}
+              className="mt-6 w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-light"
+            >
+              OK
+            </button>
+          </div>
+        );
+        
+        if (successCount > 0) {
+          showToast(`Successfully imported ${successCount} user(s)`, "success");
+        }
+      } else {
+        showToast(responseData.message || "Failed to import users.", "error");
+      }
+    } catch (error: any) {
+      console.error("API call failed:", error);
+      const errorData = error.response?.data;
+      
+      if (errorData && errorData.failedUsers) {
+        // Show detailed error modal even for caught errors
+        openModal(
+          <div className="p-6 max-w-2xl">
+            <h3 className="text-xl font-semibold mb-4 text-red-700">❌ Import Failed</h3>
+            <p className="mb-4">{errorData.message || "Failed to import users."}</p>
+            
+            {errorData.failedUsers && errorData.failedUsers.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold text-red-700 mb-2">Failed Users:</h4>
+                <div className="max-h-64 overflow-y-auto border border-red-200 rounded-md">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-50 sticky top-0">
+                      <tr>
+                        <th className="p-2 text-left border-b">Email</th>
+                        {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                          <th className="p-2 text-left border-b">Index Number</th>
+                        )}
+                        {(userRole === "lecturer" || userRole === "hod") && (
+                          <th className="p-2 text-left border-b">Display Name</th>
+                        )}
+                        <th className="p-2 text-left border-b">Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {errorData.failedUsers.map((user: any, index: number) => (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          <td className="p-2">{user.email}</td>
+                          {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                            <td className="p-2">{user.indexNumber || "N/A"}</td>
+                          )}
+                          {(userRole === "lecturer" || userRole === "hod") && (
+                            <td className="p-2">{user.displayName || "N/A"}</td>
+                          )}
+                          <td className="p-2 text-red-600">{user.error}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={closeModal}
+              className="mt-6 w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-light"
+            >
+              OK
+            </button>
+          </div>
+        );
+      } else {
+        const errorMessage = errorData?.message || error.message || "Failed to import users. Please try again.";
+        showToast(errorMessage, "error");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Fetch user groups
@@ -246,22 +592,144 @@ function AddUser() {
       );
 
       const responseData = response.data;
-      if (response.status === 201) {
-        setDialogMessage(responseData.message);
-        setUsers([{ email: "" }]);
-        setInputErrors([]);
-        setSelectedUserGroup(null);
-        fetchUserGroups();
+      if (response.status === 201 || response.status === 207) {
+        // Show detailed results modal
+        const { successCount, failureCount, totalUsers, failedUsers } = responseData;
+        
+        openModal(
+          <div className="p-6 max-w-2xl">
+            <h3 className="text-xl font-semibold mb-4">
+              {failureCount === 0 ? "✅ Success" : "⚠️ Partial Success"}
+            </h3>
+            <div className="mb-4">
+              <p className="text-lg">{responseData.message}</p>
+              <div className="mt-3 p-3 bg-gray-100 rounded-md">
+                <p className="text-sm"><strong>Total Users:</strong> {totalUsers}</p>
+                <p className="text-sm text-green-700"><strong>✓ Successfully Created:</strong> {successCount}</p>
+                {failureCount > 0 && (
+                  <p className="text-sm text-red-700"><strong>✗ Failed:</strong> {failureCount}</p>
+                )}
+              </div>
+            </div>
+            
+            {failedUsers && failedUsers.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold text-red-700 mb-2">Failed Users:</h4>
+                <div className="max-h-64 overflow-y-auto border border-red-200 rounded-md">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-50 sticky top-0">
+                      <tr>
+                        <th className="p-2 text-left border-b">Email</th>
+                        {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                          <th className="p-2 text-left border-b">Index Number</th>
+                        )}
+                        {(userRole === "lecturer" || userRole === "hod") && (
+                          <th className="p-2 text-left border-b">Display Name</th>
+                        )}
+                        <th className="p-2 text-left border-b">Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {failedUsers.map((user: any, index: number) => (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          <td className="p-2">{user.email}</td>
+                          {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                            <td className="p-2">{user.indexNumber || "N/A"}</td>
+                          )}
+                          {(userRole === "lecturer" || userRole === "hod") && (
+                            <td className="p-2">{user.displayName || "N/A"}</td>
+                          )}
+                          <td className="p-2 text-red-600">{user.error}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={() => {
+                closeModal();
+                if (successCount > 0) {
+                  setUsers([{ email: "" }]);
+                  setInputErrors([]);
+                  setSelectedUserGroup(null);
+                  fetchUserGroups();
+                }
+              }}
+              className="mt-6 w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-light"
+            >
+              OK
+            </button>
+          </div>
+        );
       } else {
         setDialogMessage(responseData.message || "Failed to add users.");
+        setIsDialogOpen(true);
       }
     } catch (error: any) {
       console.error("API call failed:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to add users. Please try again.";
-      setDialogMessage(errorMessage);
+      const errorData = error.response?.data;
+      
+      if (errorData && errorData.failedUsers) {
+        // Show detailed error modal even for caught errors
+        openModal(
+          <div className="p-6 max-w-2xl">
+            <h3 className="text-xl font-semibold mb-4 text-red-700">❌ Error Creating Users</h3>
+            <p className="mb-4">{errorData.message || "Failed to add users."}</p>
+            
+            {errorData.failedUsers && errorData.failedUsers.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-semibold text-red-700 mb-2">Failed Users:</h4>
+                <div className="max-h-64 overflow-y-auto border border-red-200 rounded-md">
+                  <table className="w-full text-sm">
+                    <thead className="bg-red-50 sticky top-0">
+                      <tr>
+                        <th className="p-2 text-left border-b">Email</th>
+                        {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                          <th className="p-2 text-left border-b">Index Number</th>
+                        )}
+                        {(userRole === "lecturer" || userRole === "hod") && (
+                          <th className="p-2 text-left border-b">Display Name</th>
+                        )}
+                        <th className="p-2 text-left border-b">Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {errorData.failedUsers.map((user: any, index: number) => (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          <td className="p-2">{user.email}</td>
+                          {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                            <td className="p-2">{user.indexNumber || "N/A"}</td>
+                          )}
+                          {(userRole === "lecturer" || userRole === "hod") && (
+                            <td className="p-2">{user.displayName || "N/A"}</td>
+                          )}
+                          <td className="p-2 text-red-600">{user.error}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={closeModal}
+              className="mt-6 w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-light"
+            >
+              OK
+            </button>
+          </div>
+        );
+      } else {
+        const errorMessage = errorData?.message || error.message || "Failed to add users. Please try again.";
+        setDialogMessage(errorMessage);
+        setIsDialogOpen(true);
+      }
     } finally {
       setIsLoading(false);
-      setIsDialogOpen(true);
     }
   };
 
@@ -283,7 +751,7 @@ function AddUser() {
   return (
     <div className="flex flex-col w-full bg-bg-page px-20 items-start p-4">
       <div className="w-full rounded-md bg-bg-card p-5">
-        <h1 className="text-2xl w-full text-center font-bold mb-6 font-raleway">
+        <h1 className="text-2xl w-full text-center font-bold mb-6">
           Add New User(s) to the System
         </h1>
         <div className="w-full flex items-center gap-4 mb-2">
@@ -305,6 +773,13 @@ function AddUser() {
               setUsers([newUser]);
               setInputErrors([]);
               setSelectedUserGroup(null);
+              
+              // Reset import state
+              setImportedUsers([]);
+              setImportInputErrors([]);
+              setShowImportedUsers(false);
+              setFile(null);
+              setMessage("");
             }}
           >
             <option value="admin">Admin</option>
@@ -319,11 +794,11 @@ function AddUser() {
         <div className="flex flex-row items-start gap-x-8 w-full">
           <div className="flex flex-[3] mt-4">
             <TabGroup className={"w-full"}>
-              <TabList className="ml-1">
-                <Tab className="data-[selected]:bg-primary-light data-[selected]:text-text-inverted data-[selected]:z-10 data-[selected]:scale-105 new-module-tab">
+              <TabList className="flex border-b border-text-secondary">
+                <Tab className="data-[selected]:border-b-2 data-[selected]:bg-primary-light/50 data-[selected]:text-text-primary data-[selected]:font-semibold data-[selected]:z-10 new-module-tab border-primary-light">
                   One by One
                 </Tab>
-                <Tab className="data-[selected]:bg-primary-light data-[selected]:text-text-inverted data-[selected]:z-10 data-[selected]:scale-105 new-module-tab">
+                <Tab className="data-[selected]:border-b-2 data-[selected]:bg-primary-light/60  data-[selected]:text-text-primary data-[selected]:font-semibold data-[selected]:z-10 new-module-tab border-primary-light">
                   Import
                 </Tab>
               </TabList>
@@ -472,34 +947,208 @@ function AddUser() {
                   </Dialog>
                 </TabPanel>
                 <TabPanel>
-                  <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-md">
+                  <div className="flex flex-col p-6 bg-white rounded-lg">
                     <h3 className="text-xl font-semibold mb-4">
                       Import Users via CSV file
                     </h3>
 
-                    <div className="flex items-center space-x-4 mb-4">
-                      <label className="flex items-center px-4 py-2 bg-primary text-text-inverted rounded-md cursor-pointer hover:bg-primary-light transition-colors">
-                        <FaUpload className="mr-2" />
-                        Select CSV File
-                        <input
-                          type="file"
-                          accept=".csv"
-                          onChange={handleFileChange}
-                          className="hidden"
-                        />
-                      </label>
-                      <span className="text-gray-600">{message}</span>
+                    {/* CSV Format Instructions */}
+                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md text-sm">
+                      <h4 className="font-semibold text-blue-900 mb-2">CSV File Format Instructions</h4>
+                      <p className="text-blue-800 mb-2">
+                        Your CSV file should contain the following columns in this exact order:
+                      </p>
+                      <ul className="list-disc list-inside text-blue-800 space-y-1 mb-3">
+                        {(userRole === "undergraduate" || userRole === "postgraduate") && (
+                          <>
+                            <li><strong>Column 1:</strong> indexNumber (e.g., 220001A, 210123B)</li>
+                            <li><strong>Column 2:</strong> email (e.g., student@cse.mrt.ac.lk)</li>
+                          </>
+                        )}
+                        {(userRole === "lecturer" || userRole === "hod") && (
+                          <>
+                            <li><strong>Column 1:</strong> displayName (e.g., Dr. John Smith, Prof. Jane Doe)</li>
+                            <li><strong>Column 2:</strong> email (e.g., lecturer@cse.mrt.ac.lk)</li>
+                          </>
+                        )}
+                        {(userRole === "admin" || userRole === "cse-office") && (
+                          <>
+                            <li><strong>Column 1:</strong> email (e.g., admin@cse.mrt.ac.lk)</li>
+                          </>
+                        )}
+                      </ul>
+                      <div className="bg-white p-2 rounded border border-blue-300 mt-2">
+                        <pre className="text-xs font-mono text-gray-700 whitespace-pre-wrap">
+                          {(userRole === "undergraduate" || userRole === "postgraduate") && 
+                            "indexNumber,email\n220001A,student1@cse.mrt.ac.lk\n220002B,student2@cse.mrt.ac.lk"
+                          }
+                          {(userRole === "lecturer" || userRole === "hod") && 
+                            "displayName,email\nDr. John Smith,john@cse.mrt.ac.lk\nProf. Jane Doe,jane@cse.mrt.ac.lk"
+                          }
+                          {(userRole === "admin" || userRole === "cse-office") && 
+                            "email\nadmin1@cse.mrt.ac.lk\nadmin2@cse.mrt.ac.lk"
+                          }
+                        </pre>
+                      </div>
                     </div>
 
-                    <button
-                      onClick={handleUpload}
-                      disabled={!file || isLoading}
-                      className="w-full max-w-xs p-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? "Processing..." : "Process CSV"}
-                    </button>
+                    {!showImportedUsers ? (
+                      <>
+                        {/* File Selection and Header Checkbox */}
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <label className="flex items-center px-4 py-2 bg-primary text-text-inverted rounded-md cursor-pointer hover:bg-primary-light transition-colors">
+                              <FaUpload className="mr-2" />
+                              Select CSV File
+                              <input
+                                type="file"
+                                accept=".csv"
+                                onChange={handleFileChange}
+                                className="hidden"
+                              />
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="hasHeaders"
+                                checked={hasHeaders}
+                                onChange={(e) => setHasHeaders(e.target.checked)}
+                                className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                              />
+                              <label htmlFor="hasHeaders" className="text-sm text-text-primary cursor-pointer">
+                                CSV file has headers
+                              </label>
+                            </div>
+                          </div>
+                          {message && (
+                            <p className="text-sm text-text-secondary mt-2">{message}</p>
+                          )}
+                        </div>
 
-                    {/* You can show a loading indicator here based on isLoading */}
+                        <button
+                          onClick={handleUpload}
+                          disabled={!file || isLoading}
+                          className="w-full max-w-xs mx-auto p-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
+                        >
+                          {isLoading ? (
+                            <div className="spinner"></div>
+                          ) : (
+                            "Process CSV"
+                          )}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Show Imported Users for Review */}
+                        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                          <p className="text-sm text-green-800">
+                            <strong>{importedUsers.length}</strong> users loaded from CSV. 
+                            Review and edit them below before creating the users.
+                          </p>
+                        </div>
+
+                        <form onSubmit={handleImportSubmit} className="w-full flex flex-col">
+                          {/* Dynamic Input Units - Same as One by One */}
+                          <div className="w-full flex flex-col gap-5 mb-6 max-h-[50vh] overflow-y-auto p-2">
+                            {importedUsers.map((user, index) => (
+                              <div
+                                key={index}
+                                className="hover:shadow-lg flex flex-col gap-1 p-2 outline outline-solid outline-1 rounded-md outline-text-secondary/30"
+                              >
+                                <div className="flex items-center gap-4">
+                                  {(userRole === "undergraduate" ||
+                                    userRole === "postgraduate") && (
+                                    <div className="flex-1 flex flex-col">
+                                      <input
+                                        type="text"
+                                        name="indexNumber"
+                                        placeholder="e.g., 220001A"
+                                        value={user.indexNumber}
+                                        onChange={(e) => handleImportedUserChange(index, e)}
+                                        className="w-full p-2 outline outline-1 border-text-secondary/0 rounded-md focus:outline-primary-light focus:outline-offset-1 focus:outline-2 transition-colors"
+                                      />
+                                      {importInputErrors[index]?.indexNumber && (
+                                        <span className="text-error text-xs mt-1">
+                                          {importInputErrors[index].indexNumber}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {(userRole === "lecturer" ||
+                                    userRole === "hod") && (
+                                    <div className="flex-1 flex flex-col">
+                                      <input
+                                        type="text"
+                                        name="displayName"
+                                        placeholder="e.g., Dr. John Smith, Prof. Jane Doe"
+                                        value={user.displayName}
+                                        onChange={(e) => handleImportedUserChange(index, e)}
+                                        className="w-full p-2 outline outline-1 border-text-secondary/0 rounded-md focus:outline-primary-light focus:outline-offset-1 focus:outline-2 transition-colors"
+                                      />
+                                      {importInputErrors[index]?.displayName && (
+                                        <span className="text-error text-xs mt-1">
+                                          {importInputErrors[index].displayName}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  <div className="flex-1 flex flex-col">
+                                    <input
+                                      type="email"
+                                      name="email"
+                                      placeholder="user@cse.mrt.ac.lk"
+                                      value={user.email}
+                                      onChange={(e) => handleImportedUserChange(index, e)}
+                                      className="w-full p-2 outline outline-1 border-text-secondary/50 rounded-md focus:outline-primary-light focus:outline-offset-1 focus:outline-2 transition-colors"
+                                    />
+                                    {importInputErrors[index]?.email && (
+                                      <span className="text-error text-xs mt-1">
+                                        {importInputErrors[index].email}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveImportedUser(index)}
+                                    className="text-red-500 hover:text-red-700 transition-colors p-2 rounded-full"
+                                    aria-label="Remove user"
+                                  >
+                                    <FaMinus className="size-6 rounded-full p-1 hover:bg-warning/20" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="flex gap-3 mt-4">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowImportedUsers(false);
+                                setImportedUsers([]);
+                                setImportInputErrors([]);
+                                setFile(null);
+                                setMessage("");
+                              }}
+                              className="flex-1 p-3 bg-gray-500 text-white font-semibold rounded-md hover:bg-gray-600 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={isLoading || importedUsers.length === 0}
+                              className="flex-1 p-3 bg-blue-500 max-h-12 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center justify-center"
+                            >
+                              {isLoading ? (
+                                <Loader />
+                              ) : (
+                                `Add ${importedUsers.length} User${importedUsers.length !== 1 ? 's' : ''}`
+                              )}
+                            </button>
+                          </div>
+                        </form>
+                      </>
+                    )}
                   </div>
                 </TabPanel>
               </TabPanels>

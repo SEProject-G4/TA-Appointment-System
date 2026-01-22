@@ -533,34 +533,60 @@ const updateModule = async (req: Request, res: Response): Promise<Response> => {
         updateData.undergraduateCounts.accepted ===
           updateData.undergraduateCounts.required &&
         updateData.postgraduateCounts.accepted ===
-          updateData.postgraduateCounts.required &&
-        new Date(documentDueDate) > now
+          updateData.postgraduateCounts.required
       ) {
-        newModuleStatus = "getting documents";
+        if(new Date(documentDueDate) > now) {
+          newModuleStatus = "getting documents";
+        } else {
+          newModuleStatus = "closed";
+        }
       } else if (undergradFull && postgradFull && new Date(applicationDueDate) > now) {
         newModuleStatus = "full";
+        // TODO: Notify admins that both positions are full
+      }
+      if (new Date(applicationDueDate) > now) {
+        if (updateData.undergraduateCounts.remaining > 0 || updateData.postgraduateCounts.remaining > 0) {
+          newModuleStatus = "advertised";
+        }
       }
     } else if (updateData.openForUndergraduates) {
       // Only undergrad open
       if (
         updateData.undergraduateCounts.accepted ===
-        updateData.undergraduateCounts.required &&
-        new Date(documentDueDate) > now
+        updateData.undergraduateCounts.required
       ) {
-        newModuleStatus = "getting documents";
+        if(new Date(documentDueDate) > now) {
+          newModuleStatus = "getting documents";
+        } else {
+          newModuleStatus = "closed";
+        }
       } else if (updateData.undergraduateCounts.remaining === 0 && new Date(applicationDueDate) > now) {
         newModuleStatus = "full";
+        // TODO: Notify admins that both positions are full
+      }
+      if (new Date(applicationDueDate) > now) {
+        if (updateData.undergraduateCounts.remaining > 0 || updateData.postgraduateCounts.remaining > 0) {
+          newModuleStatus = "advertised";
+        }
       }
     } else if (updateData.openForPostgraduates) {
       // Only postgrad open
       if (
         updateData.postgraduateCounts.accepted ===
-        updateData.postgraduateCounts.required &&
-        new Date(documentDueDate) > now
+        updateData.postgraduateCounts.required
       ) {
-        newModuleStatus = "getting documents";
+        if(new Date(documentDueDate) > now) {
+          newModuleStatus = "getting documents";
+        } else {
+          newModuleStatus = "closed";
+        }
       } else if (updateData.postgraduateCounts.remaining === 0 && new Date(applicationDueDate) > now) {
         newModuleStatus = "full";
+      }
+      if (new Date(applicationDueDate) > now) {
+        if (updateData.undergraduateCounts.remaining > 0 || updateData.postgraduateCounts.remaining > 0) {
+          newModuleStatus = "advertised";
+        }
       }
     }
 

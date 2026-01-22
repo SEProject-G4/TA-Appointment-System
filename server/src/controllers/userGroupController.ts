@@ -47,21 +47,17 @@ const createNewUsers = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const session = await User.startSession();
-  session.startTransaction();
-  
   try {
     const { users, userRole, groupId } = req.body;
     let assignedGroupId: string;
 
+    // Validate groupId and get assigned group
     if (groupId === "") {
       const ungrouped: IUserGroup | null = await UserGroup.findOne({
         name: "Ungrouped",
         groupType: userRole,
-      }).session(session);
+      });
       if (!ungrouped) {
-        await session.abortTransaction();
-        session.endSession();
         return res
           .status(500)
           .json({ message: "Ungrouped user group not found." });
@@ -71,56 +67,302 @@ const createNewUsers = async (
       assignedGroupId = groupId;
     }
 
-    if (userRole === "undergraduate" || userRole === "postgraduate") {
-      for (const user of users) {
+    // Arrays to track results
+    const successfulUsers: any[] = [];
+    const failedUsers: Array<{ email: string; error: string; indexNumber?: string; displayName?: string }> = [];
+    const validUsers: any[] = [];
+
+    // Step 1: Pre-validation (fast, no DB operations)
+    for (const user of users) {
+      // Validate required fields based on user role
+      if (userRole === "undergraduate" || userRole === "postgraduate") {
         if (!user.indexNumber) {
-          await session.abortTransaction();
-          session.endSession();
-          return res
-            .status(400)
-            .json({ message: "Index Number is required for this user type." });
+          failedUsers.push({
+            email: user.email,
+            indexNumber: user.indexNumber,
+            error: "Index Number is required for this user type",
+          });
+          continue;
+        }
+      } else if (userRole === "lecturer" || userRole === "hod") {
+        if (!user.displayName) {
+          failedUsers.push({
+            email: user.email,
+            displayName: user.displayName,
+            error: "Display Name is required for this user type",
+          });
+          continue;
         }
       }
-    } else if (userRole === "lecturer" || userRole === "hod") {
-      for (const user of users) {
-        if (!user.displayName) {
-          await session.abortTransaction();
-          session.endSession();
-          return res
-            .status(400)
-            .json({ message: "Display Name is required for this user type." });
+
+      // Basic email validation
+      if (!user.email || !user.email.includes("@")) {
+        failedUsers.push({
+          email: user.email,
+          indexNumber: user.indexNumber,
+          displayName: user.displayName,
+          error: "Invalid email address",
+        });
+        continue;
+      }
+
+      validUsers.push(user);
+    }
+
+    // Step 2: Check for duplicates within the submitted batch
+    const emailSet = new Set<string>();
+    const indexNumberSet = new Set<string>();
+    const batchDuplicates: any[] = [];
+    const uniqueValidUsers: any[] = [];
+
+    for (const user of validUsers) {
+      let isDuplicate = false;
+
+      // Check for duplicate email in batch
+      if (emailSet.has(user.email.toLowerCase())) {
+        failedUsers.push({
+          email: user.email,
+          indexNumber: user.indexNumber,
+          displayName: user.displayName,
+          error: "Duplicate email in the submitted batch",
+        });
+        isDuplicate = true;
+      } else {
+        emailSet.add(user.email.toLowerCase());
+      }
+
+      // Check for duplicate indexNumber in batch
+      if ((userRole === "undergraduate" || userRole === "postgraduate") && user.indexNumber) {
+        if (indexNumberSet.has(user.indexNumber)) {
+          if (!isDuplicate) {
+            failedUsers.push({
+              email: user.email,
+              indexNumber: user.indexNumber,
+              displayName: user.displayName,
+              error: "Duplicate index number in the submitted batch",
+            });
+          }
+          isDuplicate = true;
+        } else {
+          indexNumberSet.add(user.indexNumber);
         }
+      }
+
+      if (!isDuplicate) {
+        uniqueValidUsers.push(user);
       }
     }
 
-    const newUsers = users.map((user: any) => ({
-      ...user,
-      name: "Unsigned User",
-      role: userRole,
-      userGroup: assignedGroupId,
-    }));
+    // If no valid users after pre-validation, return early
+    if (uniqueValidUsers.length === 0) {
+      return res.status(400).json({
+        message: "No valid users to create",
+        success: false,
+        successCount: 0,
+        failureCount: failedUsers.length,
+        totalUsers: users.length,
+        failedUsers,
+      });
+    }
 
-    const insertedUsers = await User.insertMany(newUsers, { session });
-    const createdUserCount = insertedUsers.length;
+    // Step 3: Bulk check for existing emails and index numbers in database
+    const emails = uniqueValidUsers.map(u => u.email.toLowerCase());
+    const indexNumbers = uniqueValidUsers
+      .filter(u => u.indexNumber)
+      .map(u => u.indexNumber);
 
-    // Update the userGroup's userCount
-    await UserGroup.findByIdAndUpdate(
-      assignedGroupId,
-      { $inc: { userCount: createdUserCount } },
-      { session }
-    );
+    const [existingEmailUsers, existingIndexUsers] = await Promise.all([
+      User.find({ email: { $in: emails } }).select("email").lean(),
+      indexNumbers.length > 0 
+        ? User.find({ indexNumber: { $in: indexNumbers } }).select("indexNumber").lean()
+        : Promise.resolve([])
+    ]);
 
-    await session.commitTransaction();
-    session.endSession();
+    // Create sets for fast lookup
+    const existingEmails = new Set(existingEmailUsers.map((u: any) => u.email.toLowerCase()));
+    const existingIndexNumbers = new Set(existingIndexUsers.map((u: any) => u.indexNumber));
 
-    return res.status(201).json({
-      message: `${createdUserCount} ${userRole} users successfully created and added to the group.`,
+    // Filter out users with existing emails or index numbers
+    const usersToCreate: any[] = [];
+    for (const user of uniqueValidUsers) {
+      if (existingEmails.has(user.email.toLowerCase())) {
+        failedUsers.push({
+          email: user.email,
+          indexNumber: user.indexNumber,
+          displayName: user.displayName,
+          error: "A user with this email already exists",
+        });
+        continue;
+      }
+
+      if (user.indexNumber && existingIndexNumbers.has(user.indexNumber)) {
+        failedUsers.push({
+          email: user.email,
+          indexNumber: user.indexNumber,
+          displayName: user.displayName,
+          error: "A user with this index number already exists",
+        });
+        continue;
+      }
+
+      usersToCreate.push(user);
+    }
+
+    // If no users to create after all validations, return early
+    if (usersToCreate.length === 0) {
+      return res.status(400).json({
+        message: "No valid users to create after duplicate check",
+        success: false,
+        successCount: 0,
+        failureCount: failedUsers.length,
+        totalUsers: users.length,
+        failedUsers,
+      });
+    }
+
+    // Step 4: Bulk insert with single transaction
+    const session = await User.startSession();
+    session.startTransaction();
+
+    try {
+      // Prepare users for bulk insert
+      const newUsers = usersToCreate.map((user: any) => ({
+        ...user,
+        email: user.email.toLowerCase(), // Normalize email
+        name: "Unsigned User",
+        role: userRole,
+        userGroup: assignedGroupId,
+      }));
+
+      // Bulk insert
+      const insertedUsers = await User.insertMany(newUsers, { 
+        session,
+        ordered: false // Continue even if some fail
+      });
+
+      // Update the userGroup's userCount
+      await UserGroup.findByIdAndUpdate(
+        assignedGroupId,
+        { $inc: { userCount: insertedUsers.length } },
+        { session }
+      );
+
+      await session.commitTransaction();
+      
+      // Track successful users
+      for (const user of usersToCreate) {
+        successfulUsers.push({
+          email: user.email,
+          indexNumber: user.indexNumber,
+          displayName: user.displayName,
+        });
+      }
+    } catch (error: any) {
+      await session.abortTransaction();
+      
+      // Handle bulk insert errors
+      if (error.writeErrors) {
+        // Some users were inserted, some failed
+        const insertedCount = error.insertedDocs?.length || 0;
+        
+        // Track which users failed
+        for (let i = 0; i < usersToCreate.length; i++) {
+          const user = usersToCreate[i];
+          const writeError = error.writeErrors.find((e: any) => e.index === i);
+          
+          if (writeError) {
+            let errorMessage = "Failed to create user";
+            if (writeError.code === 11000) {
+              const field = Object.keys(writeError.keyPattern || {})[0];
+              errorMessage = field 
+                ? `Duplicate ${field}: ${writeError.keyValue?.[field]}`
+                : "Duplicate key error";
+            } else if (writeError.errmsg) {
+              errorMessage = writeError.errmsg;
+            }
+            
+            failedUsers.push({
+              email: user.email,
+              indexNumber: user.indexNumber,
+              displayName: user.displayName,
+              error: errorMessage,
+            });
+          } else {
+            // User was successfully inserted
+            successfulUsers.push({
+              email: user.email,
+              indexNumber: user.indexNumber,
+              displayName: user.displayName,
+            });
+          }
+        }
+
+        // Update group count for successfully inserted users
+        if (insertedCount > 0) {
+          await UserGroup.findByIdAndUpdate(
+            assignedGroupId,
+            { $inc: { userCount: insertedCount } }
+          );
+        }
+      } else {
+        // Complete failure
+        console.error("Error in bulk insert:", error);
+        for (const user of usersToCreate) {
+          failedUsers.push({
+            email: user.email,
+            indexNumber: user.indexNumber,
+            displayName: user.displayName,
+            error: error.message || "Failed to create user",
+          });
+        }
+      }
+    } finally {
+      session.endSession();
+    }
+
+    // Prepare response message
+    const totalUsers = users.length;
+    const successCount = successfulUsers.length;
+    const failureCount = failedUsers.length;
+
+    if (successCount === 0) {
+      return res.status(400).json({
+        message: "Failed to create any users",
+        success: false,
+        successCount: 0,
+        failureCount,
+        totalUsers,
+        failedUsers,
+      });
+    }
+
+    if (failureCount === 0) {
+      return res.status(201).json({
+        message: `Successfully created all ${successCount} ${userRole} user(s)`,
+        success: true,
+        successCount,
+        failureCount: 0,
+        totalUsers,
+        successfulUsers,
+      });
+    }
+
+    // Partial success
+    return res.status(207).json({
+      message: `Created ${successCount} out of ${totalUsers} user(s). ${failureCount} user(s) failed.`,
+      success: true,
+      successCount,
+      failureCount,
+      totalUsers,
+      successfulUsers,
+      failedUsers,
     });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error("Error creating users:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error("Error in createNewUsers:", error);
+    return res.status(500).json({ 
+      message: "Internal server error",
+      success: false,
+    });
   }
 };
 
