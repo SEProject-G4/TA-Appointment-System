@@ -683,13 +683,7 @@ const RSModuleCard: React.FC<RSModuleCardProps> = ({ roundId, moduleId }) => {
             action: handleViewApplications,
             className:
               "outline-primary-dark text-text-primary hover:bg-primary/10 hover:text-primary-dark",
-          },
-          {
-            label: "Send for Approval",
-            action: handleSendforApproval,
-            className:
-              "outline-primary text-text-inverted bg-primary hover:bg-primary-light",
-          },
+          }
         ];
       case "closed":
         return [
