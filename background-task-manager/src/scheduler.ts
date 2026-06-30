@@ -178,7 +178,7 @@ export const startScheduler = () => {
   // TASK 3: Daily task at 9:00 PM
   // Send reminder emails or perform daily checks
   // ============================================================================
-  cron.schedule("0 21 * * *", async () => {
+  cron.schedule("0 15 * * *", async () => {
     console.log("🔍 [Task 3] Running daily 9 PM task...");
 
     try {
