@@ -139,14 +139,18 @@ const advertiseModule = async (
     };
 
     // Send emails to both groups
-    await EmailService.enqueueOneModuleAdvertisingEmail(
-      undergradEmails,
-      undergradEmailParamas
-    );
-    await EmailService.enqueueOneModuleAdvertisingEmail(
-      postgradEmails,
-      postgradEmailParams
-    );
+    if (undergradEmailParamas.positionsCount > 0) {
+      await EmailService.enqueueOneModuleAdvertisingEmail(
+        undergradEmails,
+        undergradEmailParamas
+      );
+    }
+    if (postgradEmailParams.positionsCount > 0) {
+      await EmailService.enqueueOneModuleAdvertisingEmail(
+        postgradEmails,
+        postgradEmailParams
+      );
+    }
 
     // Update module status to 'advertised'
     module.moduleStatus = "advertised";
