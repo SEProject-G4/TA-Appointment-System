@@ -6,7 +6,7 @@ interface TARequestCardProps {
   moduleName: string;
   semester: string;
   year: string;
-  appliedTAs: { name: string; status: string; applicationId: string; indexNumber: string; role?: 'undergraduate' | 'postgraduate' }[];
+  appliedTAs: { name: string; status: string; applicationId: string; indexNumber: string; email: string; profilePicture: string; role?: 'undergraduate' | 'postgraduate' }[];
   requiredUndergraduateTAs?: number;
   requiredPostgraduateTAs?: number;
   onAccept: (applicationId: string, studentName: string) => void;
@@ -125,9 +125,17 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
               return (
                     <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-bg-page rounded-lg p-3 border border-border-default space-y-2 sm:space-y-0">
                       <div className="flex items-center space-x-3">
+                        <img
+                          src={ta.profilePicture}
+                          alt={ta.name}
+                          className="h-10 w-10 rounded-full object-cover"
+                        />
                         <div className="flex flex-col">
                           <span className="font-medium text-text-primary text-sm sm:text-base">{ta.name}</span>
                           <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
+                          <a href={`mailto:${ta.email}`} className="text-xs text-blue-500 hover:underline">
+                            {ta.email}
+                          </a>
                         </div>
                         {(statusLower === 'accepted' || statusLower === 'rejected') && (
                           <span className={`badge text-xs ${
@@ -210,9 +218,17 @@ const HandleTaRequestsCard: React.FC<TARequestCardProps> = ({
                 return (
                   <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-bg-page rounded-lg p-3 border border-border-default space-y-2 sm:space-y-0">
                     <div className="flex items-center space-x-3">
+                      <img
+                          src={ta.profilePicture}
+                          alt={ta.name}
+                          className="h-10 w-10 rounded-full object-cover"
+                        />
                       <div className="flex flex-col">
                         <span className="font-medium text-text-primary text-sm sm:text-base">{ta.name}</span>
                         <span className="text-xs text-text-secondary">{ta.indexNumber}</span>
+                        <a href={`mailto:${ta.email}`} className="text-xs text-blue-500 hover:underline">
+                            {ta.email}
+                          </a>
                       </div>
                       {(statusLower === 'accepted' || statusLower === 'rejected') && (
                         <span className={`badge text-xs ${

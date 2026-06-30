@@ -15,7 +15,7 @@ interface ModuleGroup {
   year: string;
   requiredUndergraduateTAs?: number;
   requiredPostgraduateTAs?: number;
-  appliedTAs: { name: string; status: string; applicationId: string; indexNumber: string; role?: 'undergraduate' | 'postgraduate' }[];
+  appliedTAs: { name: string; status: string; applicationId: string; indexNumber: string; email: string; profilePicture: string; role?: 'undergraduate' | 'postgraduate' }[];
 }
 
 
@@ -60,7 +60,9 @@ const HandleTARequests = () => {
           status: a.status,
           applicationId: a.applicationId,
           indexNumber: a.indexNumber,
-          role: a.role
+          role: a.role,
+          email: a.email,
+          profilePicture: a.profilePicture
         }))
       }));
 

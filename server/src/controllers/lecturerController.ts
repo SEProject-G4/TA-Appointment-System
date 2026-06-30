@@ -359,7 +359,7 @@ const handleRequests = async (req: Request, res: Response): Promise<Response> =>
 
     const users = await User.find({
       _id: { $in: userIds },
-    }).select("googleId name indexNumber role");
+    }).select("googleId name indexNumber profilePicture email role");
     console.log("users", users);
 
     const userMap: any = {};
@@ -368,6 +368,8 @@ const handleRequests = async (req: Request, res: Response): Promise<Response> =>
         name: user.name,
         indexNumber: user.indexNumber,
         role: user.role,
+        profilePicture: user.profilePicture ?? "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y",
+        email: user.email,
       };
     });
 
@@ -421,6 +423,8 @@ const handleRequests = async (req: Request, res: Response): Promise<Response> =>
         name: "Unknown",
         indexNumber: "N/A",
         role: "undergraduate",
+        profilePicture: "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y",
+        email: "N/A",
       };
       group.totalApplications += 1;
       const statusLower = String(app.status || "").toLowerCase();
@@ -434,6 +438,8 @@ const handleRequests = async (req: Request, res: Response): Promise<Response> =>
         studentName: userDetails.name,
         indexNumber: userDetails.indexNumber,
         role: userDetails.role,
+        profilePicture: userDetails.profilePicture,
+        email: userDetails.email,
         status: app.status,
         appliedAt: app.createdAt,
       });
