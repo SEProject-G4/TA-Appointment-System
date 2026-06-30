@@ -1104,7 +1104,7 @@ const sendForApproval = async (
     if (!moduleId) {
       return res.status(400).json({ message: "Module ID is required" });
     }
-    const module = await ModuleDetails.findById(moduleId).populate("coordinators", "name email");
+    const module = await ModuleDetails.findById(moduleId).populate("coordinators", "displayName email");
     if (!module) {
       return res.status(404).json({ message: "Module not found" });
     }
@@ -1130,7 +1130,7 @@ const sendForApproval = async (
         moduleCode: module.moduleCode,
         moduleName: module.moduleName,
         semester: module.semester,
-        coordName: coordinator.name,
+        coordName: coordinator.displayName,
       });
     }
     module.sentEmail4 = (module.sentEmail4 || 0) + 1;
