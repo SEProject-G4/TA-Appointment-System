@@ -36,31 +36,28 @@ interface AvailableRole {
 
 const handleFirstLogin = async (user: IUser, payload: TokenPayload): Promise<void> => {
   try {
-    // Use updateOne for better performance
-
-    if(!payload.name || !payload.picture){
-        throw new Error("Missing required fields in Google payload for first login");
-    }
+    const fallbackName =  user.email.split('@')[0] ?? "User";
+    const finalName = payload.name || fallbackName;
+    const finalPicture = payload.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(finalName)}&background=random`;
 
     await User.updateOne(
       { _id: user._id },
       {
         $set: {
-          name: payload.name,
+          name: finalName,
           firstLogin: false,
-          googleId: payload.sub,
-          profilePicture: payload.picture,
+          googleId: payload.sub, // 'sub' is the only guaranteed field from Google
+          profilePicture: finalPicture,
           lastLoginAt: new Date(),
           updatedAt: new Date(),
         },
       }
     );
 
-    // Update the user object for immediate use
-    user.name = payload.name;
+    user.name = finalName;
     user.firstLogin = false;
     user.googleId = payload.sub;
-    user.profilePicture = payload.picture;
+    user.profilePicture = finalPicture;
 
     console.log(`First login completed for user: ${user.email}`);
   } catch (error) {

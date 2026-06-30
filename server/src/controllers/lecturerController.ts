@@ -5,7 +5,7 @@ const User = require("../models/User");
 const documentModel = require("../models/documentModel");
 const RecruitmentSeries = require("../models/RecruitmentRound");
 const AppliedModules = require("../models/AppliedModules");
-const { sendEmail } = require("../services/emailService");
+const { EmailService } = require("../services/emailService");
 
 // GET /api/lecturer/modules
 // Returns modules where the logged-in lecturer (by id) is listed in coordinators
@@ -541,41 +541,15 @@ const acceptApplication = async (req: Request, res: Response): Promise<Response>
     // Send email notification asynchronously
     setImmediate(async () => {
       try {
-        const subject = `Congratulations! Your TA Application for ${module.moduleCode} - ${module.moduleName} has been Accepted`;
-        const htmlContent = `
-          <p><strong>TA Application Accepted!</strong></p>
-          
-          <p>Dear ${taUser.name},</p>
-          
-          <p>We are pleased to inform you that your Teaching Assistant application for the following module has been accepted:</p>
-          
-          <p><strong>Module Details:</strong></p>
-          <ul>
-            <li><strong>Module Code:</strong> ${module.moduleCode}</li>
-            <li><strong>Module Name:</strong> ${module.moduleName}</li>
-            <li><strong>Semester:</strong> ${module.semester}</li>
-          </ul>
-          
-          <p>Please log into the TA Appointment System to provide the necessary personal details and complete your onboarding process. You will need to submit the following documents:</p>
-          
-          <p style="text-align: center;"><a href="https://ta-appointment-system.vercel.app/login" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Access TA System</a></p>
-          
-          <ul>
-            <li>Bank Passbook Copy</li>
-            <li>NIC Copy</li>
-            <li>CV (Curriculum Vitae)</li>
-            ${taUser.role === "postgraduate" ? "<li>Degree Certificate</li>" : ""}
-          </ul>
-          
-          <p><strong>Important:</strong> Please complete your profile and submit all required documents as soon as possible to proceed with your TA appointment.</p>
-          
-          <p>If you have any questions or need assistance, please don't hesitate to contact the module coordinator or the CSE office.</p>
-          
-          <p>Best regards,</p>
-          <p>The TA Recruitment Team</p>
-        `;
+        const emailParams = {
+          studentName: taUser.name,
+          moduleName: module.moduleName,
+          moduleCode: module.moduleCode,
+          semester: module.semester,
+        }
 
-        await sendEmail(taUser.email, subject, htmlContent);
+        await EmailService.enqueueProvideNecessaryDetailsForAppointmentEmail(
+          [taUser.email], emailParams);
         console.log("Acceptance email sent successfully to:", taUser.email);
       } catch (emailError) {
         console.error("Failed to send acceptance email:", emailError);

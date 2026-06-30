@@ -9,7 +9,6 @@ const { EmailService } = require("../services/emailService");
 const config = require("../config/index");
 import mongoose = require("mongoose");
 import { deleteModule as deleteModuleService } from "../services/deletionService";
-const { enqueueApproveTARequestsForModuleEmail } = require("../services/emailService");
 
 const changeModuleStatus = async (
   req: Request,
@@ -1127,7 +1126,7 @@ const sendForApproval = async (
       });
     }
     for (const coordinator of module.coordinators as any[]) {
-      await enqueueApproveTARequestsForModuleEmail( [coordinator.email], {
+      await EmailService.enqueueApproveTARequestsForModuleEmail( [coordinator.email], {
         moduleCode: module.moduleCode,
         moduleName: module.moduleName,
         semester: module.semester,

@@ -12,6 +12,6 @@ router.put("/:moduleId", authMiddleware.protected, authMiddleware.authorize(["ad
 router.post("/:moduleId/add-applicants", authMiddleware.protected, authMiddleware.authorize(["admin"]), moduleController.addApplicants);
 router.get("/:moduleId/applications", authMiddleware.protected, authMiddleware.authorize(["admin"]), moduleController.getModuleApplications);
 router.delete("/:moduleId", authMiddleware.protected, authMiddleware.authorize(["admin"]), moduleController.deleteModuleById);
-router.post("/:moduleId/send-for-approval", authMiddleware.protected, authMiddleware.authorize(["admin"]), moduleController.sendForApproval);
+router.put("/:moduleId/send-for-approval", authMiddleware.protected, authMiddleware.authorize(["admin"]), moduleController.sendForApproval);
 
 module.exports = router;

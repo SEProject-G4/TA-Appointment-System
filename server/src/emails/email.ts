@@ -193,20 +193,18 @@ interface ApproveTARequestsForModuleParams{
     moduleCode: string;
     semester: number;
     coordName: string;
-    type: 'undergraduate' | 'postgraduate';
 }
 
 const getApproveTARequestsForModuleEmail = (params: ApproveTARequestsForModuleParams): EmailContent => {
-    const subject = `Please approve ${params.type} TA requests for ${params.moduleCode} - ${params.moduleName} in semester ${params.semester}`;
+    const subject = `Please approve TA requests for ${params.moduleCode} - ${params.moduleName} in semester ${params.semester}`;
     const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>TA Requests Awaiting Your Approval</h2>
         <p>Dear ${params.coordName},</p>
-        <p>The ${params.type} TA requests for the following module have been submitted and are awaiting your approval:</p>
+        <p>The TA requests for the following module have been submitted and are awaiting your approval:</p>
         <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-left: 4px solid #007bff;">
             <strong>Module:</strong> ${params.moduleCode} - ${params.moduleName}<br>
             <strong>Semester:</strong> ${params.semester}<br>
-            <strong>Type:</strong> ${params.type === 'undergraduate' ? 'Undergraduate' : 'Postgraduate'}<br>
         </div>
         <p>Please log into the TA Appointment System to review and approve the TA requests.</p>
         <div style="text-align: center; margin: 30px 0;">

@@ -251,29 +251,23 @@ interface ApproveTARequestsForModuleParams {
   moduleCode: string;
   semester: number;
   coordName: string;
-  type: "undergraduate" | "postgraduate";
 }
 
 const getApproveTARequestsForModuleEmail = (
   params: ApproveTARequestsForModuleParams
 ): EmailContent => {
-  const subject = `Please review(apply/ reject) ${params.type} TA applications for ${params.moduleCode} - ${params.moduleName} in semester ${params.semester}`;
+  const subject = `Please review(accept/ reject) TA applications for ${params.moduleCode} - ${params.moduleName} in semester ${params.semester}`;
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>TA Applications Awaiting Your Review</h2>
         <p>Dear ${params.coordName},</p>
-        <p>The ${
-          params.type
-        } TA applications for the following module have been submitted and are awaiting your review.
-        Please apply or reject them as appropriate:</p>
+        <p>The TA applications for the following module have been submitted and are awaiting your review.
+        Please accept or reject them as appropriate:</p>
         <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-left: 4px solid #007bff;">
             <strong>Module:</strong> ${params.moduleCode} - ${
     params.moduleName
   }<br>
             <strong>Semester:</strong> ${params.semester}<br>
-            <strong>Type:</strong> ${
-              params.type === "undergraduate" ? "Undergraduate" : "Postgraduate"
-            }<br>
         </div>
         <p>Please log into the TA Appointment System to review the TA applications.</p>
         <div style="text-align: center; margin: 30px 0;">
