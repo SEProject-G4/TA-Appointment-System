@@ -176,9 +176,9 @@ const applyForTA = async (req: Request, res: Response): Promise<Response> => {
       );
     }
     if (updateModule) {
-      const undergradRemaining = updateModule.undergraduateCounts.remaining;
-      const postgradRemaining = updateModule.postgraduateCounts.remaining;
-      
+      const undergradRemaining = updateModule.undergraduateCounts ? updateModule.undergraduateCounts.remaining : 0;
+      const postgradRemaining = updateModule.postgraduateCounts ? updateModule.postgraduateCounts.remaining : 0;
+
       if (undergradRemaining === 0 && postgradRemaining === 0) {
       updateModule.moduleStatus = "full";
       await updateModule.save({ session });

@@ -764,7 +764,7 @@ const addApplicants = async (
               reason:
                 "User already has an accepted application for this position",
             });
-          } else {
+          } else if (existingApplication.status === "pending") {
             // Update application to accepted
             await TAApplication.updateOne(
               { _id: existingApplication._id },
@@ -786,11 +786,13 @@ const addApplicants = async (
                 //notify admin that undergrad positions are full
                 if (
                   module.openForPostgraduates &&
-                  module.postgraduateCounts &&
-                  module.postgraduateCounts.accepted ===
-                    module.postgraduateCounts.required
+                  module.postgraduateCounts                  
                 ) {
-                  updateModuleObj.$set = { moduleStatus: "getting documents" };
+                  if (module.postgraduateCounts.accepted === module.postgraduateCounts.required) {
+                    updateModuleObj.$set = { moduleStatus: "getting documents" };
+                  } else if (module.postgraduateCounts.remaining === 0) {
+                    updateModuleObj.$set = { moduleStatus: "full" };
+                  }
                 } else if (!module.openForPostgraduates) {
                   updateModuleObj.$set = { moduleStatus: "getting documents" };
                 }
@@ -811,11 +813,13 @@ const addApplicants = async (
                 //notify admin that postgrad positions are full
                 if (
                   module.openForUndergraduates &&
-                  module.undergraduateCounts &&
-                  module.undergraduateCounts.accepted ===
-                    module.undergraduateCounts.required
+                  module.undergraduateCounts
                 ) {
-                  updateModuleObj.$set = { moduleStatus: "getting documents" };
+                  if (module.undergraduateCounts.accepted === module.undergraduateCounts.required) {
+                    updateModuleObj.$set = { moduleStatus: "getting documents" };
+                  } else if (module.undergraduateCounts.remaining === 0) {
+                    updateModuleObj.$set = { moduleStatus: "full" };
+                  }
                 } else if (!module.openForUndergraduates) {
                   updateModuleObj.$set = { moduleStatus: "getting documents" };
                 }
@@ -830,6 +834,12 @@ const addApplicants = async (
                 { session }
               );
             }
+          } else {
+            results.set(userId, {
+              name: user.name,
+              status: "failed",
+              reason: 'User already has a rejected application for this position',
+            });
           }
           await session.commitTransaction();
           session.endSession();
@@ -863,16 +873,17 @@ const addApplicants = async (
             if (newAcceptedCount === module.undergraduateCounts?.required) {
               if (
                 module.openForPostgraduates &&
-                module.postgraduateCounts &&
-                module.postgraduateCounts.accepted ===
-                  module.postgraduateCounts.required
+                module.postgraduateCounts
               ) {
-                updateModuleObj.$set = { moduleStatus: "getting documents" };
+                if (module.postgraduateCounts.accepted === module.postgraduateCounts.required) {
+                  updateModuleObj.$set = { moduleStatus: "getting documents" };
+                } else if (module.postgraduateCounts.remaining === 0) {
+                  updateModuleObj.$set = { moduleStatus: "full" };
+                }
               } else if (!module.openForPostgraduates) {
                 updateModuleObj.$set = { moduleStatus: "getting documents" };
               }
             } else if (newRemainingCount === 0) {
-              //notify coordinators that undergrad positions are full
               if (
                 module.openForPostgraduates &&
                 module.postgraduateCounts &&
@@ -900,10 +911,14 @@ const addApplicants = async (
             if (newAcceptedCount === module.postgraduateCounts?.required) {
               if (
                 module.openForUndergraduates &&
-                module.undergraduateCounts &&
-                module.undergraduateCounts.accepted ===
-                  module.undergraduateCounts.required
+                module.undergraduateCounts
               ) {
+                if (module.undergraduateCounts.accepted === module.undergraduateCounts.required) {
+                  updateModuleObj.$set = { moduleStatus: "getting documents" };
+                } else if (module.undergraduateCounts.remaining === 0) {
+                  updateModuleObj.$set = { moduleStatus: "full" };
+                }
+              }  else if (!module.openForUndergraduates) {
                 updateModuleObj.$set = { moduleStatus: "getting documents" };
               }
             } else if (newRemainingCount === 0) {
@@ -913,6 +928,8 @@ const addApplicants = async (
                 module.undergraduateCounts &&
                 module.undergraduateCounts.remaining === 0
               ) {
+                updateModuleObj.$set = { moduleStatus: "full" };
+              } else if (!module.openForUndergraduates) {
                 updateModuleObj.$set = { moduleStatus: "full" };
               }
             }
@@ -937,7 +954,7 @@ const addApplicants = async (
           results.set(userId, {
             name: user.name,
             status: "failed",
-            reason: "Insufficient available hours",
+            reason: "Insufficient available hours for ta",
           });
           continue;
         }
@@ -972,11 +989,13 @@ const addApplicants = async (
         if (newAcceptedCount === module.undergraduateCounts?.required) {
           if (
             module.openForPostgraduates &&
-            module.postgraduateCounts &&
-            module.postgraduateCounts.accepted ===
-              module.postgraduateCounts.required
+            module.postgraduateCounts
           ) {
-            updateModuleObj.$set = { moduleStatus: "getting documents" };
+            if (module.postgraduateCounts.accepted === module.postgraduateCounts.required) {
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            } else if (module.postgraduateCounts.remaining === 0) {
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }
           } else if (!module.openForPostgraduates) {
             updateModuleObj.$set = { moduleStatus: "getting documents" };
           }
@@ -1008,10 +1027,14 @@ const addApplicants = async (
         if (newAcceptedCount === module.postgraduateCounts?.required) {
           if (
             module.openForUndergraduates &&
-            module.undergraduateCounts &&
-            module.undergraduateCounts.accepted ===
-              module.undergraduateCounts.required
+            module.undergraduateCounts
           ) {
+            if (module.undergraduateCounts.accepted === module.undergraduateCounts.required) {
+              updateModuleObj.$set = { moduleStatus: "getting documents" };
+            } else if (module.undergraduateCounts.remaining === 0) {
+              updateModuleObj.$set = { moduleStatus: "full" };
+            }
+          } else if (!module.openForUndergraduates) {
             updateModuleObj.$set = { moduleStatus: "getting documents" };
           }
         } else if (newRemainingCount === 0) {
@@ -1021,6 +1044,8 @@ const addApplicants = async (
             module.undergraduateCounts &&
             module.undergraduateCounts.remaining === 0
           ) {
+            updateModuleObj.$set = { moduleStatus: "full" };
+          } else if (!module.openForUndergraduates) {
             updateModuleObj.$set = { moduleStatus: "full" };
           }
         }
