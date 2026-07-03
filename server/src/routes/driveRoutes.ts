@@ -3,9 +3,11 @@ const multer = require("multer");
 const { submitDocuments } = require("../controllers/driveControllers");
 const router = express.Router();
 
+const storage = multer.memoryStorage();
+
 // Configure multer
 const upload = multer({
-  dest: "uploads/",
+  storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
 });
 

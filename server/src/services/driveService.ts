@@ -1,4 +1,5 @@
 const { google } = require("googleapis");
+const { Readable } = require("stream");
 const fs = require("fs");
 const path = require("path");
 
@@ -7,9 +8,7 @@ interface MulterFile {
   originalname: string;
   encoding: string;
   mimetype: string;
-  destination: string;
-  filename: string;
-  path: string;
+  buffer: Buffer;
   size: number;
 }
 
@@ -29,7 +28,7 @@ const SHARED_DRIVE_ID = process.env.SHARED_DRIVE_ID;
 const PARENT_FOLDER_ID = process.env.PARENT_FOLDER_ID || null; // For regular Drive
 
 const auth = new google.auth.GoogleAuth({
-  keyFilename: process.env.GOOGLE_SERVICE_ACCOUNT,
+  keyFilename: "./src/config/service-account-key.json",
   scopes: ["https://www.googleapis.com/auth/drive"],
 });
 
@@ -122,7 +121,7 @@ async function uploadFileToDrive(file: MulterFile, folderId: string): Promise<Up
 
   const media = {
     mimeType: file.mimetype,
-    body: fs.createReadStream(file.path),
+    body: Readable.from(file.buffer),
   };
 
   const uploadOptions = {
@@ -142,14 +141,6 @@ async function uploadFileToDrive(file: MulterFile, folderId: string): Promise<Up
   };
 
   await drive.permissions.create(permissionOptions);
-
-  // Delete local temp file
-  try {
-    fs.unlinkSync(file.path);
-    console.log(`Deleted temp file: ${file.path}`);
-  } catch (err) {
-    console.error(`Failed to delete temp file: ${file.path}`, err);
-  }
 
   return {
     ...(uploaded.data.id && { id: uploaded.data.id }),
