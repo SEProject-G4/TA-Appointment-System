@@ -185,11 +185,7 @@ export default function DocumentSubmissionModal({
         submitData.append("declarationForm", formData.declarationForm);
       }
 
-      const response = await axiosInstance.post("/documents/submit", submitData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await axiosInstance.post("/documents/submit", submitData);
 
       if (response.status === 201) {
         const message = previousDocuments 
