@@ -5,10 +5,12 @@ import { ChevronDown, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import CSEofficeCard from '../../components/cse office/CSEofficeCard'
 
 type FileMeta = {
-  submitted?: boolean
-  fileUrl?: string
-  fileName?: string
-  uploadedAt?: string
+  submitted?: boolean;
+  id?: string;
+  name?: string;
+  viewLink?: string;
+  downloadLink?: string;
+  uploadedAt?: string;
 }
 
 type Documents = {
@@ -119,40 +121,34 @@ const CSEofficeDashboard = () => {
   const renderDoc = (label: string, f?: FileMeta) => {
     if (!f) return null
 
-    const toDriveDownloadUrl = (url?: string) => {
-      if (!url) return ''
-      try {
-        const fileIdMatch = url.match(/\/d\/([^/]+)\//) || url.match(/[?&]id=([^&]+)/)
-        const fileId = fileIdMatch ? fileIdMatch[1] : ''
-        return fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : url
-      } catch {
-        return url
-      }
-    }
-
-    const hasAnyUrl = Boolean(f.fileUrl)
-    const downloadUrl = toDriveDownloadUrl(f.fileUrl)
+    // Check if the file has a viewable link
+    const hasAnyUrl = Boolean(f.viewLink)
 
     return (
-      <div className="flex items-center justify-between p-2 sm:p-3 bg-white rounded border border-border-default">
-        <span className="text-xs sm:text-sm font-medium text-text-primary truncate">{label}</span>
+      <div className="flex items-center justify-between p-2 bg-white border rounded sm:p-3 border-border-default">
+        <span className="text-xs font-medium truncate sm:text-sm text-text-primary">{label}</span>
         <div className="flex items-center gap-1 sm:gap-2">
           {hasAnyUrl ? (
             <>
+              {/* Use the viewLink from the backend */}
               <button 
-                onClick={() => window.open(f.fileUrl, "_blank")} 
-                className="btn btn-primary btn-xs text-xs px-2 py-1"
+                onClick={() => window.open(f.viewLink, "_blank")} 
+                className="px-2 py-1 text-xs btn btn-primary btn-xs"
               >
                 View
               </button>
-              <a 
-                href={downloadUrl} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="btn btn-outline btn-xs text-xs px-2 py-1"
-              >
-                Download
-              </a>
+              
+              {/* Use the downloadLink from the backend */}
+              {f.downloadLink && (
+                <a 
+                  href={f.downloadLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="px-2 py-1 text-xs btn btn-outline btn-xs"
+                >
+                  Download
+                </a>
+              )}
             </>
           ) : (
             <span className="text-xs text-text-secondary">No file uploaded</span>

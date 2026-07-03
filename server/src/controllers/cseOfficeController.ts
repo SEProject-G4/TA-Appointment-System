@@ -7,7 +7,7 @@ const User = require("../models/User");
 
 const viewTADocuments = async (req: Request, res: Response): Promise<Response> => {
   try {
-    // Get all documents with user details populated
+    // 1. Get all documents with user details populated
     const documents = await TaDocumentSubmission.find({})
       .populate("userId", "name indexNumber email role")
       .lean();
@@ -16,53 +16,60 @@ const viewTADocuments = async (req: Request, res: Response): Promise<Response> =
       return res.status(200).json({ tas: [] });
     }
 
-    // Build response for each TA
-    const tasPromises = documents.map(async (doc: any) => {
+    const validDocuments = documents.filter((doc: any) => doc.userId != null);
+
+    // 2. Build response for each TA
+    const tasPromises = validDocuments.map(async (doc: any) => {
       const userId = doc.userId._id;
       const userName = doc.userId.name;
       const userIndex = doc.userId.indexNumber;
 
-      // Find all accepted TA applications for this user
+      // OPTIMIZATION: Use Mongoose Deep Population to get Module and Series data in one go
       const acceptedApplications = await TaApplication.find({
         userId: userId,
         status: "accepted",
       })
-        .populate("moduleId", "moduleCode moduleName semester")
+        .populate({
+          path: "moduleId",
+          select: "moduleCode moduleName semester recruitmentSeriesId",
+          populate: {
+            path: "recruitmentSeriesId",
+            select: "name", // Grab the series name directly
+          },
+        })
         .lean();
 
-      // Get recruitment series info to extract the year
-      const acceptedModules = await Promise.all(
-        acceptedApplications.map(async (app: any) => {
-          const module = await ModuleDetails.findById(app.moduleId)
-            .populate("recruitmentSeriesId", "name")
-            .lean();
-
-          // Try to extract year from recruitment series name (e.g., "2024/2025 Semester 1")
-          let year = new Date().getFullYear();
-          if (module?.recruitmentSeriesId && typeof module.recruitmentSeriesId === 'object' && 'name' in module.recruitmentSeriesId) {
-            const yearMatch = (module.recruitmentSeriesId as any).name.match(/(\d{4})/);
-            if (yearMatch) {
-              year = parseInt(yearMatch[1]);
-            }
+      // Now this is completely synchronous and blazing fast - no DB calls in the loop!
+      const acceptedModules = acceptedApplications.map((app: any) => {
+        const module = app.moduleId;
+        let year = new Date().getFullYear();
+        
+        // Extract year from the deeply populated recruitmentSeriesId
+        if (module?.recruitmentSeriesId?.name) {
+          const yearMatch = module.recruitmentSeriesId.name.match(/(\d{4})/);
+          if (yearMatch) {
+            year = parseInt(yearMatch[1]);
           }
+        }
 
-          return {
-            moduleId: app.moduleId._id.toString(),
-            moduleCode: app.moduleId.moduleCode,
-            moduleName: app.moduleId.moduleName,
-            semester: app.moduleId.semester,
-            year: year,
-          };
-        })
-      );
+        return {
+          moduleId: module._id.toString(),
+          moduleCode: module.moduleCode,
+          moduleName: module.moduleName,
+          semester: module.semester,
+          year: year,
+        };
+      });
 
-      // Format documents to match frontend expectations
+      // SYNC: Format documents to match updated frontend expectations
       const formatFileMeta = (fileData: any) => {
         if (!fileData) return { submitted: false };
         return {
           submitted: true,
-          fileUrl: fileData.viewLink || fileData.downloadLink || "",
-          fileName: fileData.name || "",
+          id: fileData.id || "",
+          name: fileData.name || "",
+          viewLink: fileData.viewLink || "",
+          downloadLink: fileData.downloadLink || "",
           uploadedAt: doc.updatedAt || doc.createdAt,
         };
       };
