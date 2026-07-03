@@ -31,7 +31,7 @@ const deleteApplication = async (req: Request, res: Response): Promise<Response>
   try {
     if (user && module && appliedModule) {
       const role = user.role;
-      const regainingTime = module.requiredTAHours;
+      const regainingTime = application.status === "rejected" ? 0 : module.requiredTAHours;
 
       // Update available hours
       appliedModule.availableHoursPerWeek += regainingTime;
