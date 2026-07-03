@@ -1,7 +1,8 @@
 const express = require("express");
 const multer = require("multer");
-const { submitDocuments } = require("../controllers/driveControllers");
+const { submitDocuments, downloadAllDocumentsAsZip } = require("../controllers/driveControllers");
 const router = express.Router();
+const authMiddleware = require("../middleware/authMiddleware");
 
 const storage = multer.memoryStorage();
 
@@ -14,6 +15,7 @@ const upload = multer({
 // Define route
 router.post(
   "/submit",
+  authMiddleware.protected, authMiddleware.authorize(["undergraduate", "postgraduate"]),
   upload.fields([
     { name: "bankPassbook", maxCount: 1 },
     { name: "nicCopy", maxCount: 1 },
@@ -23,5 +25,6 @@ router.post(
   ]),
   submitDocuments // handled by controller
 );
+router.post("/zip", authMiddleware.protected, authMiddleware.authorize(["cse-office", "cse office", "admin"]), downloadAllDocumentsAsZip);
 
 module.exports = router;

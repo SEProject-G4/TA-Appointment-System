@@ -35,7 +35,8 @@ type AcceptedModule = {
 }
 
 type TAView = { 
-  userId: string; 
+  userId: string;
+  documentId: string;
   name: string; 
   indexNumber: string;
   email: string; 

@@ -1,5 +1,6 @@
-import type { Response } from "express";
-import type { Request } from "express";
+import type { Request, Response } from "express";
+import AdmZip from "adm-zip";
+const { getFileBuffer } = require("../services/driveService");
 const { createOrGetFolderForTA, uploadFileToDrive } = require("../services/driveService");
 const Document = require("../models/documentModel");
 const AppliedModules = require("../models/AppliedModules");
@@ -166,4 +167,66 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
   }
 };
 
-module.exports = { submitDocuments };
+export const downloadAllDocumentsAsZip = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { documentId, taName } = req.body;
+
+    if (!documentId) {
+       res.status(400).json({ message: "Document ID is required" });
+       return;
+    }
+
+    // 1. Fetch the document record
+    const docRecord = await Document.findById(documentId).lean();
+    
+    if (!docRecord || !docRecord.driveFiles) {
+       res.status(404).json({ message: "Document record not found." });
+       return;
+    }
+
+    const docs = docRecord.driveFiles;
+    const filesToZip: { id: string, name: string, label: string }[] = [];
+
+    // 2. Build the download queue
+    if (docs.bankPassbook?.id) filesToZip.push({ id: docs.bankPassbook.id, name: docs.bankPassbook.name || 'passbook.pdf', label: 'Bank_Passbook' });
+    if (docs.nicCopy?.id) filesToZip.push({ id: docs.nicCopy.id, name: docs.nicCopy.name || 'nic.pdf', label: 'NIC' });
+    if (docs.cv?.id) filesToZip.push({ id: docs.cv.id, name: docs.cv.name || 'cv.pdf', label: 'CV' });
+    if (docs.degreeCertificate?.id) filesToZip.push({ id: docs.degreeCertificate.id, name: docs.degreeCertificate.name || 'degree.pdf', label: 'Degree' });
+    if (docs.declarationForm?.id) filesToZip.push({ id: docs.declarationForm.id, name: docs.declarationForm.name || 'declaration.pdf', label: 'Declaration' });
+
+    if (filesToZip.length === 0) {
+       res.status(400).json({ message: "No uploaded files found in this record." });
+       return;
+    }
+
+    // 3. Initialize AdmZip
+    const zip = new AdmZip();
+
+    // 4. Fetch each file and add it directly to the zip memory buffer
+    for (const file of filesToZip) {
+      try {
+        const buffer = await getFileBuffer(file.id);
+        // Add the file to the zip archive
+        zip.addFile(`${file.label}_${file.name}`, buffer);
+      } catch (err) {
+        console.error(`Skipping file ${file.name} due to fetch error.`);
+      }
+    }
+
+    // 5. Generate the final zip buffer and send it to the frontend!
+    const zipBuffer = zip.toBuffer();
+    const safeName = (taName || "TA").replace(/\s+/g, "_");
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${safeName}_Documents.zip"`);
+    res.send(zipBuffer);
+
+  } catch (err) {
+    console.error("ZIP creation failed:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Failed to create ZIP file" });
+    }
+  }
+};
+
+module.exports = { submitDocuments, downloadAllDocumentsAsZip };

@@ -37,7 +37,8 @@ type AcceptedModule = {
 }
 
 type TAView = { 
-  userId: string; 
+  userId: string;
+  documentId: string; 
   name: string; 
   indexNumber: string;
   email: string; 
@@ -230,6 +231,7 @@ const RecruitmentSeriesSection = ({
 
 // --- Main Page Component ---
 const CSEofficeDashboard = () => {
+  const [isZipping, setIsZipping] = useState(false);
   const [groupedData, setGroupedData] = useState<GroupedData[]>([])
   const [docModal, setDocModal] = useState<{ open: boolean; ta?: TAView }>()
   const [loading, setLoading] = useState<boolean>(false)
@@ -252,6 +254,39 @@ const CSEofficeDashboard = () => {
   useEffect(() => {
     fetchData()
   }, [refreshKey])
+
+  const handleDownloadAllZip = async () => {
+    if (!docModal?.ta?.documentId) return;
+    
+    setIsZipping(true);
+    try {
+      // Pass only the documentId and the name (for the zip file title)
+      const response = await axios.post('/documents/zip', {
+        documentId: docModal.ta.documentId,
+        taName: docModal.ta.name
+      }, {
+        responseType: 'blob' // CRITICAL for binary files
+      });
+
+      // Trigger the browser download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${docModal.ta.name.replace(/\s+/g, "_")}_Documents.zip`);
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error("Error downloading zip:", error);
+      alert("Failed to create ZIP file. Please try downloading files individually.");
+    } finally {
+      setIsZipping(false);
+    }
+  };
 
   const openDocModal = (ta: TAView) => setDocModal({ open: true, ta })
   const closeDocModal = () => setDocModal({ open: false })
@@ -414,7 +449,25 @@ const CSEofficeDashboard = () => {
 
               {/* Documents */}
               <div className="p-4 bg-white border rounded-lg shadow-sm border-border-default">
-                <h3 className="pb-2 text-sm font-semibold border-b sm:text-base text-text-primary border-border-default">Uploaded Documents</h3>
+                <div className="flex items-center justify-between pb-2 border-b border-border-default">
+                  <h3 className="text-sm font-semibold sm:text-base text-text-primary">Uploaded Documents</h3>
+                  
+                  {/* NEW ZIP BUTTON */}
+                  <button 
+                    onClick={handleDownloadAllZip}
+                    disabled={isZipping}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white transition-colors rounded bg-primary hover:bg-primary-dark disabled:opacity-50"
+                  >
+                    {isZipping ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                        Zipping...
+                      </>
+                    ) : (
+                      "Download All (ZIP)"
+                    )}
+                  </button>
+                </div>
                 <div className="mt-3 space-y-2">
                   {renderDoc('Bank Passbook Copy', docModal.ta.documents?.bankPassbook)}
                   {renderDoc('NIC Copy', docModal.ta.documents?.nicCopy)}

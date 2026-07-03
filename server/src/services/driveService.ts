@@ -202,4 +202,21 @@ async function deleteFolderAndContents(folderId: string): Promise<void> {
   }
 }
 
-module.exports = { createOrGetFolderForTA, uploadFileToDrive, deleteFolderAndContents };
+/**
+ * Fetches a file from Google Drive as a Buffer (Perfect for adm-zip)
+ */
+async function getFileBuffer(fileId: string): Promise<Buffer> {
+  try {
+    const res = await drive.files.get(
+      { fileId, alt: "media", supportsAllDrives: true },
+      { responseType: "arraybuffer" } // Get raw binary data
+    );
+    // Convert the ArrayBuffer to a Node.js Buffer
+    return Buffer.from(res.data as ArrayBuffer);
+  } catch (error) {
+    console.error(`Failed to get buffer for file ${fileId}`, error);
+    throw error;
+  }
+}
+
+module.exports = { createOrGetFolderForTA, uploadFileToDrive, deleteFolderAndContents, getFileBuffer };

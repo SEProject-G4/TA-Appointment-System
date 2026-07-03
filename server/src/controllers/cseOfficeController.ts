@@ -88,6 +88,7 @@ const viewTADocuments = async (req: Request, res: Response): Promise<Response> =
         indexNumber: user.indexNumber,
         role: user.role,
         email: user.email,
+        documentId: doc._id.toString(),
         acceptedModules: formattedModules,
         personalDetails: {
           bankAccountName: doc.bankAccountName || "",
@@ -116,5 +117,7 @@ const viewTADocuments = async (req: Request, res: Response): Promise<Response> =
     return res.status(500).json({ error: "Failed to fetch TA documents" });
   }
 };
+
+
 
 module.exports = { viewTADocuments };
