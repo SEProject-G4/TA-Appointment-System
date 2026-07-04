@@ -81,10 +81,10 @@ const getAllRequests = async (req: Request, res: Response): Promise<Response> =>
     const uniqueCoordinators = [...new Set(allCoordinators.map((c) => c.toString()))];
     const coordinatorDetails = await User.find(
       { _id: { $in: uniqueCoordinators } },
-      { _id: 1, name: 1 }
+      { _id: 1, displayName: 1, name: 1 }
     );
     const coordinatorMap: Record<string, string> = coordinatorDetails.reduce((map: any, user: any) => {
-      map[user._id] = user.name;
+      map[user._id] = user.displayName || user.name || "Unknown Coordinator";
       return map;
     }, {});
 
@@ -463,12 +463,12 @@ export const getMyDocumentSubmissions = async (req: Request, res: Response): Pro
     if (userRole === "undergraduate") {
       activeRounds = await RecruitmentSeries.find(
         { status: "active", undergradMailingList: { $in: [userGroupID] } },
-        { _id: 1 }
+        { _id: 1, name: 1 }
       );
     } else if (userRole === "postgraduate") {
       activeRounds = await RecruitmentSeries.find(
         { status: "active", postgradMailingList: { $in: [userGroupID] } },
-        { _id: 1 }
+        { _id: 1, name: 1 }
       );
     }
 
