@@ -23,9 +23,11 @@ const deleteApplication = async (req: Request, res: Response): Promise<Response>
   const user = await User.findById(userId);
   const module = await ModuleDetails.findById(moduleId);
   const recSeriesId = module?.recruitmentSeriesId;
+
   const appliedModule = recSeriesId
     ? await AppliedModule.findOne({ userId, recSeriesId })
     : null;
+
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
@@ -54,6 +56,8 @@ const deleteApplication = async (req: Request, res: Response): Promise<Response>
             applicationDueDate > now
           ) {
             module.moduleStatus = "advertised";
+          } else if (module.moduleStatus === "full" && module.undergraduateCounts.remaining > 0) {
+            module.moduleStatus = "advertised";
           }
         } else if (application.status === "accepted") {
           module.undergraduateCounts.reviewed -= 1;
@@ -65,6 +69,8 @@ const deleteApplication = async (req: Request, res: Response): Promise<Response>
             module.moduleStatus !== "advertised" &&
             applicationDueDate > now
           ) {
+            module.moduleStatus = "advertised";
+          } else if (module.moduleStatus === "full" && module.undergraduateCounts.remaining > 0) {
             module.moduleStatus = "advertised";
           }
         } else if (application.status === "rejected") {
@@ -81,6 +87,8 @@ const deleteApplication = async (req: Request, res: Response): Promise<Response>
             applicationDueDate > now
           ) {
             module.moduleStatus = "advertised";
+          } else if (module.moduleStatus === "full" && module.postgraduateCounts.remaining > 0) {
+            module.moduleStatus = "advertised";
           }
         } else if (application.status === "accepted") {
           module.postgraduateCounts.reviewed -= 1;
@@ -92,6 +100,8 @@ const deleteApplication = async (req: Request, res: Response): Promise<Response>
             module.moduleStatus !== "advertised" &&
             applicationDueDate > now
           ) {
+            module.moduleStatus = "advertised";
+          } else if (module.moduleStatus === "full" && module.postgraduateCounts.remaining > 0) {
             module.moduleStatus = "advertised";
           }
         } else if (application.status === "rejected") {
