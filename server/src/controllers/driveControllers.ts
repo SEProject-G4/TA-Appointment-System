@@ -24,6 +24,8 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
       userId,
       recSeriesId,
       bankAccountName,
+      bank,
+      branch,
       address,
       nicNumber,
       accountNumber,
@@ -31,7 +33,7 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
       position,
     } = req.body;
 
-    if (!userId || !bankAccountName || !nicNumber || !accountNumber) {
+    if (!userId || !bankAccountName || !bank || !branch || !nicNumber || !accountNumber) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -140,6 +142,8 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
     if (existingDocumentId) {
       const encryptedUpdates = {
         bankAccountName: bankAccountName ? encrypt(bankAccountName) : bankAccountName,
+        bank: bank ? encrypt(bank) : bank,
+        branch: branch ? encrypt(branch) : branch,
         address: address ? encrypt(address) : address,
         nicNumber: nicNumber ? encrypt(nicNumber) : nicNumber,
         accountNumber: accountNumber ? encrypt(accountNumber) : accountNumber,
@@ -160,6 +164,8 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
       newDoc = await Document.create({
         userId,
         bankAccountName,
+        bank,
+        branch,
         address,
         nicNumber,
         accountNumber,

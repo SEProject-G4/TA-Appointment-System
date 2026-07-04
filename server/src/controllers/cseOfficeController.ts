@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { decrypt } from "../utils/encryption";
 const AppliedModules = require("../models/AppliedModules");
 const RecruitmentRound = require("../models/RecruitmentRound");
 
@@ -91,10 +92,12 @@ const viewTADocuments = async (req: Request, res: Response): Promise<Response> =
         documentId: doc._id.toString(),
         acceptedModules: formattedModules,
         personalDetails: {
-          bankAccountName: doc.bankAccountName || "",
-          address: doc.address || "",
-          nicNumber: doc.nicNumber || "",
-          accountNumber: doc.accountNumber || "",
+          bankAccountName: decrypt(doc.bankAccountName) || "",
+          bank: decrypt(doc.bank) || "",
+          branch: decrypt(doc.branch) || "",
+          address: decrypt(doc.address) || "",
+          nicNumber: decrypt(doc.nicNumber) || "",
+          accountNumber: decrypt(doc.accountNumber) || "",
         },
         documents: {
           bankPassbook: formatFileMeta(doc.driveFiles?.bankPassbook),

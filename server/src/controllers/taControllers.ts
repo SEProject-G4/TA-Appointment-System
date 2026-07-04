@@ -6,6 +6,7 @@ const User = require("../models/User");
 const RecruitmentSeries = require("../models/RecruitmentRound");
 const AppliedModules = require("../models/AppliedModules");
 const documentModel = require("../models/documentModel");
+import { decrypt } from "../utils/encryption";
 
 const getAllRequests = async (req: Request, res: Response): Promise<Response> => {
   const userId = req.query.userId as string;
@@ -382,17 +383,20 @@ const getAcceptedModules = async (req: Request, res: Response): Promise<Response
         .lean();
 
       if (currentAppliedModule && currentAppliedModule.Documents) {
+        const d = currentAppliedModule.Documents;
         currentRoundDocument = {
-          _id: currentAppliedModule.Documents._id,
+          _id: d._id,
           recSeriesName: currentAppliedModule.recSeriesId?.name || "Current Round",
           recSeriesId: currentAppliedModule.recSeriesId?._id?.toString(),
-          bankAccountName: currentAppliedModule.Documents.bankAccountName,
-          address: currentAppliedModule.Documents.address,
-          nicNumber: currentAppliedModule.Documents.nicNumber,
-          accountNumber: currentAppliedModule.Documents.accountNumber,
-          studentType: currentAppliedModule.Documents.studentType,
-          driveFiles: currentAppliedModule.Documents.driveFiles,
-          createdAt: currentAppliedModule.Documents.createdAt,
+          bankAccountName: decrypt(d.bankAccountName) || "",
+          bank: decrypt(d.bank) || "",
+          branch: decrypt(d.branch) || "",
+          address: decrypt(d.address) || "",
+          nicNumber: decrypt(d.nicNumber) || "",
+          accountNumber: decrypt(d.accountNumber) || "",
+          studentType: d.studentType,
+          driveFiles: d.driveFiles,
+          createdAt: d.createdAt,
           isCurrentRound: true,
         };
       }
@@ -416,10 +420,12 @@ const getAcceptedModules = async (req: Request, res: Response): Promise<Response
         _id: am.Documents._id,
         recSeriesName: am.recSeriesId?.name || "Unknown Round",
         recSeriesId: am.recSeriesId?._id?.toString(),
-        bankAccountName: am.Documents.bankAccountName,
-        address: am.Documents.address,
-        nicNumber: am.Documents.nicNumber,
-        accountNumber: am.Documents.accountNumber,
+        bankAccountName: decrypt(am.Documents.bankAccountName) || "",
+        bank: decrypt(am.Documents.bank) || "",
+        branch: decrypt(am.Documents.branch) || "",
+        address: decrypt(am.Documents.address) || "",
+        nicNumber: decrypt(am.Documents.nicNumber) || "",
+        accountNumber: decrypt(am.Documents.accountNumber) || "",
         studentType: am.Documents.studentType,
         driveFiles: am.Documents.driveFiles,
         createdAt: am.Documents.createdAt,
@@ -534,10 +540,12 @@ export const getMyDocumentSubmissions = async (req: Request, res: Response): Pro
 
       if (docRecord) {
         personalDetails = {
-          bankAccountName: docRecord.bankAccountName || "",
-          address: docRecord.address || "",
-          nicNumber: docRecord.nicNumber || "",
-          accountNumber: docRecord.accountNumber || "",
+          bankAccountName: decrypt(docRecord.bankAccountName) || "",
+          bank: decrypt(docRecord.bank) || "",
+          branch: decrypt(docRecord.branch) || "",
+          address: decrypt(docRecord.address) || "",
+          nicNumber: decrypt(docRecord.nicNumber) || "",
+          accountNumber: decrypt(docRecord.accountNumber) || "",
           studentType: docRecord.studentType || "",
         };
 

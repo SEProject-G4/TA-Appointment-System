@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { decrypt } from "../utils/encryption";
 const ModuleDetails = require("../models/ModuleDetails");
 const TaApplication = require("../models/TaApplication");
 const User = require("../models/User");
@@ -809,10 +810,12 @@ const viewModuleDetails = async (req: Request, res: Response): Promise<Response>
           };
 
           taInfo.personalDetails = {
-            bankAccountName: docData.bankAccountName || "",
-            address: docData.address || "",
-            nicNumber: docData.nicNumber || "",
-            accountNumber: docData.accountNumber || "",
+            bankAccountName: decrypt(docData.bankAccountName) || "",
+            bank: decrypt(docData.bank) || "",
+            branch: decrypt(docData.branch) || "",
+            address: decrypt(docData.address) || "",
+            nicNumber: decrypt(docData.nicNumber) || "",
+            accountNumber: decrypt(docData.accountNumber) || "",
           };
         }
       }

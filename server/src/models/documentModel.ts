@@ -14,6 +14,8 @@ interface IDriveFiles {
 export interface IDocument extends Document {
   userId: mongoose.Types.ObjectId;
   bankAccountName?: string;
+  bank?: string;
+  branch?: string;
   address?: string;
   nicNumber?: string;
   accountNumber?: string;
@@ -33,6 +35,8 @@ const documentSchema = new Schema<IDocument>(
       required: true,
     },
     bankAccountName: String,
+    bank: String,
+    branch: String,
     address: String,
     nicNumber: String,
     accountNumber: String,
@@ -49,6 +53,12 @@ documentSchema.pre("save", function (next) {
   try {
     if (this.bankAccountName && !this.bankAccountName.includes(":")) {
       this.bankAccountName = encrypt(this.bankAccountName);
+    }
+    if (this.bank && !this.bank.includes(":")) {
+      this.bank = encrypt(this.bank);
+    }
+    if (this.branch && !this.branch.includes(":")) {
+      this.branch = encrypt(this.branch);
     }
     if (this.address && !this.address.includes(":")) {
       this.address = encrypt(this.address);
@@ -69,6 +79,8 @@ documentSchema.pre("save", function (next) {
 const decryptFields = function (doc: any) {
   if (doc) {
     if (doc.bankAccountName) doc.bankAccountName = decrypt(doc.bankAccountName);
+    if (doc.bank) doc.bank = decrypt(doc.bank);
+    if (doc.branch) doc.branch = decrypt(doc.branch);
     if (doc.address) doc.address = decrypt(doc.address);
     if (doc.nicNumber) doc.nicNumber = decrypt(doc.nicNumber);
     if (doc.accountNumber) doc.accountNumber = decrypt(doc.accountNumber);
