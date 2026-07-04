@@ -527,68 +527,70 @@ const updateModule = async (req: Request, res: Response): Promise<Response> => {
     // Determine module status based on new counts
     let newModuleStatus = existingModule.moduleStatus;
 
-    if (updateData.openForUndergraduates && updateData.openForPostgraduates) {
-      // Both types open
-      const undergradFull = updateData.undergraduateCounts.remaining === 0;
-      const postgradFull = updateData.postgraduateCounts.remaining === 0;
+    if (newModuleStatus !== "initialised" && newModuleStatus !== "pending changes" && newModuleStatus !== "changes submitted") {
+      if (updateData.openForUndergraduates && updateData.openForPostgraduates) {
+        // Both types open
+        const undergradFull = updateData.undergraduateCounts.remaining === 0;
+        const postgradFull = updateData.postgraduateCounts.remaining === 0;
 
-      if (
-        updateData.undergraduateCounts.accepted ===
-          updateData.undergraduateCounts.required &&
-        updateData.postgraduateCounts.accepted ===
+        if (
+          updateData.undergraduateCounts.accepted ===
+            updateData.undergraduateCounts.required &&
+          updateData.postgraduateCounts.accepted ===
+            updateData.postgraduateCounts.required
+        ) {
+          if(new Date(documentDueDate) > now) {
+            newModuleStatus = "getting documents";
+          } else {
+            newModuleStatus = "closed";
+          }
+        } else if (undergradFull && postgradFull && new Date(applicationDueDate) > now) {
+          newModuleStatus = "full";
+          // TODO: Notify admins that both positions are full
+        }
+        if (new Date(applicationDueDate) > now) {
+          if (updateData.undergraduateCounts.remaining > 0 || updateData.postgraduateCounts.remaining > 0) {
+            newModuleStatus = "advertised";
+          }
+        }
+      } else if (updateData.openForUndergraduates) {
+        // Only undergrad open
+        if (
+          updateData.undergraduateCounts.accepted ===
+          updateData.undergraduateCounts.required
+        ) {
+          if(new Date(documentDueDate) > now) {
+            newModuleStatus = "getting documents";
+          } else {
+            newModuleStatus = "closed";
+          }
+        } else if (updateData.undergraduateCounts.remaining === 0 && new Date(applicationDueDate) > now) {
+          newModuleStatus = "full";
+          // TODO: Notify admins that both positions are full
+        }
+        if (new Date(applicationDueDate) > now) {
+          if (updateData.undergraduateCounts.remaining > 0 || updateData.postgraduateCounts.remaining > 0) {
+            newModuleStatus = "advertised";
+          }
+        }
+      } else if (updateData.openForPostgraduates) {
+        // Only postgrad open
+        if (
+          updateData.postgraduateCounts.accepted ===
           updateData.postgraduateCounts.required
-      ) {
-        if(new Date(documentDueDate) > now) {
-          newModuleStatus = "getting documents";
-        } else {
-          newModuleStatus = "closed";
+        ) {
+          if(new Date(documentDueDate) > now) {
+            newModuleStatus = "getting documents";
+          } else {
+            newModuleStatus = "closed";
+          }
+        } else if (updateData.postgraduateCounts.remaining === 0 && new Date(applicationDueDate) > now) {
+          newModuleStatus = "full";
         }
-      } else if (undergradFull && postgradFull && new Date(applicationDueDate) > now) {
-        newModuleStatus = "full";
-        // TODO: Notify admins that both positions are full
-      }
-      if (new Date(applicationDueDate) > now) {
-        if (updateData.undergraduateCounts.remaining > 0 || updateData.postgraduateCounts.remaining > 0) {
-          newModuleStatus = "advertised";
-        }
-      }
-    } else if (updateData.openForUndergraduates) {
-      // Only undergrad open
-      if (
-        updateData.undergraduateCounts.accepted ===
-        updateData.undergraduateCounts.required
-      ) {
-        if(new Date(documentDueDate) > now) {
-          newModuleStatus = "getting documents";
-        } else {
-          newModuleStatus = "closed";
-        }
-      } else if (updateData.undergraduateCounts.remaining === 0 && new Date(applicationDueDate) > now) {
-        newModuleStatus = "full";
-        // TODO: Notify admins that both positions are full
-      }
-      if (new Date(applicationDueDate) > now) {
-        if (updateData.undergraduateCounts.remaining > 0 || updateData.postgraduateCounts.remaining > 0) {
-          newModuleStatus = "advertised";
-        }
-      }
-    } else if (updateData.openForPostgraduates) {
-      // Only postgrad open
-      if (
-        updateData.postgraduateCounts.accepted ===
-        updateData.postgraduateCounts.required
-      ) {
-        if(new Date(documentDueDate) > now) {
-          newModuleStatus = "getting documents";
-        } else {
-          newModuleStatus = "closed";
-        }
-      } else if (updateData.postgraduateCounts.remaining === 0 && new Date(applicationDueDate) > now) {
-        newModuleStatus = "full";
-      }
-      if (new Date(applicationDueDate) > now) {
-        if (updateData.undergraduateCounts.remaining > 0 || updateData.postgraduateCounts.remaining > 0) {
-          newModuleStatus = "advertised";
+        if (new Date(applicationDueDate) > now) {
+          if (updateData.undergraduateCounts.remaining > 0 || updateData.postgraduateCounts.remaining > 0) {
+            newModuleStatus = "advertised";
+          }
         }
       }
     }
