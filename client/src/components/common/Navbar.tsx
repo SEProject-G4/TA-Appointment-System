@@ -108,6 +108,7 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((_, ref) => {
         { subMenu:false, to: "/ta-dashboard", label: "Available Positions" },
         { subMenu:false, to: "/ta-applied", label: "Applied Positions" },
         { subMenu:false, to: "/ta-accepted", label: "Accepted Positions" },
+        { subMenu:false, to: "/ta-documents", label: "My Documents" },
       ]
     },
     {
@@ -116,6 +117,7 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((_, ref) => {
         {  subMenu:false, to: "/ta-dashboard", label: "Available Positions" },
         { subMenu:false, to: "/ta-applied", label: "Applied Positions" },
         { subMenu:false, to: "/ta-accepted", label: "Accepted Positions" },
+        { subMenu:false, to: "/ta-documents", label: "My Documents" },
       ]
     },
 

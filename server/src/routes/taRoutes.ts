@@ -13,5 +13,6 @@ router.get("/requests", authMiddleware.protected, authMiddleware.authorize(['und
 router.post("/apply", authMiddleware.protected, authMiddleware.authorize(['undergraduate', 'postgraduate']), taController.applyForTA);
 router.get("/applied-modules", authMiddleware.protected, authMiddleware.authorize(['undergraduate', 'postgraduate']), taController.getAppliedModules);
 router.get("/accepted-modules", authMiddleware.protected, authMiddleware.authorize(['undergraduate', 'postgraduate']), taController.getAcceptedModules);
+router.get("/my-submissions", authMiddleware.protected, authMiddleware.authorize(['undergraduate', 'postgraduate']), taController.getMyDocumentSubmissions);
 
 module.exports = router;

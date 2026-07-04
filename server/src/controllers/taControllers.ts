@@ -443,9 +443,137 @@ const getAcceptedModules = async (req: Request, res: Response): Promise<Response
   }
 };
 
+export const getMyDocumentSubmissions = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const authUser = (req as any).user;
+
+    if (!authUser || !authUser._id) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const userId = authUser._id;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const userGroupID = user.userGroup;
+    const userRole = user.role;
+
+    let activeRounds: any[] = [];
+    if (userRole === "undergraduate") {
+      activeRounds = await RecruitmentSeries.find(
+        { status: "active", undergradMailingList: { $in: [userGroupID] } },
+        { _id: 1 }
+      );
+    } else if (userRole === "postgraduate") {
+      activeRounds = await RecruitmentSeries.find(
+        { status: "active", postgradMailingList: { $in: [userGroupID] } },
+        { _id: 1 }
+      );
+    }
+
+    if (!activeRounds || activeRounds.length === 0) {
+      return res.status(200).json({ groupedSubmissions: [] });
+    }
+
+    const activeRoundIds = activeRounds.map((round: any) => round._id);
+    
+    // Create a quick lookup map for the round names
+    const roundNameMap = new Map(activeRounds.map((r: any) => [r._id.toString(), r.name]));
+
+    // 2. Fetch the TA's specific AppliedModules records for these active rounds
+    const myAppliedModules = await AppliedModules.find({
+      userId: userId,
+      recSeriesId: { $in: activeRoundIds }
+    })
+      .populate("Documents")
+      .populate({
+        path: "appliedModules", // References TAApplication
+        match: { status: "accepted" }, // CRITICAL: Only grab accepted applications
+        populate: {
+          path: "moduleId",
+          select: "moduleCode moduleName requiredTAHours"
+        }
+      })
+      .lean();
+
+    // 3. Format the payload for the frontend
+    const groupedSubmissions = myAppliedModules.map((record: any) => {
+      // Filter out applications that weren't "accepted" (Mongoose returns them as null due to the match condition)
+      const validApps = (record.appliedModules || []).filter((app: any) => app != null && app.moduleId != null);
+
+      // If they have no accepted applications for this round, don't show the submission card
+      if (validApps.length === 0) return null;
+
+      const docRecord = record.Documents;
+      const recSeriesIdStr = record.recSeriesId.toString();
+
+      // Format modules
+      const formattedModules = validApps.map((app: any) => ({
+        moduleId: app.moduleId._id,
+        moduleCode: app.moduleId.moduleCode,
+        moduleName: app.moduleId.moduleName,
+        taHours: app.moduleId.requiredTAHours || 0
+      }));
+
+      const totalTAHours = formattedModules.reduce((sum: number, mod: any) => sum + mod.taHours, 0);
+
+      // Format files safely
+      const formatFileMeta = (fileData: any) => {
+        if (!fileData) return null;
+        return {
+          id: fileData.id || "",
+          name: fileData.name || "",
+          viewLink: fileData.viewLink || "",
+          downloadLink: fileData.downloadLink || "",
+        };
+      };
+
+      let personalDetails = null;
+      let formattedDocs = null;
+
+      if (docRecord) {
+        personalDetails = {
+          bankAccountName: docRecord.bankAccountName || "",
+          address: docRecord.address || "",
+          nicNumber: docRecord.nicNumber || "",
+          accountNumber: docRecord.accountNumber || "",
+          studentType: docRecord.studentType || "",
+        };
+
+        formattedDocs = {
+          bankPassbook: formatFileMeta(docRecord.driveFiles?.bankPassbook),
+          nicCopy: formatFileMeta(docRecord.driveFiles?.nicCopy),
+          cv: formatFileMeta(docRecord.driveFiles?.cv),
+          degreeCertificate: formatFileMeta(docRecord.driveFiles?.degreeCertificate),
+          declarationForm: formatFileMeta(docRecord.driveFiles?.declarationForm),
+        };
+      }
+
+      return {
+        recSeriesId: recSeriesIdStr,
+        recSeriesName: roundNameMap.get(recSeriesIdStr),
+        acceptedModules: formattedModules,
+        totalTAHours: totalTAHours,
+        isDocSubmitted: record.isDocSubmitted || false,
+        documentId: docRecord?._id || null,
+        personalDetails: personalDetails,
+        documents: formattedDocs
+      };
+    }).filter(Boolean); // Removes the 'null' entries where validApps was 0
+
+    return res.status(200).json({ groupedSubmissions });
+
+  } catch (error) {
+    console.error("Error fetching TA document submissions:", error);
+    return res.status(500).json({ error: "Failed to load document submissions" });
+  }
+};
+
 module.exports = {
   getAllRequests,
   applyForTA,
   getAppliedModules,
   getAcceptedModules,
+  getMyDocumentSubmissions,
 };

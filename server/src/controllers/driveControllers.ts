@@ -4,6 +4,7 @@ const { getFileBuffer } = require("../services/driveService");
 const { createOrGetFolderForTA, uploadFileToDrive } = require("../services/driveService");
 const Document = require("../models/documentModel");
 const AppliedModules = require("../models/AppliedModules");
+import { encrypt } from "../utils/encryption";
 
 interface MulterFiles {
   [fieldname: string]: File[];
@@ -61,6 +62,32 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
 
     const files = req.files as MulterFiles;
 
+    const isPostgraduate = studentType === "postgraduate";
+
+    const requiredFileFields = [
+      "bankPassbook",
+      "nicCopy",
+      "cv",
+      "declarationForm",
+    ];
+
+    if (isPostgraduate) {
+      requiredFileFields.push("degreeCertificate");
+    }
+
+    if (!existingDocumentId) {
+      const missingFileFields = requiredFileFields.filter(
+        (field) => !files?.[field] || files[field].length === 0,
+      );
+
+      if (missingFileFields.length > 0) {
+        return res.status(400).json({
+          message: "All documents are required for the first submission",
+          missingFileFields,
+        });
+      }
+    }
+
     // Upload new files if provided
     for (const key in files) {
       try {
@@ -94,14 +121,18 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
     // Update existing document if editing, otherwise create new
     let newDoc;
     if (existingDocumentId) {
+      const encryptedUpdates = {
+        bankAccountName: bankAccountName ? encrypt(bankAccountName) : bankAccountName,
+        address: address ? encrypt(address) : address,
+        nicNumber: nicNumber ? encrypt(nicNumber) : nicNumber,
+        accountNumber: accountNumber ? encrypt(accountNumber) : accountNumber,
+      };
+
       // Update existing document
       newDoc = await Document.findByIdAndUpdate(
         existingDocumentId,
         {
-          bankAccountName,
-          address,
-          nicNumber,
-          accountNumber,
+          ...encryptedUpdates,
           studentType,
           driveFolderId: folderId,
           driveFiles: finalDriveFiles, // Use merged files (existing + new)
@@ -111,11 +142,6 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
       );
     } else {
       // Create new document (only if we have at least some files or it's a new submission)
-      if (Object.keys(driveFiles).length === 0 && Object.keys(existingDriveFiles).length === 0) {
-        return res.status(400).json({
-          message: "At least one file must be uploaded for new document submission",
-        });
-      }
       newDoc = await Document.create({
         userId,
         bankAccountName,

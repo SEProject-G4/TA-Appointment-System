@@ -32,6 +32,7 @@ import CSEofficeDashboard from "./pages/cse office/CSEofficeDashboard";
 import TADashboardApplied from "./pages/ta/TADashboardApplied";
 import TADashboardAccepted from "./pages/ta/TADashboardAccepted";
 import TADashboard from "./pages/ta/TADashboard";
+import TADocumentsPage from "./pages/ta/TADocumentsPage";
 
 function App() {
   const navbarRef = useRef<HTMLDivElement>(null);
@@ -215,6 +216,14 @@ function App() {
                     element={
                       <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
                       <TADashboardAccepted />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="ta-documents"
+                    element={
+                      <ProtectedRoute roles={["undergraduate", "postgraduate"]}>
+                      <TADocumentsPage />
                       </ProtectedRoute>
                     }
                   />
