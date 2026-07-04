@@ -15,7 +15,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "adm-zip": "^0.5.18",
     "axios": "^1.11.0",
     "bull": "^4.16.5",
     "bullmq": "^5.66.2",
@@ -35,7 +34,8 @@
     "multer": "^2.0.2",
     "node-cache": "^5.1.2",
     "nodemailer": "^9.0.1",
-    "redis": "^5.8.3"
+    "redis": "^5.8.3",
+    "yazl": "^3.3.1"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.8",
@@ -47,6 +47,7 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^24.10.2",
     "@types/nodemailer": "^7.0.4",
+    "@types/yazl": "^3.3.1",
     "jest": "^30.4.2",
     "nodemon": "^3.1.0",
     "supertest": "^7.0.0",

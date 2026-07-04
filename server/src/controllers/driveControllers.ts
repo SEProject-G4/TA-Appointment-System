@@ -1,5 +1,5 @@
+import yazl from "yazl";
 import type { Request, Response } from "express";
-import AdmZip from "adm-zip";
 const { getFileBuffer } = require("../services/driveService");
 const { createOrGetFolderForTA, uploadFileToDrive } = require("../services/driveService");
 const Document = require("../models/documentModel");
@@ -202,7 +202,6 @@ export const downloadAllDocumentsAsZip = async (req: Request, res: Response): Pr
        return;
     }
 
-    // 1. Fetch the document record
     const docRecord = await Document.findById(documentId).lean();
     
     if (!docRecord || !docRecord.driveFiles) {
@@ -210,10 +209,9 @@ export const downloadAllDocumentsAsZip = async (req: Request, res: Response): Pr
        return;
     }
 
-    const docs = docRecord.driveFiles;
+    const docs = docRecord.driveFiles as any;
     const filesToZip: { id: string, name: string, label: string }[] = [];
 
-    // 2. Build the download queue
     if (docs.bankPassbook?.id) filesToZip.push({ id: docs.bankPassbook.id, name: docs.bankPassbook.name || 'passbook.pdf', label: 'Bank_Passbook' });
     if (docs.nicCopy?.id) filesToZip.push({ id: docs.nicCopy.id, name: docs.nicCopy.name || 'nic.pdf', label: 'NIC' });
     if (docs.cv?.id) filesToZip.push({ id: docs.cv.id, name: docs.cv.name || 'cv.pdf', label: 'CV' });
@@ -225,27 +223,34 @@ export const downloadAllDocumentsAsZip = async (req: Request, res: Response): Pr
        return;
     }
 
-    // 3. Initialize AdmZip
-    const zip = new AdmZip();
+    const safeName = (taName || "TA").replace(/\s+/g, "_");
 
-    // 4. Fetch each file and add it directly to the zip memory buffer
+    // 1. Set the headers immediately
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${safeName}_Documents.zip"`);
+
+    // 2. Initialize the yazl ZipFile
+    const zipfile = new yazl.ZipFile();
+
+    // 3. Pipe the yazl output stream directly to the Express response
+    zipfile.outputStream.pipe(res);
+
+    // 4. Fetch the buffers and add them to the zip asynchronously
     for (const file of filesToZip) {
       try {
         const buffer = await getFileBuffer(file.id);
-        // Add the file to the zip archive
-        zip.addFile(`${file.label}_${file.name}`, buffer);
+        
+        // yazl handles the buffer compression asynchronously in the background
+        zipfile.addBuffer(buffer, `${file.label}_${file.name}`);
+        
       } catch (err) {
         console.error(`Skipping file ${file.name} due to fetch error.`);
       }
     }
 
-    // 5. Generate the final zip buffer and send it to the frontend!
-    const zipBuffer = zip.toBuffer();
-    const safeName = (taName || "TA").replace(/\s+/g, "_");
-
-    res.setHeader("Content-Type", "application/zip");
-    res.setHeader("Content-Disposition", `attachment; filename="${safeName}_Documents.zip"`);
-    res.send(zipBuffer);
+    // 5. Tell yazl we are done adding files. 
+    // It will finalize the compression and automatically close the Express response stream.
+    zipfile.end();
 
   } catch (err) {
     console.error("ZIP creation failed:", err);
