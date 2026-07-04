@@ -1,26 +1,21 @@
-const { google } = require("googleapis");
-const { Readable } = require("stream");
-const fs = require("fs");
-const path = require("path");
+import { google } from "googleapis";
+import { Readable } from "stream";
+import fs from "fs";
+import path from "path";
 
-interface MulterFile {
-  fieldname: string;
+
+export interface MulterFile {
   originalname: string;
-  encoding: string;
   mimetype: string;
-  buffer: Buffer;
-  size: number;
+  path: string; // provided by diskStorage
 }
 
-interface UploadedFile {
+export interface UploadedFile {
   id?: string;
   name?: string;
   webViewLink?: string;
   webContentLink?: string;
 }
-
-// const SERVICE_ACCOUNT_FILE = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "{}");
-// const SERVICE_ACCOUNT_FILE = path.join(__dirname, "../../service-account-key.json");
 
 // Configure for Shared Drive or regular folder
 const USE_SHARED_DRIVE = process.env.USE_SHARED_DRIVE === "true";
@@ -55,7 +50,7 @@ async function createOrGetFolderForTA(taId: string): Promise<string> {
       supportsAllDrives: true,
     });
 
-    if (list && list.data && list.data.files && list.data.files.length>0 && list.data.files[0] && list.data.files[0].id) {
+    if (list && list.data && list.data.files && list.data.files.length > 0 && list.data.files[0] && list.data.files[0].id) {
       console.log(`Found existing folder: ${folderName}`);
       return list.data.files[0].id;
     }
@@ -89,7 +84,7 @@ async function createOrGetFolderForTA(taId: string): Promise<string> {
       includeItemsFromAllDrives: true,
     });
 
-    if (list &&list.data && list.data.files && list.data.files.length>0 && list.data.files[0] && list.data.files[0].id) {
+    if (list && list.data && list.data.files && list.data.files.length > 0 && list.data.files[0] && list.data.files[0].id) {
       console.log(`Found existing folder: ${folderName}`);
       return list.data.files[0].id!;
     }
@@ -111,52 +106,63 @@ async function createOrGetFolderForTA(taId: string): Promise<string> {
 }
 
 /**
- * Upload a file into a specified folder in Google Drive
+ * Upload a file into a specified folder in Google Drive safely via disk streams
  */
 async function uploadFileToDrive(file: MulterFile, folderId: string): Promise<UploadedFile> {
-  const fileMeta = {
-    name: file.originalname,
-    parents: [folderId],
-  };
+  try {
+    const fileMeta = {
+      name: file.originalname,
+      parents: [folderId],
+    };
 
-  const media = {
-    mimeType: file.mimetype,
-    body: Readable.from(file.buffer),
-  };
+    const media = {
+      mimeType: file.mimetype,
+      // Stream directly from the VM's hard drive
+      body: fs.createReadStream(file.path),
+    };
 
-  const uploadOptions = {
-    requestBody: fileMeta,
-    media,
-    fields: "id, name, webViewLink, webContentLink",
-    supportsAllDrives: true,
-  };
+    const uploadOptions = {
+      requestBody: fileMeta,
+      media,
+      fields: "id, name, webViewLink, webContentLink",
+      supportsAllDrives: true,
+    };
 
-  const uploaded = await drive.files.create(uploadOptions);
+    const uploaded = await drive.files.create(uploadOptions);
 
-  // Make the file viewable by anyone with the link
-  const permissionOptions = {
-    fileId: uploaded.data.id!,
-    requestBody: { role: "reader", type: "anyone" },
-    supportsAllDrives: true,
-  };
+    // Make the file viewable by anyone with the link
+    const permissionOptions = {
+      fileId: uploaded.data.id!,
+      requestBody: { role: "reader", type: "anyone" },
+      supportsAllDrives: true,
+    };
 
-  await drive.permissions.create(permissionOptions);
+    await drive.permissions.create(permissionOptions);
 
-  return {
-    ...(uploaded.data.id && { id: uploaded.data.id }),
-    ...(uploaded.data.name && { name: uploaded.data.name }),
-    ...(uploaded.data.webViewLink && { webViewLink: uploaded.data.webViewLink }),
-    ...(uploaded.data.webContentLink && { webContentLink: uploaded.data.webContentLink }),
-  };
+    return {
+      ...(uploaded.data.id && { id: uploaded.data.id }),
+      ...(uploaded.data.name && { name: uploaded.data.name }),
+      ...(uploaded.data.webViewLink && { webViewLink: uploaded.data.webViewLink }),
+      ...(uploaded.data.webContentLink && { webContentLink: uploaded.data.webContentLink }),
+    };
+    
+  } finally {
+    // CRITICAL: Guarantees the temporary file is wiped from your VM's disk.
+    if (file.path && fs.existsSync(file.path)) {
+      fs.unlink(file.path, (err) => {
+        if (err) {
+          console.error(`Failed to delete temporary file at ${file.path}:`, err);
+        }
+      });
+    }
+  }
 }
 
 /**
  * Delete a folder and all its contents from Google Drive
- * @param folderId - The ID of the folder to delete
  */
 async function deleteFolderAndContents(folderId: string): Promise<void> {
   try {
-    // List all files in the folder
     const listOptions = {
       q: `'${folderId}' in parents and trashed=false`,
       fields: "files(id, name, mimeType)",
@@ -166,15 +172,12 @@ async function deleteFolderAndContents(folderId: string): Promise<void> {
 
     const list = await drive.files.list(listOptions);
 
-    // Delete all files and subfolders
     if (list.data.files && list.data.files.length > 0) {
       const deletePromises = list.data.files.map(async (file: any) => {
         try {
-          // If it's a folder, recursively delete its contents
           if (file.mimeType === "application/vnd.google-apps.folder") {
             await deleteFolderAndContents(file.id);
           } else {
-            // Delete the file
             await drive.files.delete({
               fileId: file.id,
               supportsAllDrives: true,
@@ -183,14 +186,12 @@ async function deleteFolderAndContents(folderId: string): Promise<void> {
           }
         } catch (error) {
           console.error(`Failed to delete file ${file.name} (${file.id}):`, error);
-          // Continue with other deletions
         }
       });
 
       await Promise.all(deletePromises);
     }
 
-    // Delete the folder itself
     await drive.files.delete({
       fileId: folderId,
       supportsAllDrives: true,
@@ -203,15 +204,15 @@ async function deleteFolderAndContents(folderId: string): Promise<void> {
 }
 
 /**
- * Fetches a file from Google Drive as a Buffer (Perfect for adm-zip)
+ * Fetches a file from Google Drive as a Buffer 
+ * (Kept for backwards compatibility)
  */
 async function getFileBuffer(fileId: string): Promise<Buffer> {
   try {
     const res = await drive.files.get(
       { fileId, alt: "media", supportsAllDrives: true },
-      { responseType: "arraybuffer" } // Get raw binary data
+      { responseType: "arraybuffer" }
     );
-    // Convert the ArrayBuffer to a Node.js Buffer
     return Buffer.from(res.data as ArrayBuffer);
   } catch (error) {
     console.error(`Failed to get buffer for file ${fileId}`, error);
@@ -219,4 +220,28 @@ async function getFileBuffer(fileId: string): Promise<Buffer> {
   }
 }
 
-module.exports = { createOrGetFolderForTA, uploadFileToDrive, deleteFolderAndContents, getFileBuffer };
+/**
+ * OPTIMIZED: Fetches a file from Google Drive as a Readable Stream.
+ * Use this with yazl.addReadStream() to bypass RAM entirely.
+ */
+async function getFileStream(fileId: string): Promise<Readable> {
+  try {
+    const res = await drive.files.get(
+      { fileId, alt: "media", supportsAllDrives: true },
+      { responseType: "stream" }
+    );
+    return res.data as Readable;
+  } catch (error) {
+    console.error(`Failed to get stream for file ${fileId}`, error);
+    throw error;
+  }
+}
+
+// Export using CommonJS for compatibility with your existing requires
+module.exports = { 
+  createOrGetFolderForTA, 
+  uploadFileToDrive, 
+  deleteFolderAndContents, 
+  getFileBuffer,
+  getFileStream 
+};

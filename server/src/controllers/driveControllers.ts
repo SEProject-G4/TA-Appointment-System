@@ -1,18 +1,24 @@
 import yazl from "yazl";
 import type { Request, Response } from "express";
-const { getFileBuffer } = require("../services/driveService");
-const { createOrGetFolderForTA, uploadFileToDrive } = require("../services/driveService");
+// Updated import to use getFileStream instead of getFileBuffer
+const { getFileStream, createOrGetFolderForTA, uploadFileToDrive } = require("../services/driveService");
 const Document = require("../models/documentModel");
 const AppliedModules = require("../models/AppliedModules");
 import { encrypt } from "../utils/encryption";
 
-interface MulterFiles {
-  [fieldname: string]: File[];
+interface MulterFile {
+  originalname: string;
+  mimetype: string;
+  path: string; // provided by diskStorage
 }
+interface MulterFiles {
+  [fieldname: string]: MulterFile[]; // Ensure this matches your new diskStorage file type
+}
+
 /**
  * Handle document submission by TA
  */
-export const submitDocuments = async (req: Request & { files?: any }, res: Response): Promise<Response> => {
+export const submitDocuments = async (req: Request & { files?: any }, res: Response): Promise<Response | void> => {
   try {
     const {
       userId,
@@ -30,7 +36,6 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
     }
 
     // Check if documents have already been submitted for this recruitment round
-    // If they exist, we'll update them (editing mode)
     let existingDocumentId = null;
     if (recSeriesId) {
       const existingAppliedModule = await AppliedModules.findOne({
@@ -38,7 +43,6 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
         recSeriesId,
       });
 
-      // If documents exist, get the document ID for updating
       if (existingAppliedModule?.isDocSubmitted && existingAppliedModule?.Documents) {
         existingDocumentId = existingAppliedModule.Documents;
       }
@@ -61,7 +65,6 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
     }
 
     const files = req.files as MulterFiles;
-
     const isPostgraduate = studentType === "postgraduate";
 
     const requiredFileFields = [
@@ -88,37 +91,51 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
       }
     }
 
-    // Upload new files if provided
-    for (const key in files) {
-      try {
-        if (!files[key] || files[key].length === 0) {
-          continue; // Skip if no file provided (user might not want to update this file)
-        }
-        const file = files[key][0];
+    // OPTIMIZED: Run all uploads in parallel to prevent Nginx 504 timeouts
+    const uploadPromises = Object.keys(files || {}).map(async (key) => {
+      if (!files[key] || files[key].length === 0) return null;
+      
+      const file = files[key][0];
+      if (!file) return null;
 
-        if (!file) {
-          continue;
-        }
+      try {
         console.log(`Uploading ${key}...`);
         const uploaded = await uploadFileToDrive(file, folderId);
-        driveFiles[key] = {
-          id: uploaded.id,
-          name: uploaded.name,
-          viewLink: uploaded.webViewLink,
-          downloadLink: uploaded.webContentLink,
-        };
         console.log(`Uploaded ${key}`);
+        
+        return {
+          key,
+          success: true,
+          data: {
+            id: uploaded.id,
+            name: uploaded.name,
+            viewLink: uploaded.webViewLink,
+            downloadLink: uploaded.webContentLink,
+          }
+        };
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Unknown error";
         console.error(`Failed to upload ${key}:`, errorMessage);
-        uploadErrors.push({ field: key, error: errorMessage });
+        return { key, success: false, error: errorMessage };
       }
-    }
+    });
 
-    // Merge new files with existing files (new files override existing ones)
+    // Wait for all uploads to finish simultaneously
+    const results = await Promise.all(uploadPromises);
+
+    // Sort the results into successes and failures
+    results.forEach(result => {
+      if (!result) return;
+      if (result.success) {
+        driveFiles[result.key] = result.data;
+      } else {
+        uploadErrors.push({ field: result.key, error: result.error as string });
+      }
+    });
+
+    // Merge new files with existing files
     const finalDriveFiles = { ...existingDriveFiles, ...driveFiles };
 
-    // Update existing document if editing, otherwise create new
     let newDoc;
     if (existingDocumentId) {
       const encryptedUpdates = {
@@ -128,20 +145,18 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
         accountNumber: accountNumber ? encrypt(accountNumber) : accountNumber,
       };
 
-      // Update existing document
       newDoc = await Document.findByIdAndUpdate(
         existingDocumentId,
         {
           ...encryptedUpdates,
           studentType,
           driveFolderId: folderId,
-          driveFiles: finalDriveFiles, // Use merged files (existing + new)
+          driveFiles: finalDriveFiles,
           position,
         },
         { new: true }
       );
     } else {
-      // Create new document (only if we have at least some files or it's a new submission)
       newDoc = await Document.create({
         userId,
         bankAccountName,
@@ -162,14 +177,13 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
         failedUploads: uploadErrors,
       });
     }
-    // Update the isDocSubmitted flag in AppliedModules for the specific recruitment round
+
     if (recSeriesId) {
       await AppliedModules.updateOne(
         { userId, recSeriesId },
         { $set: { isDocSubmitted: true, Documents: newDoc._id } }
       );
     } else {
-      // Fallback for backward compatibility (update all AppliedModules for this user)
       await AppliedModules.updateOne(
         { userId },
         { $set: { isDocSubmitted: true, Documents: newDoc._id } }
@@ -235,13 +249,14 @@ export const downloadAllDocumentsAsZip = async (req: Request, res: Response): Pr
     // 3. Pipe the yazl output stream directly to the Express response
     zipfile.outputStream.pipe(res);
 
-    // 4. Fetch the buffers and add them to the zip asynchronously
+    // 4. Fetch the streams and add them to the zip asynchronously
     for (const file of filesToZip) {
       try {
-        const buffer = await getFileBuffer(file.id);
+        // Fetch the raw Readable stream from Google Drive
+        const stream = await getFileStream(file.id);
         
-        // yazl handles the buffer compression asynchronously in the background
-        zipfile.addBuffer(buffer, `${file.label}_${file.name}`);
+        // Pipe the stream directly into the yazl compressor
+        zipfile.addReadStream(stream, `${file.label}_${file.name}`);
         
       } catch (err) {
         console.error(`Skipping file ${file.name} due to fetch error.`);
