@@ -192,6 +192,10 @@ const SubmissionCard = ({
     }
   }, [group, isEditing]);
 
+  useEffect(() => {
+    setIsEditing(!group.documentId);
+  }, [group.documentId]);
+
   const shouldShowDegreeCertificate =
     studentType === "postgraduate" || Boolean(group.documents?.degreeCertificate);
 

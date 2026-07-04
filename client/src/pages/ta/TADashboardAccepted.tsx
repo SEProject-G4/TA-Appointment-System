@@ -4,18 +4,17 @@ import {
   FileIcon,
   Clock,
   CircleCheckBig,
-  UploadIcon,
   CalendarDays
 } from "lucide-react";
 // import TAAcceptedCard from "../components/TAAcceptedCard";
 import TAAppliedCard from "../../components/ta/TAAppliedCard";
 import TAStatCard from "../../components/ta/TAStatCard";
 import { Button } from "../../components/ui/Button";
-import TADocumentCard from "../../components/ta/TADocumentCard";
 import ViewToggle from "../../components/ta/ViewToggle";
 import { useAuth } from "../../contexts/AuthContext";
 // import axios from "axios";
 import axiosInstance from "../../api/axiosConfig";
+import { useNavigate } from "react-router-dom";
 // import { data } from "react-router-dom";
 
 function TADashboardAccepted() {
@@ -23,7 +22,6 @@ function TADashboardAccepted() {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
-  const [isDocOpen, setIsDocOpen] = useState(false);
   const [isDocSubmitted, setIsDocSubmitted] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
   const [currentRecSeriesId, setCurrentRecSeriesId] = useState<string | null>(null);
@@ -47,6 +45,8 @@ const totalTAHours = modules.reduce(
   (sum, mod) => sum + mod.requiredTAHours,
   0
 );
+
+const navigate = useNavigate();
 
 // Get the latest (most recent/nearest) document due date
 const latestDocumentDueDate = modules.length > 0
@@ -170,10 +170,8 @@ const latestDocumentDueDate = modules.length > 0
               </div>
               <div className="flex-shrink-0 w-full sm:w-auto">
                 <Button
-                  icon={<UploadIcon className="w-4 h-4" />}
-                  label="Submit Documents"
-                  onClick={() => setIsDocOpen(true)}
-                  disabled={isDocSubmitted}
+                  label="Go to Document Submission"
+                  onClick={() => navigate("/ta-documents")}
                 />
               </div>
             </div>
@@ -246,24 +244,6 @@ const latestDocumentDueDate = modules.length > 0
           )}
         </div>
       </div>
-      {isDocOpen && (
-        <TADocumentCard
-          isDocOpen={isDocOpen}
-          onClose={() => setIsDocOpen(false)}
-          position={{
-            modules,
-            totalTAHours,
-          }}
-          isDocSubmitted={isDocSubmitted}
-          recSeriesId={currentRecSeriesId}
-          // currentRoundDocument={currentRoundDocument}
-          previousDocuments={previousDocuments}
-          onSuccess={() => {
-            setRefreshTrigger(prev => prev + 1); // Trigger refresh after successful submission
-            setIsDocOpen(false);
-          }}
-        />
-      )}
     </div>
   );
 }
