@@ -23,10 +23,9 @@ function TADashboardAccepted() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [isDocSubmitted, setIsDocSubmitted] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
-  const [currentRecSeriesId, setCurrentRecSeriesId] = useState<string | null>(null);
+  // const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
+
   // const [currentRoundDocument, setCurrentRoundDocument] = useState<any | null>(null);
-  const [previousDocuments, setPreviousDocuments] = useState<any[]>([]);
   const userRole = user?.role;
   const userId = user?.id; //check weather this correct------------------------------
   const modules = applications.flatMap(app =>
@@ -68,9 +67,7 @@ const latestDocumentDueDate = modules.length > 0
         );
         setApplications(response.data.acceptedApplications);
         setIsDocSubmitted(response.data.docSubmissionStatus);
-        setCurrentRecSeriesId(response.data.currentRecSeriesId || null);
         // setCurrentRoundDocument(response.data.currentRoundDocument || null);
-        setPreviousDocuments(response.data.previousDocuments || []);
         
         // // Log the actual response data, not the state (state updates are async)
         // console.log("API Response:", response.data);
@@ -98,7 +95,7 @@ const latestDocumentDueDate = modules.length > 0
     };
 
     fetchApplications();
-  }, [userId, refreshTrigger]); // <-- run whenever userId or refreshTrigger changes
+  }, [userId]); // <-- run whenever userId or refreshTrigger changes
 
   // Separate useEffect to log when applications state actually updates
   // useEffect(() => {
