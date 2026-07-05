@@ -540,7 +540,8 @@ const SubmissionCard = ({
             {renderDoc("cv", "CV", group.documents?.cv)}
             {shouldShowDegreeCertificate &&
               renderDoc("degreeCertificate", "Degree Certificate", group.documents?.degreeCertificate)}
-            <div className="p-4 border rounded-lg border-border-default/50 bg-primary-light/10">
+            {isEditing && (
+              <div className="p-4 border rounded-lg border-border-default/50 bg-primary-light/10">
                 <p className="mb-3 text-sm text-text-secondary">
                   Download the official declaration form, fill it out
                   completely, sign it and upload below.
@@ -550,7 +551,7 @@ const SubmissionCard = ({
                   icon={<Download className="w-4 h-4" />}
                   onClick={() => window.open(DECLARATION_FORM_URL, '_blank')}
                 />
-              </div>
+              </div>)}
             {renderDoc("declarationForm", "Declaration Form", group.documents?.declarationForm)}
           </div>
         </div>
