@@ -44,9 +44,13 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
     let existingDocumentId = null;
     if (recSeriesId) {
       const existingAppliedModule = await AppliedModules.findOne({
-        safeUserId,
-        safeRecSeriesId,
+        userId: safeUserId,
+        recSeriesId: safeRecSeriesId,
       });
+
+      if (!existingAppliedModule) {
+        console.log(`No existing applied module found for user: ${safeUserId} and recruitment series: ${safeRecSeriesId}`);
+      }
 
       if (existingAppliedModule?.isDocSubmitted && existingAppliedModule?.Documents) {
         existingDocumentId = existingAppliedModule.Documents;

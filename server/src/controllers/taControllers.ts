@@ -9,7 +9,11 @@ const documentModel = require("../models/documentModel");
 import { decrypt } from "../utils/encryption";
 
 const getAllRequests = async (req: Request, res: Response): Promise<Response> => {
-  const userId = req.query.userId as string;
+  const user = (req as any).user;
+  if (!user || !user._id) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  const userId = user._id.toString();
 
   try {
     const user = await User.findById(userId);
@@ -112,6 +116,18 @@ const getAllRequests = async (req: Request, res: Response): Promise<Response> =>
 
 const applyForTA = async (req: Request, res: Response): Promise<Response> => {
   const { userId, userRole, moduleId, recSeriesId, taHours } = req.body;
+  const authUser = (req as any).user;
+
+  if (!authUser || !authUser._id || !authUser.role) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  const authUserId = authUser._id.toString();
+  const authUserRole = authUser.role;
+
+  if (authUserId !== userId || authUserRole !== userRole) {
+    return res.status(403).json({ error: "Unauthorized action" });
+  }
+
 
   const session = await mongoose.startSession();
   try {
@@ -235,7 +251,12 @@ const applyForTA = async (req: Request, res: Response): Promise<Response> => {
 };
 
 const getAppliedModules = async (req: Request, res: Response): Promise<Response> => {
-  const userId = req.query.userId as string;
+  const authUser = (req as any).user;
+  if (!authUser || !authUser._id) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = authUser._id.toString();
 
   try {
     const user = await User.findById(userId);
@@ -294,7 +315,11 @@ const getAppliedModules = async (req: Request, res: Response): Promise<Response>
 };
 
 const getAcceptedModules = async (req: Request, res: Response): Promise<Response> => {
-  const userId = req.query.userId as string;
+  const authUser = (req as any).user;
+  if (!authUser || !authUser._id) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  const userId = authUser._id.toString();
 
   try {
     const user = await User.findById(userId);
