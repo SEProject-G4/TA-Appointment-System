@@ -4,6 +4,24 @@ const ALGORITHM = "aes-256-gcm";
 const KEY = Buffer.from(process.env.DATA_ENCRYPTION_KEY!, "hex"); // 32 bytes
 const IV_LENGTH = 12;
 
+const ENCRYPTED_PAYLOAD_REGEX = /^[0-9a-f]+:[0-9a-f]+:[0-9a-f]+$/i;
+
+function isLikelyEncryptedPayload(payload: string): boolean {
+  if (!payload || !payload.includes(":")) {
+    return false;
+  }
+
+  if (!ENCRYPTED_PAYLOAD_REGEX.test(payload)) {
+    return false;
+  }
+
+  const [ivHex, authTagHex, encrypted] = payload.split(":");
+  if (!ivHex || !authTagHex || !encrypted || !(encrypted.length)) {
+    return false;
+  }
+  return ivHex.length === IV_LENGTH * 2 && authTagHex.length === 32 && encrypted.length > 0;
+}
+
 export function encrypt(text: string): string {
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
@@ -17,7 +35,7 @@ export function encrypt(text: string): string {
 }
 
 export function decrypt(payload: string): string {
-  if (!payload || !payload.includes(":")) {
+  if (!isLikelyEncryptedPayload(payload)) {
     return payload; // Return as-is if not encrypted
   }
 
@@ -42,7 +60,7 @@ export function decrypt(payload: string): string {
 
     return decrypted;
   } catch (error) {
-    console.error("Decryption error:", error);
+    console.error("Decryption failed:", error);
     return payload; // Return original if decryption fails
   }
 }
