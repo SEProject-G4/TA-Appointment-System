@@ -4,6 +4,7 @@ const cors = require('cors');
 import session = require('express-session');
 const MongoStore = require('connect-mongo');
 const config = require('./config/index');
+const mongoSanitize = require('express-mongo-sanitize');
 
 // should be updated
 const authMiddleware = require('./middleware/authMiddleware');
@@ -62,6 +63,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
+
+app.use(mongoSanitize());
 
 // ... mount your other routes here
 app.use('/api/auth', require('./routes/authRoutes'));

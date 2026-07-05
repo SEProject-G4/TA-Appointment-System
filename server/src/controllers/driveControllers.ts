@@ -37,12 +37,15 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    const safeUserId = String(userId);
+    const safeRecSeriesId = String(recSeriesId);
+
     // Check if documents have already been submitted for this recruitment round
     let existingDocumentId = null;
     if (recSeriesId) {
       const existingAppliedModule = await AppliedModules.findOne({
-        userId,
-        recSeriesId,
+        safeUserId,
+        safeRecSeriesId,
       });
 
       if (existingAppliedModule?.isDocSubmitted && existingAppliedModule?.Documents) {
@@ -50,8 +53,8 @@ export const submitDocuments = async (req: Request & { files?: any }, res: Respo
       }
     }
 
-    console.log("Creating/getting folder for TA:", userId);
-    const folderId = await createOrGetFolderForTA(userId);
+    console.log("Creating/getting folder for TA:", safeUserId);
+    const folderId = await createOrGetFolderForTA(safeUserId);
     console.log("Folder ID:", folderId);
 
     const driveFiles: Record<string, any> = {};
