@@ -322,7 +322,7 @@ const SubmissionCard = ({
         <div className="flex flex-col gap-2">
           <div className="min-w-0 w-full">
             <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
-              {label} {isRequired && <span className="text-error">*</span>}
+              {label} {isRequired && <span className="text-error">*</span>} {isEditing && <span className="text-orange-500">(Max 8MB)</span>}
             </p>
             <p className="truncate text-sm font-medium text-text-primary">{displayName}</p>
           </div>
