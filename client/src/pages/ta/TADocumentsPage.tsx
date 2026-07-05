@@ -27,6 +27,8 @@ type SubmissionGroup = {
   documentId: string | null;
   personalDetails: {
     bankAccountName?: string;
+    bank?: string;
+    branch?: string;
     accountNumber?: string;
     nicNumber?: string;
     address?: string;
@@ -50,6 +52,8 @@ type DocumentKey =
 
 type SubmissionFormState = {
   bankAccountName: string;
+  bank: string;
+  branch: string;
   address: string;
   nicNumber: string;
   accountNumber: string;
@@ -83,6 +87,8 @@ const getStudentTypeLabel = (studentType?: string) => {
 
 const createInitialFormState = (group: SubmissionGroup): SubmissionFormState => ({
   bankAccountName: group.personalDetails?.bankAccountName || "",
+  bank: group.personalDetails?.bank || "",
+  branch: group.personalDetails?.branch || "",
   address: group.personalDetails?.address || "",
   nicNumber: group.personalDetails?.nicNumber || "",
   accountNumber: group.personalDetails?.accountNumber || "",
@@ -225,7 +231,7 @@ const SubmissionCard = ({
       return;
     }
 
-    if (!formState.bankAccountName || !formState.nicNumber || !formState.accountNumber || !formState.address) {
+    if (!formState.bankAccountName || !formState.bank || !formState.branch || !formState.nicNumber || !formState.accountNumber || !formState.address) {
       showToast("Please fill in all required personal details", "error");
       return;
     }
@@ -249,6 +255,8 @@ const SubmissionCard = ({
       submitData.append("userId", userId);
       submitData.append("recSeriesId", group.recSeriesId);
       submitData.append("bankAccountName", formState.bankAccountName);
+      submitData.append("bank", formState.bank);
+      submitData.append("branch", formState.branch);
       submitData.append("address", formState.address);
       submitData.append("nicNumber", formState.nicNumber);
       submitData.append("accountNumber", formState.accountNumber);
@@ -262,6 +270,8 @@ const SubmissionCard = ({
         ([key, value]) => {
           if (
             key === "bankAccountName" ||
+            key === "bank" ||
+            key === "branch" ||
             key === "address" ||
             key === "nicNumber" ||
             key === "accountNumber"
@@ -278,17 +288,17 @@ const SubmissionCard = ({
       const response = await axiosInstance.post("/documents/submit", submitData);
 
       if (response.status === 201) {
-        showToast("Documents updated successfully", "success");
+        showToast("Documents & Details updated successfully", "success");
         setIsEditing(false);
         onRefresh();
       } else if (response.status === 207) {
-        showToast("Documents updated with some upload failures", "info");
+        showToast("Documents & Details updated with some upload failures", "info");
         setIsEditing(false);
         onRefresh();
       }
     } catch (error: any) {
-      console.error("Error updating documents:", error);
-      const errorMessage = error.response?.data?.message || "Failed to update documents. Please try again.";
+      console.error("Error updating documents & details:", error);
+      const errorMessage = error.response?.data?.message || "Failed to update documents & details. Please try again.";
       showToast(errorMessage, "error");
     } finally {
       setIsSaving(false);
@@ -406,11 +416,41 @@ const SubmissionCard = ({
           <div className="mt-3 flex flex-col gap-3">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] uppercase tracking-wide text-text-secondary sm:text-xs">
-                Bank Account Name <span className="text-error">*</span>
+                Name as in Bank Account <span className="text-error">*</span>
               </label>
               <input
                 name="bankAccountName"
                 value={formState.bankAccountName}
+                onChange={handleFieldChange}
+                readOnly={!isEditing}
+                disabled={!isEditing}
+                required={isEditing}
+                tabIndex={isEditing ? 0 : -1}
+                className={`w-full rounded-lg border px-3 py-2 text-xs text-text-primary sm:text-sm ${isEditing ? "border-border-default bg-white focus:border-primary focus:ring-2 focus:ring-primary/20" : "cursor-default border-border-default bg-bg-page/60 opacity-100"}`}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] uppercase tracking-wide text-text-secondary sm:text-xs">
+                Bank <span className="text-error">*</span>
+              </label>
+              <input
+                name="bank"
+                value={formState.bank}
+                onChange={handleFieldChange}
+                readOnly={!isEditing}
+                disabled={!isEditing}
+                required={isEditing}
+                tabIndex={isEditing ? 0 : -1}
+                className={`w-full rounded-lg border px-3 py-2 text-xs text-text-primary sm:text-sm ${isEditing ? "border-border-default bg-white focus:border-primary focus:ring-2 focus:ring-primary/20" : "cursor-default border-border-default bg-bg-page/60 opacity-100"}`}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] uppercase tracking-wide text-text-secondary sm:text-xs">
+                Branch <span className="text-error">*</span>
+              </label>
+              <input
+                name="branch"
+                value={formState.branch}
                 onChange={handleFieldChange}
                 readOnly={!isEditing}
                 disabled={!isEditing}

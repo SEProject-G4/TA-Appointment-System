@@ -21,6 +21,8 @@ type Documents = {
 
 type PersonalDetails = {
   bankAccountName: string
+  bank: string
+  branch: string
   address: string
   nicNumber: string
   accountNumber: string

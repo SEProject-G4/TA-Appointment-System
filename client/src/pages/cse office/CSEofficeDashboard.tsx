@@ -24,6 +24,8 @@ type Documents = {
 
 type PersonalDetails = {
   bankAccountName: string
+  bank: string
+  branch: string
   address: string
   nicNumber: string
   accountNumber: string
@@ -421,8 +423,20 @@ const CSEofficeDashboard = () => {
                   <div className="grid grid-cols-1 gap-3 mt-3 sm:grid-cols-2">
                     {docModal.ta.personalDetails.bankAccountName && (
                       <div className="flex flex-col">
-                        <span className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wide">Bank Account Name</span>
+                        <span className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wide">Name as in Bank Account</span>
                         <span className="text-xs font-medium sm:text-sm text-text-primary">{docModal.ta.personalDetails.bankAccountName}</span>
+                      </div>
+                    )}
+                    {docModal.ta.personalDetails.bank && (
+                      <div className="flex flex-col">
+                        <span className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wide">Bank</span>
+                        <span className="text-xs font-medium sm:text-sm text-text-primary">{docModal.ta.personalDetails.bank}</span>
+                      </div>
+                    )}
+                    {docModal.ta.personalDetails.branch && (
+                      <div className="flex flex-col">
+                        <span className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-wide">Branch</span>
+                        <span className="text-xs font-medium sm:text-sm text-text-primary">{docModal.ta.personalDetails.branch}</span>
                       </div>
                     )}
                     {docModal.ta.personalDetails.accountNumber && (
