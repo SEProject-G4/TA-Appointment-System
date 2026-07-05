@@ -31,6 +31,11 @@ const viewTADocuments = async (req: Request, res: Response): Promise<Response> =
         populate: {
           path: "moduleId",
           select: "moduleCode moduleName requiredTAHours",
+          populate: {
+            path: "coordinators",
+            model: "User",
+            select: "displayName name",
+          },
         },
       })
       .lean();
@@ -67,6 +72,9 @@ const viewTADocuments = async (req: Request, res: Response): Promise<Response> =
           moduleCode: module.moduleCode,
           moduleName: module.moduleName,
           taHours: module.requiredTAHours || 0,
+          coordinators: (module.coordinators || []).map(
+            (coordinator: any) => coordinator.displayName || coordinator.name || "Unknown Coordinator"
+          ),
         };
       });
 

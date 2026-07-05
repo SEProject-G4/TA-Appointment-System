@@ -499,6 +499,12 @@ export const getMyDocumentSubmissions = async (req: Request, res: Response): Pro
         populate: {
           path: "moduleId",
           select: "moduleCode moduleName requiredTAHours"
+          ,
+          populate: {
+            path: "coordinators",
+            model: "User",
+            select: "displayName name",
+          },
         }
       })
       .lean();
@@ -519,7 +525,8 @@ export const getMyDocumentSubmissions = async (req: Request, res: Response): Pro
         moduleId: app.moduleId._id,
         moduleCode: app.moduleId.moduleCode,
         moduleName: app.moduleId.moduleName,
-        taHours: app.moduleId.requiredTAHours || 0
+        taHours: app.moduleId.requiredTAHours || 0,
+        coordinators: (app.moduleId.coordinators || []).map((coordinator: any) => coordinator.displayName || coordinator.name || "Unknown Coordinator"),
       }));
 
       const totalTAHours = formattedModules.reduce((sum: number, mod: any) => sum + mod.taHours, 0);

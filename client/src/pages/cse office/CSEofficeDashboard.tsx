@@ -36,6 +36,7 @@ type AcceptedModule = {
   moduleCode: string; 
   moduleName: string; 
   taHours: number;
+  coordinators?: string[];
 }
 
 type TAView = { 
@@ -410,6 +411,11 @@ const CSEofficeDashboard = () => {
                         <p className="text-sm font-bold text-primary-dark">{mod.moduleCode}</p>
                         <p className="text-sm truncate text-text-primary">{mod.moduleName}</p>
                         <p className="text-xs text-text-secondary mt-1">TA Hours: {mod.taHours}</p>
+                        {mod.coordinators && mod.coordinators.length > 0 && (
+                          <p className="text-xs text-text-secondary mt-1">
+                            Coordinators: {mod.coordinators.join(', ')}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>

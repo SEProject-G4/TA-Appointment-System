@@ -22,6 +22,7 @@ type SubmissionGroup = {
     moduleCode: string;
     moduleName: string;
     taHours: number;
+    coordinators?: string[];
   }[];
   totalTAHours: number;
   isDocSubmitted: boolean;
@@ -407,6 +408,11 @@ const SubmissionCard = ({
                   <p className="text-sm font-bold text-primary-dark">{mod.moduleCode}</p>
                   <p className="truncate text-sm text-text-primary">{mod.moduleName}</p>
                   <p className="mt-1 text-xs text-text-secondary">TA Hours: {mod.taHours}</p>
+                    {mod.coordinators && mod.coordinators.length > 0 && (
+                      <p className="mt-1 text-xs text-text-secondary">
+                        Coordinators: {mod.coordinators.join(", ")}
+                      </p>
+                    )}
                 </div>
               ))}
             </div>
