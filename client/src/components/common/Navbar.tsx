@@ -131,7 +131,7 @@ const Navbar = React.forwardRef<HTMLDivElement, NavbarProps>((_, ref) => {
     },
 
     {
-      role: "cse office",
+      role: "cse-office",
       links: [
         { subMenu:false, to: "/cse-office-dashboard", label: "View TA Documents" }
       ]
