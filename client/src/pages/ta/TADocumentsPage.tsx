@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Upload } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Download, Upload } from "lucide-react";
 import axiosInstance from "../../api/axiosConfig";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../contexts/ToastContext";
+import { Button } from "../../components/ui/Button";
 
 type FileMeta = {
   submitted?: boolean;
@@ -63,6 +64,9 @@ type SubmissionFormState = {
   degreeCertificate: File | null;
   declarationForm: File | null;
 };
+
+const DECLARATION_FORM_URL = import.meta.env.VITE_DECLARATION_FORM_URL || 
+  'https://drive.google.com/file/d/1Yx_48T0BEFLmYd2oz-neQRq0075yFOxc/view?usp=sharing';
 
 const documentItems: { key: DocumentKey; label: string; accept: string }[] = [
   { key: "bankPassbook", label: "Bank Passbook Copy", accept: ".pdf,.jpg,.jpeg,.png" },
@@ -530,6 +534,17 @@ const SubmissionCard = ({
             {renderDoc("cv", "CV", group.documents?.cv)}
             {shouldShowDegreeCertificate &&
               renderDoc("degreeCertificate", "Degree Certificate", group.documents?.degreeCertificate)}
+            <div className="p-4 border rounded-lg border-border-default/50 bg-primary-light/10">
+                <p className="mb-3 text-sm text-text-secondary">
+                  Download the official declaration form, fill it out
+                  completely, sign it and upload below.
+                </p>
+                <Button
+                  label="Download Declaration Form (PDF)"
+                  icon={<Download className="w-4 h-4" />}
+                  onClick={() => window.open(DECLARATION_FORM_URL, '_blank')}
+                />
+              </div>
             {renderDoc("declarationForm", "Declaration Form", group.documents?.declarationForm)}
           </div>
         </div>
