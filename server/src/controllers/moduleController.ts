@@ -569,7 +569,7 @@ const updateModule = async (req: Request, res: Response): Promise<Response> => {
           // TODO: Notify admins that both positions are full
         }
         if (new Date(applicationDueDate) > now) {
-          if (updateData.undergraduateCounts.remaining > 0 || updateData.postgraduateCounts.remaining > 0) {
+          if (updateData.undergraduateCounts.remaining > 0) {
             newModuleStatus = "advertised";
           }
         }
@@ -588,7 +588,7 @@ const updateModule = async (req: Request, res: Response): Promise<Response> => {
           newModuleStatus = "full";
         }
         if (new Date(applicationDueDate) > now) {
-          if (updateData.undergraduateCounts.remaining > 0 || updateData.postgraduateCounts.remaining > 0) {
+          if (updateData.postgraduateCounts.remaining > 0) {
             newModuleStatus = "advertised";
           }
         }
